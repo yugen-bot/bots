@@ -1,0 +1,28 @@
+FROM golang:1.23 AS build
+
+WORKDIR /opt/app
+
+COPY external ./external
+COPY apps/hoshi/go.mod apps/hoshi/go.sum ./apps/hoshi/
+COPY shared/go.mod shared/go.sum ./shared/
+
+RUN cd apps/hoshi && \
+	go mod download && \
+	cd ../../shared && \
+	go mod download
+
+COPY ./ ./
+
+RUN make build-hoshi
+
+
+# Production
+FROM scratch
+
+WORKDIR /opt/app
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+# We transport the binary to our deployable image
+COPY --from=build /opt/app/apps/hoshi/dist/hoshi /opt/app/
+
+CMD ["/opt/app/hoshi"]

@@ -60,7 +60,6 @@ func RegisterCommandModules(bot *disgolf.Bot, modules []CommandsModule) {
 
 			for _, messageComponent := range messageComponents {
 				bot.Router.RegisterMessageComponent(messageComponent)
-				bot.Router.RegisterMessageComponent(messageComponent)
 			}
 		}
 
