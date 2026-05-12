@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
@@ -13,14 +13,14 @@ import (
 
 type SettingsService struct {
 	database *db.PrismaClient
-	bot      *disgolf.Bot
+	bot      *discordgoplus.Bot
 }
 
 func CreateSettingsService(container *di.Container) *SettingsService {
 	utils.Logger.Info("Creating Settings Service")
 	return &SettingsService{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
-		bot:      container.Get(static.DiBot).(*disgolf.Bot),
+		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
 	}
 }
 

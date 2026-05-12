@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/prisma/db"
 	sharedStatic "jurien.dev/yugen/shared/static"
@@ -12,14 +12,14 @@ import (
 
 type NotifyService struct {
 	database *db.PrismaClient
-	bot      *disgolf.Bot
+	bot      *discordgoplus.Bot
 }
 
 func CreateNotifyService(container *di.Container) *NotifyService {
 	utils.Logger.Info("Creating Notify Service")
 	return &NotifyService{
 		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
-		bot:      container.Get(sharedStatic.DiBot).(*disgolf.Bot),
+		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
 	}
 }
 

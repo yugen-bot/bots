@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kusari/internal/services"
 	"jurien.dev/yugen/shared/middlewares"
@@ -12,7 +12,7 @@ type SettingsModule struct {
 	container *di.Container
 	settings  *services.SettingsService
 
-	subCommands []*disgolf.Command
+	subCommands []*discordgoplus.Command
 }
 
 func GetSettingsModule(container *di.Container) *SettingsModule {
@@ -22,7 +22,7 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	cooldownModule := GetSettingsCooldownModule(container)
 	resetModule := GetSettingsResetModule(container)
 
-	subCommands := []*disgolf.Command{}
+	subCommands := []*discordgoplus.Command{}
 	subCommands = append(subCommands, showModule.Commands()...)
 	subCommands = append(subCommands, channelModule.Commands()...)
 	subCommands = append(subCommands, botUpdatesModule.Commands()...)
@@ -37,15 +37,15 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	}
 }
 
-func (m *SettingsModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "settings",
 			Description: "Settings command group",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: disgolf.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(m.subCommands),
 		},
 	}
 }

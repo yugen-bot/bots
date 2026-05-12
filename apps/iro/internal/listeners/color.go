@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/colorname"
 	"github.com/zekroTJA/shinpuru/pkg/colors"
@@ -26,20 +26,20 @@ const (
 var rxColorHex = regexp.MustCompile(`^#?[\dA-Fa-f]{6,8}$`)
 
 type ColorListener struct {
-	bot        *disgolf.Bot
+	bot        *discordgoplus.Bot
 	emojiCache *timedmap.TimedMap
 }
 
 func GetColorListener(container *di.Container) *ColorListener {
 	utils.Logger.Info("Creating Color Listener")
 	return &ColorListener{
-		bot:        container.Get(static.DiBot).(*disgolf.Bot),
+		bot:        container.Get(static.DiBot).(*discordgoplus.Bot),
 		emojiCache: timedmap.New(1 * time.Minute),
 	}
 }
 
 func AddColorListeners(container *di.Container) {
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	colorListener := GetColorListener(container)
 	bot.AddHandler(colorListener.MessageCreateHandler)

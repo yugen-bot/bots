@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -21,8 +21,8 @@ func GetVoteModule(container *di.Container) *VoteModule {
 	}
 }
 
-func (m *VoteModule) Run(ctx *disgolf.Ctx) {
-	err := utils.Defer(ctx)
+func (m *VoteModule) Run(ctx *discordgoplus.Ctx) {
+	err := discordgoplus.Defer(ctx)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
@@ -46,7 +46,7 @@ func (m *VoteModule) Run(ctx *disgolf.Ctx) {
 	}
 
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: true,
 		},
@@ -93,7 +93,7 @@ Please use any of the links below to vote for %s!%s`, name, name, voteReward),
 		})
 	}
 
-	err = utils.FollowUp(ctx, &discordgo.WebhookParams{
+	err = discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Embeds:     []*discordgo.MessageEmbed{embed},
 		Components: messageComponents,
 	})
@@ -102,12 +102,12 @@ Please use any of the links below to vote for %s!%s`, name, name, voteReward),
 	}
 }
 
-func (m *VoteModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *VoteModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "vote",
 			Description: "Vote for the bot!",
-			Handler:     disgolf.HandlerFunc(m.Run),
+			Handler:     discordgoplus.HandlerFunc(m.Run),
 		},
 	}
 }

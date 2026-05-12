@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
@@ -10,35 +10,41 @@ import (
 
 type AdminModule struct {
 	container   *di.Container
-	subCommands []*disgolf.Command
+	notify      *AdminNotifyModule
+	subCommands []*discordgoplus.Command
 }
 
 func GetAdminModule(container *di.Container) *AdminModule {
 	guilds := GetAdminGuildsModule(container)
 	notify := GetAdminNotifyModule(container)
 
-	var subCommands []*disgolf.Command
+	var subCommands []*discordgoplus.Command
 	subCommands = append(subCommands, guilds.Commands()...)
 	subCommands = append(subCommands, notify.Commands()...)
 
 	return &AdminModule{
 		container:   container,
+		notify:      notify,
 		subCommands: subCommands,
 	}
 }
 
-func (m *AdminModule) Commands() []*disgolf.Command {
+func (m *AdminModule) Commands() []*discordgoplus.Command {
 	_ = m.container.Get(localStatic.DiGuilds).(*services.GuildsService)
 	_ = m.container.Get(localStatic.DiNotify).(*services.NotifyService)
 
-	return []*disgolf.Command{
+	return []*discordgoplus.Command{
 		{
 			Name:        "admin",
 			Description: "Admin commands",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildOwnerMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildOwnerMiddleware),
 			},
-			SubCommands: disgolf.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(m.subCommands),
 		},
 	}
+}
+
+func (m *AdminModule) Modals() []*discordgoplus.Modal {
+	return m.notify.Modals()
 }

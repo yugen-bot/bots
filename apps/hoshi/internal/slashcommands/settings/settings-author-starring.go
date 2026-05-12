@@ -1,14 +1,13 @@
 package slashcommands
 
 import (
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsAuthorStarringModule struct {
@@ -23,14 +22,14 @@ func GetSettingsAuthorStarringModule(container *di.Container) *SettingsAuthorSta
 	}
 }
 
-func (m *SettingsAuthorStarringModule) set(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsAuthorStarringModule) set(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	allowed := ctx.Options["allowed"].BoolValue()
 
 	_, err := m.settings.Set(ctx.Interaction.GuildID, db.Settings.Self.Set(allowed))
 	if err != nil {
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -39,18 +38,18 @@ func (m *SettingsAuthorStarringModule) set(ctx *disgolf.Ctx) {
 		state = "allowed"
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: "Message authors are now **" + state + "** to star their own message.",
 	}, true)
 }
 
-func (m *SettingsAuthorStarringModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsAuthorStarringModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "author-starring",
 			Description: "Set whether message author starring counts",
-			Middlewares: []disgolf.Handler{disgolf.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     disgolf.HandlerFunc(m.set),
+			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
+			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,

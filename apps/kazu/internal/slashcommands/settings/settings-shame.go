@@ -3,13 +3,12 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsShameModule struct {
@@ -24,13 +23,13 @@ func GetSettingsShameModule(container *di.Container) *SettingsShameModule {
 	}
 }
 
-func (m *SettingsShameModule) setRole(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsShameModule) setRole(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	role := ctx.Options["role"].RoleValue(ctx.Session, ctx.Interaction.GuildID)
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -39,22 +38,22 @@ func (m *SettingsShameModule) setRole(ctx *disgolf.Ctx) {
 		db.Settings.ShameRoleID.Set(role.ID),
 	)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("I will apply <@&%s> to the person that breaks the count chain.", role.ID),
 	}, true)
 }
 
-func (m *SettingsShameModule) setRemoveShameRole(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsShameModule) setRemoveShameRole(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	remove := ctx.Options["remove"].BoolValue()
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -63,7 +62,7 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *disgolf.Ctx) {
 		db.Settings.RemoveShameRoleAfterHighscore.Set(remove),
 	)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -72,17 +71,17 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *disgolf.Ctx) {
 		valueText = "not " + valueText
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("I will **%s** the shame role  after a highscore is reached.", valueText),
 	}, true)
 }
 
-func (m *SettingsShameModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsShameModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "shame-role",
 			Description: "Set shame role Kazu will apply on failure.",
-			Handler:     disgolf.HandlerFunc(m.setRole),
+			Handler:     discordgoplus.HandlerFunc(m.setRole),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionRole,
@@ -95,7 +94,7 @@ func (m *SettingsShameModule) Commands() []*disgolf.Command {
 		{
 			Name:        "remove-shame-role-on-highscore",
 			Description: "Set wether Kazu will reset the shame role after a highscore is reached.",
-			Handler:     disgolf.HandlerFunc(m.setRemoveShameRole),
+			Handler:     discordgoplus.HandlerFunc(m.setRemoveShameRole),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,

@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 var resetChoices = []*discordgo.ApplicationCommandOptionChoice{
@@ -33,8 +32,8 @@ func GetSettingsResetModule(container *di.Container) *SettingsResetModule {
 	}
 }
 
-func (m *SettingsResetModule) reset(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	setting := ctx.Options["setting"].StringValue()
 
@@ -55,13 +54,13 @@ func (m *SettingsResetModule) reset(ctx *disgolf.Ctx) {
 		param = db.Settings.IgnoredChannelIds.Set([]string{})
 		value = "[]"
 	default:
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	_, err := m.settings.Set(ctx.Interaction.GuildID, param)
 	if err != nil {
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -70,18 +69,18 @@ func (m *SettingsResetModule) reset(ctx *disgolf.Ctx) {
 	})
 	name := resetChoices[idx].Name
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("%s has been reset to its default value of `%s`", name, value),
 	}, true)
 }
 
-func (m *SettingsResetModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsResetModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "reset",
 			Description: "Reset a Hoshi setting to its default value.",
-			Middlewares: []disgolf.Handler{disgolf.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     disgolf.HandlerFunc(m.reset),
+			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
+			Handler:     discordgoplus.HandlerFunc(m.reset),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,

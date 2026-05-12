@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -20,9 +20,9 @@ func GetHelpModule(container *di.Container) *HelpModule {
 	}
 }
 
-func (m *HelpModule) tutorial(ctx *disgolf.Ctx) {
+func (m *HelpModule) tutorial(ctx *discordgoplus.Ctx) {
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -43,7 +43,7 @@ func (m *HelpModule) tutorial(ctx *disgolf.Ctx) {
 		Footer:      footer,
 	}
 
-	err = utils.Respond(ctx, &discordgo.InteractionResponseData{
+	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 	if err != nil {
@@ -51,12 +51,12 @@ func (m *HelpModule) tutorial(ctx *disgolf.Ctx) {
 	}
 }
 
-func (m *HelpModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *HelpModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "help",
 			Description: "How to setup the bot!",
-			Handler:     disgolf.HandlerFunc(m.tutorial),
+			Handler:     discordgoplus.HandlerFunc(m.tutorial),
 		},
 	}
 }

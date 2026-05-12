@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -20,9 +20,9 @@ func GetSupportModule(container *di.Container) *SupportModule {
 	}
 }
 
-func (m *SupportModule) support(ctx *disgolf.Ctx) {
+func (m *SupportModule) support(ctx *discordgoplus.Ctx) {
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -43,7 +43,7 @@ Join our support server with the button below, we'll try to help you out the bes
 		Footer: footer,
 	}
 
-	err = utils.Respond(ctx, &discordgo.InteractionResponseData{
+	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
@@ -58,12 +58,12 @@ Join our support server with the button below, we'll try to help you out the bes
 	}
 }
 
-func (m *SupportModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SupportModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "support",
 			Description: "Get a support discord invite to join the support server!",
-			Handler:     disgolf.HandlerFunc(m.support),
+			Handler:     discordgoplus.HandlerFunc(m.support),
 		},
 	}
 }

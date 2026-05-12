@@ -3,8 +3,8 @@ package utils
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/static"
@@ -19,9 +19,9 @@ const NoSettingsDescription = `Someone with ` + "`Manage Server`" + ` permission
 
 That's it! Have fun playing!`
 
-func NoSettingsReply(ctx *disgolf.Ctx, container *di.Container, ephemeral bool) {
+func NoSettingsReply(ctx *discordgoplus.Ctx, container *di.Container, ephemeral bool) {
 	footer, _ := shared.CreateEmbedFooter(
-		container.Get(static.DiBot).(*disgolf.Bot),
+		container.Get(static.DiBot).(*discordgoplus.Bot),
 		&shared.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -35,14 +35,14 @@ func NoSettingsReply(ctx *disgolf.Ctx, container *di.Container, ephemeral bool) 
 	}
 
 	if ephemeral {
-		shared.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Embeds: []*discordgo.MessageEmbed{embed},
 			Flags:  discordgo.MessageFlagsEphemeral,
 		}, true)
 		return
 	}
 
-	shared.Respond(ctx, &discordgo.InteractionResponseData{
+	discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 }

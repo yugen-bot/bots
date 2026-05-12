@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 var choices = []*discordgo.ApplicationCommandOptionChoice{
@@ -52,13 +51,13 @@ func GetSettingsResetModule(container *di.Container) *SettingsResetModule {
 	}
 }
 
-func (m *SettingsResetModule) set(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	setting := ctx.Options["setting"].StringValue()
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -86,7 +85,7 @@ func (m *SettingsResetModule) set(ctx *disgolf.Ctx) {
 	}
 
 	if dbSetting == nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -95,7 +94,7 @@ func (m *SettingsResetModule) set(ctx *disgolf.Ctx) {
 		dbSetting,
 	)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -105,17 +104,17 @@ func (m *SettingsResetModule) set(ctx *disgolf.Ctx) {
 	)
 	name := choices[choiceIdx].Name
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("%s has been reset to it's default value of `%s`", name, value),
 	}, true)
 }
 
-func (m *SettingsResetModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsResetModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "reset",
 			Description: "Reset a Kazu setting to it's default value.",
-			Handler:     disgolf.HandlerFunc(m.set),
+			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,

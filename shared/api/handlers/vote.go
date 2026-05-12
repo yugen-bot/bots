@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
 	"github.com/gofiber/fiber/v2"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 )
@@ -77,7 +77,7 @@ func (handler *VoteHandler) handleTopGG(c *fiber.Ctx) error {
 		return c.Status(400).SendString("Missing user ID in body")
 	}
 
-	bot := handler.container.Get(static.DiBot).(*disgolf.Bot)
+	bot := handler.container.Get(static.DiBot).(*discordgoplus.Bot)
 	self := bot.State.User
 
 	if body.BotID != self.ID {
@@ -121,7 +121,7 @@ func (handler *VoteHandler) handleVote(userID string, source string) {
 }
 
 func (handler *VoteHandler) sendLogMessage(userID string, source string) {
-	bot := handler.container.Get(static.DiBot).(*disgolf.Bot)
+	bot := handler.container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	content := fmt.Sprintf("<@%s> has voted on **%s**!", userID, source)
 	channelID := os.Getenv(static.EnvDiscordVoteReportChannelID)

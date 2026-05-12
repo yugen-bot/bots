@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 	"jurien.dev/yugen/shared/static"
@@ -19,7 +19,7 @@ type ServerModule struct {
 	container *di.Container
 	settings  *services.SettingsService
 	game      *services.GameService
-	bot       *disgolf.Bot
+	bot       *discordgoplus.Bot
 }
 
 func GetServerModule(container *di.Container) *ServerModule {
@@ -27,18 +27,18 @@ func GetServerModule(container *di.Container) *ServerModule {
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
 		game:      container.Get(local.DiGame).(*services.GameService),
-		bot:       container.Get(static.DiBot).(*disgolf.Bot),
+		bot:       container.Get(static.DiBot).(*discordgoplus.Bot),
 	}
 }
 
-func (m *ServerModule) err(ctx *disgolf.Ctx) {
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+func (m *ServerModule) err(ctx *discordgoplus.Ctx) {
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: "Sorry couldn't retrieve the server information...",
 	}, true)
 }
 
-func (m *ServerModule) server(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
@@ -71,7 +71,7 @@ func (m *ServerModule) server(ctx *disgolf.Ctx) {
 	self := m.bot.State.User
 
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -127,7 +127,7 @@ Saves used: **%s**
 		Footer: footer,
 	}
 
-	err = utils.FollowUp(ctx, &discordgo.WebhookParams{
+	err = discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	}, true)
 	if err != nil {
@@ -135,12 +135,12 @@ Saves used: **%s**
 	}
 }
 
-func (m *ServerModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *ServerModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "server",
 			Description: "Get the server information!",
-			Handler:     disgolf.HandlerFunc(m.server),
+			Handler:     discordgoplus.HandlerFunc(m.server),
 		},
 	}
 }

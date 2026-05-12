@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/services"
 	local "jurien.dev/yugen/kazu/internal/static"
@@ -29,8 +29,8 @@ func GetGameModule(container *di.Container) *GameModule {
 	}
 }
 
-func (m *GameModule) startGame(ctx *disgolf.Ctx, recreate bool) {
-	utils.Defer(ctx, true)
+func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
+	discordgoplus.Defer(ctx, true)
 
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
@@ -58,7 +58,7 @@ func (m *GameModule) startGame(ctx *disgolf.Ctx, recreate bool) {
 		recreate,
 	)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (m *GameModule) startGame(ctx *disgolf.Ctx, recreate bool) {
 		respond = respond + "."
 	}
 
-	err = utils.FollowUp(ctx, &discordgo.WebhookParams{
+	err = discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: respond,
 	}, true)
 	if err != nil {
@@ -81,11 +81,11 @@ func (m *GameModule) startGame(ctx *disgolf.Ctx, recreate bool) {
 	}
 }
 
-func (m *GameModule) start(ctx *disgolf.Ctx) {
+func (m *GameModule) start(ctx *discordgoplus.Ctx) {
 	m.startGame(ctx, false)
 }
 
-func (m *GameModule) reset(ctx *disgolf.Ctx) {
+func (m *GameModule) reset(ctx *discordgoplus.Ctx) {
 	m.startGame(ctx, true)
 }
 
@@ -98,25 +98,25 @@ var options = []*discordgo.ApplicationCommandOption{
 	},
 }
 
-func (m *GameModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *GameModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "game",
 			Description: "Game command group",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: disgolf.NewRouter([]*disgolf.Command{
+			SubCommands: discordgoplus.NewRouter([]*discordgoplus.Command{
 				{
 					Name:        "start",
 					Description: "Start a game when there is none ongoing.",
-					Handler:     disgolf.HandlerFunc(m.start),
+					Handler:     discordgoplus.HandlerFunc(m.start),
 					Options:     options,
 				},
 				{
 					Name:        "reset",
 					Description: "Reset the current game and any points earned.",
-					Handler:     disgolf.HandlerFunc(m.reset),
+					Handler:     discordgoplus.HandlerFunc(m.reset),
 					Options:     options,
 				},
 			}),

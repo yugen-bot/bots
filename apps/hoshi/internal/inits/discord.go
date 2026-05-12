@@ -1,8 +1,8 @@
 package inits
 
 import (
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/listeners"
 	sharedListeners "jurien.dev/yugen/shared/listeners"
@@ -20,7 +20,7 @@ const (
 func InitDiscordBot(container *di.Container) (release func()) {
 	release = func() {}
 
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	bot.Identify.Intents = Intents
 
@@ -37,8 +37,6 @@ func InitDiscordBot(container *di.Container) (release func()) {
 	// internal
 	listeners.AddGuildListeners(container)
 	listeners.AddReactionListeners(container)
-
-	RegisterModalHandlers(bot, container)
 
 	err := InitCommands(container)
 	if err != nil {

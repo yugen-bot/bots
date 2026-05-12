@@ -3,14 +3,13 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsTresholdModule struct {
@@ -25,12 +24,12 @@ func GetSettingsTresholdModule(container *di.Container) *SettingsTresholdModule 
 	}
 }
 
-func (m *SettingsTresholdModule) set(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsTresholdModule) set(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	n := int(ctx.Options["treshold"].IntValue())
 	if n < 1 {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Treshold must be at least 1.",
 		}, true)
 		return
@@ -38,22 +37,22 @@ func (m *SettingsTresholdModule) set(ctx *disgolf.Ctx) {
 
 	_, err := m.settings.Set(ctx.Interaction.GuildID, db.Settings.Treshold.Set(n))
 	if err != nil {
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("Starboard treshold has been set to **%d**.", n),
 	}, true)
 }
 
-func (m *SettingsTresholdModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsTresholdModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "treshold",
 			Description: "Set starboard threshold",
-			Middlewares: []disgolf.Handler{disgolf.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     disgolf.HandlerFunc(m.set),
+			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
+			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,

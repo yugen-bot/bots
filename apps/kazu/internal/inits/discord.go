@@ -3,8 +3,8 @@ package inits
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/listeners"
 	"jurien.dev/yugen/shared/static"
@@ -25,7 +25,7 @@ const (
 func InitDiscordBot(container *di.Container) (release func()) {
 	release = func() {}
 
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	bot.Identify.Intents = Intents
 

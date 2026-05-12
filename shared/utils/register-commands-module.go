@@ -4,16 +4,20 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 )
 
 type CommandsModule interface {
-	Commands() []*disgolf.Command
+	Commands() []*discordgoplus.Command
 }
 
 type CommandsAndMessageComponentsModule interface {
-	Commands() []*disgolf.Command
-	MessageComponents() []*disgolf.MessageComponent
+	Commands() []*discordgoplus.Command
+	MessageComponents() []*discordgoplus.MessageComponent
+}
+
+type ModalsModule interface {
+	Modals() []*discordgoplus.Modal
 }
 
 func getStructName(m interface{}) string {
@@ -24,7 +28,7 @@ func getStructName(m interface{}) string {
 	}
 }
 
-func RegisterCommandModules(bot *disgolf.Bot, modules []CommandsModule) {
+func RegisterCommandModules(bot *discordgoplus.Bot, modules []CommandsModule) {
 	for _, m := range modules {
 		commandsStr := "commands"
 		commandsLen := 0
@@ -63,13 +67,31 @@ func RegisterCommandModules(bot *disgolf.Bot, modules []CommandsModule) {
 			}
 		}
 
+		modalsStr := "modals"
+		modalsLen := 0
+
+		if a, ok := m.(ModalsModule); ok {
+			modals := a.Modals()
+			modalsLen = len(modals)
+
+			if modalsLen == 1 {
+				modalsStr = "modal"
+			}
+
+			for _, modal := range modals {
+				bot.Router.RegisterModal(modal)
+			}
+		}
+
 		Logger.Infof(
-			"Registered '%s' module with %d %s and %d %s",
+			"Registered '%s' module with %d %s, %d %s and %d %s",
 			strings.Replace(getStructName(m), "Module", "", 1),
 			commandsLen,
 			commandsStr,
 			messageComponentsLen,
 			messageComponentsStr,
+			modalsLen,
+			modalsStr,
 		)
 	}
 }

@@ -3,14 +3,13 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsBotUpdatesModule struct {
@@ -25,29 +24,29 @@ func GetSettingsBotUpdatesModule(container *di.Container) *SettingsBotUpdatesMod
 	}
 }
 
-func (m *SettingsBotUpdatesModule) set(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
 
 	_, err := m.settings.Set(ctx.Interaction.GuildID, db.Settings.BotUpdatesChannelID.Set(string(channel.ID)))
 	if err != nil {
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("Hoshi will send its updates to <#%s>!", channel.ID),
 	}, true)
 }
 
-func (m *SettingsBotUpdatesModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsBotUpdatesModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "bot-updates",
 			Description: "Set channel for the bot updates",
-			Middlewares: []disgolf.Handler{disgolf.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     disgolf.HandlerFunc(m.set),
+			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
+			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionChannel,

@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 func sendLogMessage(container *di.Container, event *discordgo.InteractionCreate, data *discordgo.ApplicationCommandInteractionData) {
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
-	name := utils.GetInteractionName(data, " ")
+	name := discordgoplus.GetInteractionName(data, " ")
 
 	guild, err := bot.Guild(event.GuildID)
 	if err != nil {
@@ -28,7 +28,7 @@ func sendLogMessage(container *di.Container, event *discordgo.InteractionCreate,
 }
 
 func AddLogListeners(container *di.Container) {
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	bot.AddHandler(func(bot *discordgo.Session, event *discordgo.InteractionCreate) {
 		if event.Type != discordgo.InteractionApplicationCommand {
@@ -36,7 +36,7 @@ func AddLogListeners(container *di.Container) {
 		}
 
 		data := event.ApplicationCommandData()
-		name := utils.GetInteractionName(&data)
+		name := discordgoplus.GetInteractionName(&data)
 		utils.Logger.With(
 			"interaction", name,
 			"username", event.Member.User.Username,

@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -21,7 +21,7 @@ To add another starboard, use ` + "`/starboard add`" + `.
 *Notes:*
 - Hoshi does not *yet* support super reactions!`
 
-func SendWelcomeMessage(channel *discordgo.Channel, bot *disgolf.Bot) error {
+func SendWelcomeMessage(channel *discordgo.Channel, bot *discordgoplus.Bot) error {
 	footer, err := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false})
 	if err != nil {
 		return err

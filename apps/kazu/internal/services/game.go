@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/Knetic/govaluate"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 	localStatic "jurien.dev/yugen/kazu/internal/static"
@@ -20,7 +20,7 @@ import (
 )
 
 type GameService struct {
-	bot      *disgolf.Bot
+	bot      *discordgoplus.Bot
 	database *db.PrismaClient
 	settings *SettingsService
 	saves    *SavesService
@@ -30,7 +30,7 @@ type GameService struct {
 func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 	return &GameService{
-		bot:      container.Get(static.DiBot).(*disgolf.Bot),
+		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(static.DiSettings).(*SettingsService),
 		saves:    container.Get(localStatic.DiSaves).(*SavesService),

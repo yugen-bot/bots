@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/static"
 	"jurien.dev/yugen/hoshi/prisma/db"
@@ -17,7 +17,7 @@ import (
 type StarboardService struct {
 	database *db.PrismaClient
 	settings *SettingsService
-	bot      *disgolf.Bot
+	bot      *discordgoplus.Bot
 }
 
 func CreateStarboardService(container *di.Container) *StarboardService {
@@ -25,7 +25,7 @@ func CreateStarboardService(container *di.Container) *StarboardService {
 	return &StarboardService{
 		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
-		bot:      container.Get(sharedStatic.DiBot).(*disgolf.Bot),
+		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
 	}
 }
 

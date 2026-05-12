@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 
 	"jurien.dev/yugen/kazu/internal/services"
 	local "jurien.dev/yugen/kazu/internal/static"
@@ -28,8 +27,8 @@ func GetDonateSaveModule(container *di.Container) *DonateSaveModule {
 	}
 }
 
-func (m *DonateSaveModule) donateSave(ctx *disgolf.Ctx) {
-	err := utils.Defer(ctx, true)
+func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
+	err := discordgoplus.Defer(ctx, true)
 	if err != nil {
 		return
 	}
@@ -45,14 +44,14 @@ func (m *DonateSaveModule) donateSave(ctx *disgolf.Ctx) {
 	}
 
 	if player.Saves < 1 {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: fmt.Sprintf("You currently don't have atleast 1 save to donate, you currently have **%d** saves!", int(player.Saves)),
 		}, true)
 		return
 	}
 
 	if settings.Saves >= settings.MaxSaves {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: fmt.Sprintf(
 				"The server already has **%s/%s** saves!",
 				strconv.FormatFloat(settings.Saves, 'f', -1, 64),
@@ -68,7 +67,7 @@ func (m *DonateSaveModule) donateSave(ctx *disgolf.Ctx) {
 		return
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf(
 			`**Save donated!**
 The server now has **%s/%s** saves!`,
@@ -78,12 +77,12 @@ The server now has **%s/%s** saves!`,
 	}, true)
 }
 
-func (m *DonateSaveModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *DonateSaveModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "donate-save",
 			Description: "Donate a personal save to the server.",
-			Handler:     disgolf.HandlerFunc(m.donateSave),
+			Handler:     discordgoplus.HandlerFunc(m.donateSave),
 		},
 	}
 }

@@ -3,7 +3,7 @@ package inits
 import (
 	"os"
 
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
@@ -14,10 +14,10 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiBot,
 		Build: func(ctn di.Container) (interface{}, error) {
-			return disgolf.New(os.Getenv(static.EnvDiscordToken))
+			return discordgoplus.New(os.Getenv(static.EnvDiscordToken))
 		},
 		Close: func(obj interface{}) error {
-			bot := obj.(*disgolf.Bot)
+			bot := obj.(*discordgoplus.Bot)
 
 			utils.Logger.Info("Shutting down bot...")
 			bot.Close()

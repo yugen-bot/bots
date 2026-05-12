@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -20,9 +20,9 @@ func GetDonateModule(container *di.Container) *DonateModule {
 	}
 }
 
-func (m *DonateModule) donate(ctx *disgolf.Ctx) {
+func (m *DonateModule) donate(ctx *discordgoplus.Ctx) {
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -44,7 +44,7 @@ Thanks for playing!`, appName),
 		Footer: footer,
 	}
 
-	err = utils.Respond(ctx, &discordgo.InteractionResponseData{
+	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
@@ -59,12 +59,12 @@ Thanks for playing!`, appName),
 	}
 }
 
-func (m *DonateModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *DonateModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "donate",
 			Description: "Get information about donating to the bot!",
-			Handler:     disgolf.HandlerFunc(m.donate),
+			Handler:     discordgoplus.HandlerFunc(m.donate),
 		},
 	}
 }

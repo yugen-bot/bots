@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/shared/middlewares"
@@ -16,7 +16,7 @@ type SettingsModule struct {
 	container *di.Container
 	settings  *services.SettingsService
 
-	subCommands []*disgolf.Command
+	subCommands []*discordgoplus.Command
 }
 
 func GetSettingsModule(container *di.Container) *SettingsModule {
@@ -28,7 +28,7 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	shameModule := GetSettingsShameModule(container)
 	resetModule := GetSettingsResetModule(container)
 
-	subCommands := []*disgolf.Command{}
+	subCommands := []*discordgoplus.Command{}
 	subCommands = append(subCommands, showModule.Commands()...)
 	subCommands = append(subCommands, channelModule.Commands()...)
 	subCommands = append(subCommands, botUpdatesModule.Commands()...)
@@ -45,12 +45,12 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	}
 }
 
-func (m *SettingsModule) Show(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsModule) Show(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -92,7 +92,7 @@ func (m *SettingsModule) Show(ctx *disgolf.Ctx) {
 	}
 
 	footer, _ := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -137,20 +137,20 @@ func (m *SettingsModule) Show(ctx *disgolf.Ctx) {
 		},
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	}, true)
 }
 
-func (m *SettingsModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "settings",
 			Description: "Settings command group",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: disgolf.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(m.subCommands),
 		},
 	}
 }

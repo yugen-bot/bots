@@ -1,7 +1,7 @@
 package inits
 
 import (
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"
@@ -9,7 +9,7 @@ import (
 )
 
 func InitCommands(container *di.Container) (err error) {
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	modules := []utils.CommandsModule{
 		// shared

@@ -5,14 +5,13 @@ import (
 	"math"
 	"strings"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type StarboardListModule struct {
@@ -27,7 +26,7 @@ func GetStarboardListModule(container *di.Container) *StarboardListModule {
 	}
 }
 
-func (m *StarboardListModule) list(ctx *disgolf.Ctx) {
+func (m *StarboardListModule) list(ctx *discordgoplus.Ctx) {
 	page := 1
 	if opt, ok := ctx.Options["page"]; ok {
 		page = int(opt.IntValue())
@@ -35,7 +34,7 @@ func (m *StarboardListModule) list(ctx *disgolf.Ctx) {
 	m.showList(ctx, page, false)
 }
 
-func (m *StarboardListModule) listPage(ctx *disgolf.Ctx) {
+func (m *StarboardListModule) listPage(ctx *discordgoplus.Ctx) {
 	page := 1
 	if p, ok := ctx.MessageComponentOptions["page"]; ok {
 		fmt.Sscanf(p, "%d", &page)
@@ -43,18 +42,18 @@ func (m *StarboardListModule) listPage(ctx *disgolf.Ctx) {
 	m.showList(ctx, page, true)
 }
 
-func (m *StarboardListModule) showList(ctx *disgolf.Ctx, page int, isComponent bool) {
+func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isComponent bool) {
 	if !isComponent {
-		utils.Defer(ctx, true)
+		discordgoplus.Defer(ctx, true)
 	}
 
-	bot := m.container.Get(static.DiBot).(*disgolf.Bot)
+	bot := m.container.Get(static.DiBot).(*discordgoplus.Bot)
 	items, total, err := m.starboard.GetStarboards(ctx.Interaction.GuildID, page)
 	if err != nil {
 		if isComponent {
-			utils.MessageComponentError(ctx)
+			discordgoplus.MessageComponentError(ctx)
 		} else {
-			utils.InteractionError(ctx, true)
+			discordgoplus.InteractionError(ctx, true)
 		}
 		return
 	}
@@ -62,9 +61,9 @@ func (m *StarboardListModule) showList(ctx *disgolf.Ctx, page int, isComponent b
 	if total == 0 {
 		content := "No starboards have been configured yet."
 		if isComponent {
-			utils.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
 		} else {
-			utils.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
 		}
 		return
 	}
@@ -72,9 +71,9 @@ func (m *StarboardListModule) showList(ctx *disgolf.Ctx, page int, isComponent b
 	if len(items) == 0 {
 		content := fmt.Sprintf("No starboards found for page %d", page)
 		if isComponent {
-			utils.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
 		} else {
-			utils.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
 		}
 		return
 	}
@@ -139,24 +138,24 @@ func (m *StarboardListModule) showList(ctx *disgolf.Ctx, page int, isComponent b
 	}
 
 	if isComponent {
-		utils.Update(ctx, &discordgo.InteractionResponseData{
+		discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
 			Embeds:     []*discordgo.MessageEmbed{embed},
 			Components: components,
 		})
 	} else {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Embeds:     []*discordgo.MessageEmbed{embed},
 			Components: components,
 		}, true)
 	}
 }
 
-func (m *StarboardListModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *StarboardListModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "list",
 			Description: "List the starboards",
-			Handler:     disgolf.HandlerFunc(m.list),
+			Handler:     discordgoplus.HandlerFunc(m.list),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
@@ -170,11 +169,11 @@ func (m *StarboardListModule) Commands() []*disgolf.Command {
 	}
 }
 
-func (m *StarboardListModule) MessageComponents() []*disgolf.MessageComponent {
-	return []*disgolf.MessageComponent{
+func (m *StarboardListModule) MessageComponents() []*discordgoplus.MessageComponent {
+	return []*discordgoplus.MessageComponent{
 		{
 			CustomID: "STARBOARD_LIST/:page",
-			Handler:  disgolf.HandlerFunc(m.listPage),
+			Handler:  discordgoplus.HandlerFunc(m.listPage),
 		},
 	}
 }

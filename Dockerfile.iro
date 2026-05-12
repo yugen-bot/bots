@@ -2,7 +2,6 @@ FROM golang:1.23 AS build
 
 WORKDIR /opt/app
 
-COPY external ./external
 COPY apps/iro/go.mod apps/iro/go.sum ./apps/iro/
 COPY shared/go.mod shared/go.sum ./shared/
 

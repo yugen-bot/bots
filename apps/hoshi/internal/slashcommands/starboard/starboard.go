@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
@@ -11,7 +11,7 @@ import (
 type StarboardModule struct {
 	container   *di.Container
 	starboard   *services.StarboardService
-	subCommands []*disgolf.Command
+	subCommands []*discordgoplus.Command
 }
 
 func GetStarboardModule(container *di.Container) *StarboardModule {
@@ -19,7 +19,7 @@ func GetStarboardModule(container *di.Container) *StarboardModule {
 	add := GetStarboardAddModule(container)
 	remove := GetStarboardRemoveModule(container)
 
-	var subCommands []*disgolf.Command
+	var subCommands []*discordgoplus.Command
 	subCommands = append(subCommands, list.Commands()...)
 	subCommands = append(subCommands, add.Commands()...)
 	subCommands = append(subCommands, remove.Commands()...)
@@ -31,15 +31,15 @@ func GetStarboardModule(container *di.Container) *StarboardModule {
 	}
 }
 
-func (m *StarboardModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *StarboardModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "starboard",
 			Description: "Manage starboards",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: disgolf.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(m.subCommands),
 		},
 	}
 }
