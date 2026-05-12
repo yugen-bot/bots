@@ -1,0 +1,54 @@
+package listeners
+
+import (
+	"github.com/FedorLap2006/disgolf"
+	"github.com/bwmarrin/discordgo"
+	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/hoshi/internal/services"
+	localUtils "jurien.dev/yugen/hoshi/internal/utils"
+	sharedStatic "jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
+)
+
+func AddGuildListeners(container *di.Container) {
+	bot := container.Get(sharedStatic.DiBot).(*disgolf.Bot)
+	settingsSvc := container.Get(sharedStatic.DiSettings).(*services.SettingsService)
+
+	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildCreate) {
+		settings, err := settingsSvc.GetByGuildID(event.ID)
+		if err != nil {
+			return
+		}
+
+		if settings != nil {
+			return
+		}
+
+		utils.Logger.Infof("Joined guild: %s", event.Name)
+
+		for _, ch := range event.Channels {
+			if ch.Type != discordgo.ChannelTypeGuildText {
+				continue
+			}
+
+			perms, err := s.UserChannelPermissions(s.State.User.ID, ch.ID)
+			if err != nil {
+				continue
+			}
+
+			if perms&discordgo.PermissionSendMessages != 0 {
+				localUtils.SendWelcomeMessage(ch, bot)
+				break
+			}
+		}
+
+		if _, err := settingsSvc.GetByGuildID(event.ID); err != nil {
+			utils.Logger.With("guildID", event.ID).Warn("Failed to seed settings on guild create")
+		}
+	})
+
+	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildDelete) {
+		utils.Logger.Infof("Left guild: %s", event.ID)
+		settingsSvc.Delete(event.ID)
+	})
+}

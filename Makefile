@@ -32,5 +32,17 @@ build-kusari:
 	@echo "Building Kusari..."
 	cd apps/kusari && make build-prod
 
+hoshi:
+	@echo "Starting Hoshi..."
+	cd apps/hoshi && make watch
 
-.PHONY: iro kazu kusari
+hoshi-migrate:
+	@echo "Running Hoshi migrations..."
+	cd apps/hoshi && make migrate
+
+build-hoshi:
+	@echo "Building Hoshi..."
+	cd apps/hoshi && make build-prod
+
+
+.PHONY: iro kazu kusari hoshi

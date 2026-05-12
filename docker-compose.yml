@@ -32,6 +32,17 @@ services:
       - .:/opt/app
     ports:
       - "$IRO_API_LISTEN_PORT:$API_LISTEN_PORT"
+  hoshi:
+    build: .
+    user: "1000:1000"
+    command: "make hoshi"
+    env_file:
+      - .env
+      - ./apps/hoshi/.env
+    volumes:
+      - .:/opt/app
+    ports:
+      - "$HOSHI_API_LISTEN_PORT:$API_LISTEN_PORT"
   db:
     image: postgres:12.2-alpine
     volumes:

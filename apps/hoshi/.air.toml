@@ -4,20 +4,20 @@ tmp_dir = "tmp"
 
 [build]
 args_bin = []
-bin = "./dist/kusari"
+bin = "./dist/hoshi"
 cmd = "make build"
 delay = 1000
 exclude_dir = [
 	"tmp",
-	"apps/iro",
 	"apps/kazu",
-	"apps/hoshi",
-	"apps/kusari/assets",
-	"apps/kusari/tmp",
-	"apps/kusari/vendor",
-	"apps/kusari/testdata",
-	"apps/kusari/prisma/migrations/",
-	"apps/kusari/prisma/db/",
+	"apps/kusari",
+	"apps/iro",
+	"apps/hoshi/assets",
+	"apps/hoshi/tmp",
+	"apps/hoshi/vendor",
+	"apps/hoshi/testdata",
+	"apps/hoshi/prisma/migrations/",
+	"apps/hoshi/prisma/db/",
 ]
 exclude_file = []
 exclude_regex = ["_test.go"]
@@ -54,4 +54,4 @@ clean_on_exit = false
 
 [screen]
 clear_on_rebuild = false
-keep_scroll = false
+keep_scroll = true
