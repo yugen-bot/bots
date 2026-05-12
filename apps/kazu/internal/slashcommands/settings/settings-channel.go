@@ -3,13 +3,12 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsChannelModule struct {
@@ -24,13 +23,13 @@ func GetSettingsChannelModule(container *di.Container) *SettingsChannelModule {
 	}
 }
 
-func (m *SettingsChannelModule) set(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsChannelModule) set(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -39,21 +38,21 @@ func (m *SettingsChannelModule) set(ctx *disgolf.Ctx) {
 		db.Settings.ChannelID.Set(string(channel.ID)),
 	)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("I will run in <#%s> from now on.", channel.ID),
 	}, true)
 }
 
-func (m *SettingsChannelModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsChannelModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "channel",
 			Description: "Set the channel Kazu will run in",
-			Handler:     disgolf.HandlerFunc(m.set),
+			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionChannel,

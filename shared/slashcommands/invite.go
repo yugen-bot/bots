@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -21,9 +21,9 @@ func GetInviteModule(container *di.Container) *InviteModule {
 	}
 }
 
-func (m *InviteModule) invite(ctx *disgolf.Ctx) {
+func (m *InviteModule) invite(ctx *discordgoplus.Ctx) {
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -44,7 +44,7 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 		Footer: footer,
 	}
 
-	err = utils.Respond(ctx, &discordgo.InteractionResponseData{
+	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
@@ -63,12 +63,12 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 	}
 }
 
-func (m *InviteModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *InviteModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "invite",
 			Description: "Get a bot invite to add it to your server!",
-			Handler:     disgolf.HandlerFunc(m.invite),
+			Handler:     discordgoplus.HandlerFunc(m.invite),
 		},
 	}
 }

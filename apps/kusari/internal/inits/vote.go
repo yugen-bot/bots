@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 	"jurien.dev/yugen/kusari/internal/services"
@@ -15,7 +15,7 @@ import (
 
 func CreateVoteHandler(container *di.Container) func(userID string, source string) error {
 	saves := container.Get(localStatic.DiSaves).(*services.SavesService)
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	return func(userID string, source string) error {
 		user, err := bot.User(userID)

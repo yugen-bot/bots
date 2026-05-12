@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -20,9 +20,9 @@ func GetTutorialModule(container *di.Container) *TutorialModule {
 	}
 }
 
-func (m *TutorialModule) tutorial(ctx *disgolf.Ctx) {
+func (m *TutorialModule) tutorial(ctx *discordgoplus.Ctx) {
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -42,7 +42,7 @@ func (m *TutorialModule) tutorial(ctx *disgolf.Ctx) {
 		Footer:      footer,
 	}
 
-	err = utils.Respond(ctx, &discordgo.InteractionResponseData{
+	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 	if err != nil {
@@ -50,12 +50,12 @@ func (m *TutorialModule) tutorial(ctx *disgolf.Ctx) {
 	}
 }
 
-func (m *TutorialModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *TutorialModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "tutorial",
 			Description: "The rules of the game!",
-			Handler:     disgolf.HandlerFunc(m.tutorial),
+			Handler:     discordgoplus.HandlerFunc(m.tutorial),
 		},
 	}
 }

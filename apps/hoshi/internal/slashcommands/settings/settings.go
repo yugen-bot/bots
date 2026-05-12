@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	"jurien.dev/yugen/shared/middlewares"
@@ -11,7 +11,7 @@ import (
 type SettingsModule struct {
 	container   *di.Container
 	settings    *services.SettingsService
-	subCommands []*disgolf.Command
+	subCommands []*discordgoplus.Command
 }
 
 func GetSettingsModule(container *di.Container) *SettingsModule {
@@ -23,7 +23,7 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	ignore := GetSettingsIgnoreModule(container)
 	unignore := GetSettingsUnignoreModule(container)
 
-	var subCommands []*disgolf.Command
+	var subCommands []*discordgoplus.Command
 	subCommands = append(subCommands, show.Commands()...)
 	subCommands = append(subCommands, reset.Commands()...)
 	subCommands = append(subCommands, treshold.Commands()...)
@@ -39,15 +39,15 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	}
 }
 
-func (m *SettingsModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "settings",
 			Description: "Hoshi settings",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: disgolf.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(m.subCommands),
 		},
 	}
 }

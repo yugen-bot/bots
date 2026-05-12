@@ -6,13 +6,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func checkBase(ctx *disgolf.Ctx) (bool, error) {
+func checkBase(ctx *discordgoplus.Ctx) (bool, error) {
 	if ctx.Interaction == nil || ctx.Interaction.Member == nil {
 		return false, errors.New("Member not accessible")
 	}
@@ -36,7 +36,7 @@ func checkBase(ctx *disgolf.Ctx) (bool, error) {
 	return false, nil
 }
 
-func checkAdmin(ctx *disgolf.Ctx) (bool, error) {
+func checkAdmin(ctx *discordgoplus.Ctx) (bool, error) {
 	base, err := checkBase(ctx)
 	if base || err != nil {
 		return base, err
@@ -57,7 +57,7 @@ func checkAdmin(ctx *disgolf.Ctx) (bool, error) {
 	return false, nil
 }
 
-func checkModerator(ctx *disgolf.Ctx) (bool, error) {
+func checkModerator(ctx *discordgoplus.Ctx) (bool, error) {
 	admin, err := checkAdmin(ctx)
 	if admin || err != nil {
 		return admin, err
@@ -68,11 +68,11 @@ func checkModerator(ctx *disgolf.Ctx) (bool, error) {
 	return perms&discordgo.PermissionBanMembers != 0, nil
 }
 
-func checkResponse(ctx *disgolf.Ctx, pass bool, err error) {
+func checkResponse(ctx *discordgoplus.Ctx, pass bool, err error) {
 	if err != nil {
 		utils.Logger.Error(err)
 
-		resErr := utils.ErrorResponse(ctx)
+		resErr := discordgoplus.ErrorResponse(ctx)
 		if resErr != nil {
 			utils.Logger.Error(err)
 		}
@@ -81,7 +81,7 @@ func checkResponse(ctx *disgolf.Ctx, pass bool, err error) {
 	}
 
 	if !pass {
-		err := utils.ForbiddenResponse(ctx)
+		err := discordgoplus.ForbiddenResponse(ctx)
 		if err != nil {
 			utils.Logger.Error(err)
 		}
@@ -91,17 +91,17 @@ func checkResponse(ctx *disgolf.Ctx, pass bool, err error) {
 	ctx.Next()
 }
 
-func GuildOwnerMiddleware(ctx *disgolf.Ctx) {
+func GuildOwnerMiddleware(ctx *discordgoplus.Ctx) {
 	pass, err := checkBase(ctx)
 	checkResponse(ctx, pass, err)
 }
 
-func GuildAdminMiddleware(ctx *disgolf.Ctx) {
+func GuildAdminMiddleware(ctx *discordgoplus.Ctx) {
 	pass, err := checkAdmin(ctx)
 	checkResponse(ctx, pass, err)
 }
 
-func GuildModeratorMiddleware(ctx *disgolf.Ctx) {
+func GuildModeratorMiddleware(ctx *discordgoplus.Ctx) {
 	pass, err := checkModerator(ctx)
 	checkResponse(ctx, pass, err)
 }

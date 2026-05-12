@@ -1,7 +1,7 @@
 package inits
 
 import (
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	sharedSlashcommands "jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"
@@ -13,7 +13,7 @@ import (
 )
 
 func InitCommands(container *di.Container) (err error) {
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	modules := []utils.CommandsModule{
 		// shared
@@ -33,6 +33,7 @@ func InitCommands(container *di.Container) (err error) {
 
 	bot.AddHandler(bot.Router.HandleInteraction)
 	bot.AddHandler(bot.Router.HandleInteractionMessageComponent)
+	bot.AddHandler(bot.Router.HandleInteractionModalSubmit)
 
 	err = utils.SyncCommands(bot, len(modules))
 

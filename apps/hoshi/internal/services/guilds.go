@@ -3,21 +3,21 @@ package services
 import (
 	"sort"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type GuildsService struct {
-	bot *disgolf.Bot
+	bot *discordgoplus.Bot
 }
 
 func CreateGuildsService(container *di.Container) *GuildsService {
 	utils.Logger.Info("Creating Guilds Service")
 	return &GuildsService{
-		bot: container.Get(sharedStatic.DiBot).(*disgolf.Bot),
+		bot: container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
 	}
 }
 

@@ -2,7 +2,6 @@ FROM golang:1.23 AS build
 
 WORKDIR /opt/app
 
-COPY external ./external
 COPY apps/kazu/go.mod apps/kazu/go.sum ./apps/kazu/
 COPY shared/go.mod shared/go.sum ./shared/
 

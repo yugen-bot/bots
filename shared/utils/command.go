@@ -1,131 +1,13 @@
 package utils
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/FedorLap2006/disgolf"
-	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"jurien.dev/yugen/shared/static"
 )
 
-func GetInteractionName(data *discordgo.ApplicationCommandInteractionData, delimeter ...string) string {
-	delimeterStr := "/"
-	if len(delimeter) > 0 {
-		delimeterStr = delimeter[0]
-	}
-
-	suffix := ""
-	for _, option := range data.Options {
-		if option.Type != discordgo.ApplicationCommandOptionSubCommand {
-			continue
-		}
-
-		suffix = fmt.Sprintf("%s%s%s", suffix, delimeterStr, option.Name)
-	}
-
-	return fmt.Sprintf("%s%s", data.Name, suffix)
-}
-
-func Defer(ctx *disgolf.Ctx, ephemeral ...bool) (err error) {
-	data := discordgo.InteractionResponseData{}
-
-	if len(ephemeral) > 0 && ephemeral[0] {
-		data.Flags = discordgo.MessageFlagsEphemeral
-	}
-
-	err = ctx.Respond(&discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &data,
-	})
-	return
-}
-
-func Respond(ctx *disgolf.Ctx, data *discordgo.InteractionResponseData, ephemeral ...bool) (err error) {
-	if len(ephemeral) > 0 && ephemeral[0] {
-		data.Flags = discordgo.MessageFlagsEphemeral
-	}
-
-	err = ctx.Respond(&discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: data,
-	})
-	return
-}
-
-func FollowUp(ctx *disgolf.Ctx, response *discordgo.WebhookParams, ephemeral ...bool) (err error) {
-	if len(ephemeral) > 0 && ephemeral[0] {
-		response.Flags = discordgo.MessageFlagsEphemeral
-	}
-
-	_, err = ctx.Session.FollowupMessageCreate(ctx.Interaction, true, response)
-	return
-}
-
-func Update(ctx *disgolf.Ctx, data *discordgo.InteractionResponseData) (err error) {
-	err = ctx.Respond(&discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseUpdateMessage,
-		Data: data,
-	})
-	return
-}
-
-func ForbiddenResponse(ctx *disgolf.Ctx) error {
-	embed := &discordgo.MessageEmbed{
-		// #ff0000
-		Color:       0xff0000,
-		Title:       "Forbidden",
-		Description: "Sorry, you can't use this interaction!",
-	}
-
-	return Respond(ctx, &discordgo.InteractionResponseData{
-		Flags:  discordgo.MessageFlagsEphemeral,
-		Embeds: []*discordgo.MessageEmbed{embed},
-	})
-}
-
-func ErrorResponse(ctx *disgolf.Ctx, ephemeral ...bool) error {
-	embed := &discordgo.MessageEmbed{
-		// #ff0000
-		Color:       0xff0000,
-		Title:       "Something wen't wrong",
-		Description: "Sorry, something broke along the way! My developer has been informed.. Sorry for the inconvenience!",
-	}
-
-	if len(ephemeral) > 0 && ephemeral[0] {
-		return FollowUp(ctx, &discordgo.WebhookParams{
-			Embeds: []*discordgo.MessageEmbed{embed},
-		}, ephemeral...)
-	}
-
-	return Respond(ctx, &discordgo.InteractionResponseData{
-		Flags:  discordgo.MessageFlagsEphemeral,
-		Embeds: []*discordgo.MessageEmbed{embed},
-	})
-}
-
-func InteractionError(ctx *disgolf.Ctx, isFollowup bool) {
-	content := "Something wen't wrong, try again later."
-	if isFollowup {
-		FollowUp(ctx, &discordgo.WebhookParams{
-			Content: content,
-		}, true)
-		return
-	}
-
-	Respond(ctx, &discordgo.InteractionResponseData{
-		Content: content,
-	}, true)
-}
-
-func MessageComponentError(ctx *disgolf.Ctx) {
-	Update(ctx, &discordgo.InteractionResponseData{
-		Content: "Something wen't wrong, try again later.",
-		Flags:   discordgo.MessageFlagsEphemeral,
-	})
-}
-
-func SyncCommands(bot *disgolf.Bot, amount int) (err error) {
+func SyncCommands(bot *discordgoplus.Bot, amount int) (err error) {
 	if os.Getenv(static.EnvSyncCommands) == "true" {
 		Logger.Infof("Syncing commands of %d modules", amount)
 

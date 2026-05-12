@@ -3,9 +3,9 @@ module jurien.dev/yugen/iro
 go 1.23.3
 
 require (
-	github.com/FedorLap2006/disgolf v0.0.0-20221004200601-99cfc3d9a0e1
-	github.com/bwmarrin/discordgo v0.29.0
+	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/joho/godotenv v1.5.1
+	github.com/jurienhamaker/discordgoplus v1.0.2-0.20260512212740-07724a0f538f
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/zekroTJA/colorname v1.0.0
 	github.com/zekroTJA/shinpuru v0.0.0-20240828005211-d93172643d5f
@@ -48,12 +48,8 @@ require (
 	github.com/zekrotja/safepool v1.1.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
 
-replace (
-	github.com/FedorLap2006/disgolf => ../../external/disgolf
-	jurien.dev/yugen/shared => ../../shared
-)
+replace jurien.dev/yugen/shared => ../../shared

@@ -3,8 +3,8 @@ package listeners
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/services"
 	localStatic "jurien.dev/yugen/kazu/internal/static"
@@ -29,7 +29,7 @@ func GetGameListener(container *di.Container) *GameListener {
 }
 
 func AddGameListeners(container *di.Container) {
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	colorListener := GetGameListener(container)
 	bot.AddHandler(colorListener.MessageCreateHandler)

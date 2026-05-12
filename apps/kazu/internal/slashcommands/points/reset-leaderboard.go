@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
@@ -16,27 +16,27 @@ import (
 
 type ResetLeaderboardModule struct {
 	container *di.Container
-	bot       *disgolf.Bot
+	bot       *discordgoplus.Bot
 	points    *services.PointsService
 }
 
 func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
-		bot:       container.Get(static.DiBot).(*disgolf.Bot),
+		bot:       container.Get(static.DiBot).(*discordgoplus.Bot),
 		points:    container.Get(local.DiPoints).(*services.PointsService),
 	}
 }
 
-func (m *ResetLeaderboardModule) err(ctx *disgolf.Ctx) {
-	utils.Respond(ctx, &discordgo.InteractionResponseData{
+func (m *ResetLeaderboardModule) err(ctx *discordgoplus.Ctx) {
+	discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Content: "Something wen't wrong, try again later.",
 	})
 }
 
-func (m *ResetLeaderboardModule) request(ctx *disgolf.Ctx) {
+func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 	footer, err := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -77,7 +77,7 @@ func (m *ResetLeaderboardModule) request(ctx *disgolf.Ctx) {
 		Footer: footer,
 	}
 
-	err = utils.Respond(ctx, &discordgo.InteractionResponseData{
+	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
@@ -101,7 +101,7 @@ func (m *ResetLeaderboardModule) request(ctx *disgolf.Ctx) {
 	}
 }
 
-func (m *ResetLeaderboardModule) reset(ctx *disgolf.Ctx) {
+func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 	reset := ctx.MessageComponentOptions["reset"] == "true"
 
 	if !reset {
@@ -110,7 +110,7 @@ func (m *ResetLeaderboardModule) reset(ctx *disgolf.Ctx) {
 			contentText = fmt.Sprintf("%s for <@%s>", contentText, ctx.MessageComponentOptions["userID"])
 		}
 
-		utils.Update(ctx, &discordgo.InteractionResponseData{
+		discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
 			Content:    contentText,
 			Components: []discordgo.MessageComponent{},
 			Embeds:     []*discordgo.MessageEmbed{},
@@ -126,22 +126,22 @@ func (m *ResetLeaderboardModule) reset(ctx *disgolf.Ctx) {
 		go m.points.ResetLeaderboardByGuildID(ctx.Interaction.GuildID)
 	}
 
-	utils.Update(ctx, &discordgo.InteractionResponseData{
+	discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
 		Content:    contentText,
 		Components: []discordgo.MessageComponent{},
 		Embeds:     []*discordgo.MessageEmbed{},
 	})
 }
 
-func (m *ResetLeaderboardModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *ResetLeaderboardModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "reset-leaderboard",
 			Description: "Reset all player points & completely reset the leaderboard.",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildAdminMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
 			},
-			Handler: disgolf.HandlerFunc(m.request),
+			Handler: discordgoplus.HandlerFunc(m.request),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionUser,
@@ -154,14 +154,14 @@ func (m *ResetLeaderboardModule) Commands() []*disgolf.Command {
 	}
 }
 
-func (m *ResetLeaderboardModule) MessageComponents() []*disgolf.MessageComponent {
-	return []*disgolf.MessageComponent{
+func (m *ResetLeaderboardModule) MessageComponents() []*discordgoplus.MessageComponent {
+	return []*discordgoplus.MessageComponent{
 		{
 			CustomID: "RESET_LEADERBOARD/:reset/:userID",
-			Middlewares: []disgolf.Handler{
-				disgolf.HandlerFunc(middlewares.GuildAdminMiddleware),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
 			},
-			Handler: disgolf.HandlerFunc(m.reset),
+			Handler: discordgoplus.HandlerFunc(m.reset),
 		},
 	}
 }

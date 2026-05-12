@@ -3,7 +3,7 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/utils"
 
@@ -24,17 +24,17 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 	}
 }
 
-func (m *LeaderboardModule) getItems(ctx *disgolf.Ctx, page int) ([]any, int, error) {
+func (m *LeaderboardModule) getItems(ctx *discordgoplus.Ctx, page int) ([]any, int, error) {
 	items, total, err := m.points.GetLeaderboardByGuildID(ctx.Interaction.GuildID, page)
 	return utils.UnpackArray(items), total, err
 }
 
-func (m *LeaderboardModule) formatItem(_ *disgolf.Ctx, item any) string {
+func (m *LeaderboardModule) formatItem(_ *discordgoplus.Ctx, item any) string {
 	parsed := item.(db.PlayerStatsModel)
 	return fmt.Sprintf("<@%s>: **%d**", parsed.UserID, parsed.Points)
 }
 
-func (m *LeaderboardModule) command(ctx *disgolf.Ctx) {
+func (m *LeaderboardModule) command(ctx *discordgoplus.Ctx) {
 	utils.LeaderboardCommandHandler(
 		ctx,
 		m.container,
@@ -43,7 +43,7 @@ func (m *LeaderboardModule) command(ctx *disgolf.Ctx) {
 	)
 }
 
-func (m *LeaderboardModule) messageComponent(ctx *disgolf.Ctx) {
+func (m *LeaderboardModule) messageComponent(ctx *discordgoplus.Ctx) {
 	utils.LeaderboardMessageComponentHandler(
 		ctx,
 		m.container,
@@ -52,10 +52,10 @@ func (m *LeaderboardModule) messageComponent(ctx *disgolf.Ctx) {
 	)
 }
 
-func (m *LeaderboardModule) Commands() []*disgolf.Command {
-	return utils.GetLeaderboardCommands(disgolf.HandlerFunc(m.command))
+func (m *LeaderboardModule) Commands() []*discordgoplus.Command {
+	return utils.GetLeaderboardCommands(discordgoplus.HandlerFunc(m.command))
 }
 
-func (m *LeaderboardModule) MessageComponents() []*disgolf.MessageComponent {
-	return utils.GetLeaderboardMessageComponents(disgolf.HandlerFunc(m.messageComponent))
+func (m *LeaderboardModule) MessageComponents() []*discordgoplus.MessageComponent {
+	return utils.GetLeaderboardMessageComponents(discordgoplus.HandlerFunc(m.messageComponent))
 }

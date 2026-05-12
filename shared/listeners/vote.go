@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/static"
@@ -64,7 +64,7 @@ func postDiscordBotList(token string, clientID string, servers int) error {
 	return doRequest(url, token, body, "discordbotlist")
 }
 
-func postStats(bot *disgolf.Bot) {
+func postStats(bot *discordgoplus.Bot) {
 	clientID := os.Getenv(static.EnvDiscordAppID)
 
 	servers := len(bot.State.Guilds)
@@ -85,7 +85,7 @@ func postStats(bot *disgolf.Bot) {
 }
 
 func AddVoteListeners(container *di.Container) {
-	bot := container.Get(static.DiBot).(*disgolf.Bot)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 	cron := container.Get(static.DiCron).(*cron.Cron)
 
 	cron.AddFunc("@every 3h", func() {

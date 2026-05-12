@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -16,7 +16,7 @@ import (
 type reactionDebouncer struct {
 	timers sync.Map
 	svc    *services.StarboardService
-	bot    *disgolf.Bot
+	bot    *discordgoplus.Bot
 }
 
 func (d *reactionDebouncer) onReaction(channelID, messageID, guildID, emojiID, emojiName string) {
@@ -32,7 +32,7 @@ func (d *reactionDebouncer) onReaction(channelID, messageID, guildID, emojiID, e
 }
 
 func AddReactionListeners(container *di.Container) {
-	bot := container.Get(sharedStatic.DiBot).(*disgolf.Bot)
+	bot := container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
 	starboardSvc := container.Get(localStatic.DiStarboard).(*services.StarboardService)
 
 	d := &reactionDebouncer{svc: starboardSvc, bot: bot}

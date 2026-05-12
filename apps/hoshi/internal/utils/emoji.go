@@ -3,12 +3,12 @@ package utils
 import (
 	"regexp"
 
-	"github.com/FedorLap2006/disgolf"
+	"github.com/jurienhamaker/discordgoplus"
 )
 
 var customEmojiRegex = regexp.MustCompile(`<a?:\w+:(\d+)>`)
 
-func ResolveEmoji(input string, bot *disgolf.Bot) (found bool, key string, display string, unicode bool) {
+func ResolveEmoji(input string, bot *discordgoplus.Bot) (found bool, key string, display string, unicode bool) {
 	match := customEmojiRegex.FindStringSubmatch(input)
 	if len(match) > 1 {
 		emojiID := match[1]

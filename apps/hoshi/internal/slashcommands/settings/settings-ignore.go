@@ -3,12 +3,11 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsIgnoreModule struct {
@@ -23,8 +22,8 @@ func GetSettingsIgnoreModule(container *di.Container) *SettingsIgnoreModule {
 	}
 }
 
-func (m *SettingsIgnoreModule) ignore(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsIgnoreModule) ignore(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	channelID := ctx.Interaction.ChannelID
 	label := "this channel"
@@ -36,21 +35,21 @@ func (m *SettingsIgnoreModule) ignore(ctx *disgolf.Ctx) {
 	}
 
 	if err := m.settings.IgnoreChannel(ctx.Interaction.GuildID, channelID, true); err != nil {
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("Starboards are now **ignored** for %s!", label),
 	}, true)
 }
 
-func (m *SettingsIgnoreModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsIgnoreModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "ignore",
 			Description: "Ignore the current channel",
-			Handler:     disgolf.HandlerFunc(m.ignore),
+			Handler:     discordgoplus.HandlerFunc(m.ignore),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionChannel,

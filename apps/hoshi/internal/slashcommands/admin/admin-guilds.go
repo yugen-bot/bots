@@ -5,12 +5,11 @@ import (
 	"math"
 	"strings"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type AdminGuildsModule struct {
@@ -25,7 +24,7 @@ func GetAdminGuildsModule(container *di.Container) *AdminGuildsModule {
 	}
 }
 
-func (m *AdminGuildsModule) list(ctx *disgolf.Ctx) {
+func (m *AdminGuildsModule) list(ctx *discordgoplus.Ctx) {
 	page := 1
 	if opt, ok := ctx.Options["page"]; ok {
 		page = int(opt.IntValue())
@@ -33,7 +32,7 @@ func (m *AdminGuildsModule) list(ctx *disgolf.Ctx) {
 	m.showList(ctx, page, false)
 }
 
-func (m *AdminGuildsModule) listPage(ctx *disgolf.Ctx) {
+func (m *AdminGuildsModule) listPage(ctx *discordgoplus.Ctx) {
 	page := 1
 	if p, ok := ctx.MessageComponentOptions["page"]; ok {
 		fmt.Sscanf(p, "%d", &page)
@@ -41,9 +40,9 @@ func (m *AdminGuildsModule) listPage(ctx *disgolf.Ctx) {
 	m.showList(ctx, page, true)
 }
 
-func (m *AdminGuildsModule) showList(ctx *disgolf.Ctx, page int, isComponent bool) {
+func (m *AdminGuildsModule) showList(ctx *discordgoplus.Ctx, page int, isComponent bool) {
 	if !isComponent {
-		utils.Defer(ctx, true)
+		discordgoplus.Defer(ctx, true)
 	}
 
 	guilds, total := m.guilds.GetData(page)
@@ -51,9 +50,9 @@ func (m *AdminGuildsModule) showList(ctx *disgolf.Ctx, page int, isComponent boo
 	if total == 0 {
 		content := "There is no guild data available."
 		if isComponent {
-			utils.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
 		} else {
-			utils.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
 		}
 		return
 	}
@@ -61,9 +60,9 @@ func (m *AdminGuildsModule) showList(ctx *disgolf.Ctx, page int, isComponent boo
 	if len(guilds) == 0 {
 		content := fmt.Sprintf("No guilds found for page %d", page)
 		if isComponent {
-			utils.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
 		} else {
-			utils.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
 		}
 		return
 	}
@@ -108,24 +107,24 @@ func (m *AdminGuildsModule) showList(ctx *disgolf.Ctx, page int, isComponent boo
 	}
 
 	if isComponent {
-		utils.Update(ctx, &discordgo.InteractionResponseData{
+		discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
 			Embeds:     []*discordgo.MessageEmbed{embed},
 			Components: components,
 		})
 	} else {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Embeds:     []*discordgo.MessageEmbed{embed},
 			Components: components,
 		}, true)
 	}
 }
 
-func (m *AdminGuildsModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *AdminGuildsModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "guilds",
 			Description: "Get a list of guilds sorted by member count",
-			Handler:     disgolf.HandlerFunc(m.list),
+			Handler:     discordgoplus.HandlerFunc(m.list),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
@@ -138,11 +137,11 @@ func (m *AdminGuildsModule) Commands() []*disgolf.Command {
 	}
 }
 
-func (m *AdminGuildsModule) MessageComponents() []*disgolf.MessageComponent {
-	return []*disgolf.MessageComponent{
+func (m *AdminGuildsModule) MessageComponents() []*discordgoplus.MessageComponent {
+	return []*discordgoplus.MessageComponent{
 		{
 			CustomID: "ADMIN_GUILDS_LIST/:page",
-			Handler:  disgolf.HandlerFunc(m.listPage),
+			Handler:  discordgoplus.HandlerFunc(m.listPage),
 		},
 	}
 }

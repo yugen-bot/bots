@@ -1,8 +1,8 @@
 package listeners
 
 import (
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
@@ -11,7 +11,7 @@ import (
 )
 
 func AddGuildListeners(container *di.Container) {
-	bot := container.Get(sharedStatic.DiBot).(*disgolf.Bot)
+	bot := container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
 	settingsSvc := container.Get(sharedStatic.DiSettings).(*services.SettingsService)
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildCreate) {

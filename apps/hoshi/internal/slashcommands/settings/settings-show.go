@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
@@ -25,12 +25,12 @@ func GetSettingsShowModule(container *di.Container) *SettingsShowModule {
 	}
 }
 
-func (m *SettingsShowModule) show(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	settings, err := m.settings.GetByGuildID(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (m *SettingsShowModule) show(ctx *disgolf.Ctx) {
 	}
 
 	footer, _ := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgolf.Bot),
+		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{IsVote: false},
 	)
 
@@ -71,17 +71,17 @@ func (m *SettingsShowModule) show(ctx *disgolf.Ctx) {
 		},
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	}, true)
 }
 
-func (m *SettingsShowModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *SettingsShowModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "show",
 			Description: "Show the current settings",
-			Handler:     disgolf.HandlerFunc(m.show),
+			Handler:     discordgoplus.HandlerFunc(m.show),
 		},
 	}
 }

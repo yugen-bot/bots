@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kusari/internal/services"
 	"jurien.dev/yugen/kusari/prisma/db"
@@ -24,15 +24,15 @@ func GetSettingsCooldownModule(container *di.Container) *SettingsCooldownModule 
 	}
 }
 
-func (m *SettingsCooldownModule) set(ctx *disgolf.Ctx) {
+func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 	utils.Logger.With("Options", ctx.Options, "GuildID", ctx.Interaction.GuildID).Debug("Cooldown command used")
-	utils.Defer(ctx, true)
+	discordgoplus.Defer(ctx, true)
 
 	seconds := ctx.Options["seconds"].IntValue()
 
 	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -41,7 +41,7 @@ func (m *SettingsCooldownModule) set(ctx *disgolf.Ctx) {
 		db.Settings.Cooldown.Set(int(seconds)),
 	)
 	if err != nil {
-		utils.ErrorResponse(ctx, true)
+		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
@@ -55,20 +55,20 @@ func (m *SettingsCooldownModule) set(ctx *disgolf.Ctx) {
 		content = "Cooldown has been removed!"
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: content,
 	}, true)
 }
 
-func (m *SettingsCooldownModule) Commands() []*disgolf.Command {
+func (m *SettingsCooldownModule) Commands() []*discordgoplus.Command {
 	minValue := 0.0
 	maxValue := 3600.0
 
-	return []*disgolf.Command{
+	return []*discordgoplus.Command{
 		{
 			Name:        "cooldown",
 			Description: "Set the cooldown between answers.",
-			Handler:     disgolf.HandlerFunc(m.set),
+			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,

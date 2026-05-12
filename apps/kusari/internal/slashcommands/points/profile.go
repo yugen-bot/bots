@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/shared/utils"
 
 	"jurien.dev/yugen/kusari/internal/services"
 	local "jurien.dev/yugen/kusari/internal/static"
@@ -27,8 +26,8 @@ func GetProfileModule(container *di.Container) *ProfileModule {
 	}
 }
 
-func (m *ProfileModule) profile(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *ProfileModule) profile(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
 	playerOption := ctx.Options["player"]
 
@@ -39,7 +38,7 @@ func (m *ProfileModule) profile(ctx *disgolf.Ctx) {
 
 	saves, err := m.saves.GetPlayerSavesByUserID(player.ID)
 	if err != nil {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Sorry couldn't find your profile...",
 		}, true)
 		return
@@ -47,7 +46,7 @@ func (m *ProfileModule) profile(ctx *disgolf.Ctx) {
 
 	points, err := m.points.GetPlayer(ctx.Interaction.GuildID, player.ID, true)
 	if err != nil {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Sorry couldn't find your profile...",
 		}, true)
 		return
@@ -60,7 +59,7 @@ func (m *ProfileModule) profile(ctx *disgolf.Ctx) {
 		addressing = "has"
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf(
 			`%s currently %s **%d** points!
 And you have **%s/%s** saves available!`,
@@ -82,18 +81,18 @@ var profileOptions = []*discordgo.ApplicationCommandOption{
 	},
 }
 
-func (m *ProfileModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *ProfileModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "profile",
 			Description: "Get your kusari profile!",
-			Handler:     disgolf.HandlerFunc(m.profile),
+			Handler:     discordgoplus.HandlerFunc(m.profile),
 			Options:     profileOptions,
 		},
 		{
 			Name:        "points",
 			Description: "[Deprecated] Get your current points!",
-			Handler:     disgolf.HandlerFunc(m.profile),
+			Handler:     discordgoplus.HandlerFunc(m.profile),
 			Options:     profileOptions,
 		},
 	}

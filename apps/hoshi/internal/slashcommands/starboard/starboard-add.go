@@ -3,14 +3,13 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type StarboardAddModule struct {
@@ -25,10 +24,10 @@ func GetStarboardAddModule(container *di.Container) *StarboardAddModule {
 	}
 }
 
-func (m *StarboardAddModule) add(ctx *disgolf.Ctx) {
-	utils.Defer(ctx, true)
+func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
+	discordgoplus.Defer(ctx, true)
 
-	bot := m.container.Get(static.DiBot).(*disgolf.Bot)
+	bot := m.container.Get(static.DiBot).(*discordgoplus.Bot)
 	destination := ctx.Options["destination"].ChannelValue(ctx.Session)
 
 	emojiInput := "⭐"
@@ -38,7 +37,7 @@ func (m *StarboardAddModule) add(ctx *disgolf.Ctx) {
 
 	found, key, display, unicode := localUtils.ResolveEmoji(emojiInput, bot)
 	if !found {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "You can only use emojis from guilds that the bot is in.",
 		}, true)
 		return
@@ -55,7 +54,7 @@ func (m *StarboardAddModule) add(ctx *disgolf.Ctx) {
 
 	existing, _ := m.starboard.GetStarboardBySourceIDAndEmoji(ctx.Interaction.GuildID, key, sourceChannelID)
 	if existing != nil {
-		utils.FollowUp(ctx, &discordgo.WebhookParams{
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "A starboard for the supplied rules already exists.",
 		}, true)
 		return
@@ -63,7 +62,7 @@ func (m *StarboardAddModule) add(ctx *disgolf.Ctx) {
 
 	_, err := m.starboard.AddStarboard(ctx.Interaction.GuildID, key, sourceChannelID, destination.ID)
 	if err != nil {
-		utils.InteractionError(ctx, true)
+		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -72,18 +71,18 @@ func (m *StarboardAddModule) add(ctx *disgolf.Ctx) {
 		emojiDisplay = key
 	}
 
-	utils.FollowUp(ctx, &discordgo.WebhookParams{
+	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf("A starboard has been added;\nDestination: <#%s>\nEmoji: %s%s",
 			destination.ID, emojiDisplay, sourceLabel),
 	}, true)
 }
 
-func (m *StarboardAddModule) Commands() []*disgolf.Command {
-	return []*disgolf.Command{
+func (m *StarboardAddModule) Commands() []*discordgoplus.Command {
+	return []*discordgoplus.Command{
 		{
 			Name:        "add",
 			Description: "Add a starboard",
-			Handler:     disgolf.HandlerFunc(m.add),
+			Handler:     discordgoplus.HandlerFunc(m.add),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionChannel,
