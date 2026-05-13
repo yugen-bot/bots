@@ -12,10 +12,10 @@ type CreateEmbedFooterParams struct {
 	IsVote bool
 }
 
-func CreateEmbedFooter(bot *discordgoplus.Bot, params *CreateEmbedFooterParams, ownerID string) (embed *discordgo.MessageEmbedFooter, err error) {
+func CreateEmbedFooter(bot *discordgoplus.Bot, params *CreateEmbedFooterParams, ownerID string) *discordgo.MessageEmbedFooter {
 	botAuthor, err := bot.User(ownerID)
 	if err != nil {
-		return
+		return nil
 	}
 
 	text := fmt.Sprintf("Created by @%s", botAuthor.Username)
@@ -28,10 +28,8 @@ func CreateEmbedFooter(bot *discordgoplus.Bot, params *CreateEmbedFooterParams, 
 		text = fmt.Sprintf("Like %s? Please vote using /vote! | %s", name, text)
 	}
 
-	embed = &discordgo.MessageEmbedFooter{
+	return &discordgo.MessageEmbedFooter{
 		IconURL: botAuthor.AvatarURL("64"),
 		Text:    text,
 	}
-
-	return
 }

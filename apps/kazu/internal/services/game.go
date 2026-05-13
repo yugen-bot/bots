@@ -88,7 +88,9 @@ func (service *GameService) Start(ctx context.Context, guildID string, gameType 
 	}
 
 	if (exists && recreate) || (exists && currentGame.Type != gameType) {
-		service.End(ctx, currentGame.ID, db.GameStatusFailed, shame...)
+		if _, endErr := service.End(ctx, currentGame.ID, db.GameStatusFailed, shame...); endErr != nil {
+			utils.Logger.Warnw("game: start: end current game failed", "error", endErr)
+		}
 	}
 
 	started = true
@@ -120,11 +122,14 @@ func (service *GameService) Start(ctx context.Context, guildID string, gameType 
 	}
 
 	if channel.Type == discordgo.ChannelTypeGuildText || channel.Type == discordgo.ChannelTypeGuildPublicThread || channel.Type == discordgo.ChannelTypeGuildPrivateThread {
-		service.bot.ChannelMessageSend(
-			channelID,
-			fmt.Sprintf(`**A new game has started!**
+		go func() {
+			_, sendErr := service.bot.ChannelMessageSend(
+				channelID,
+				fmt.Sprintf(`**A new game has started!**
 Start the count from **%d**`, number+1),
-		)
+			)
+			utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
+		}()
 	}
 
 	return game, started, err
@@ -147,11 +152,15 @@ func (service *GameService) End(ctx context.Context, gameID int, status db.GameS
 		roleID, okRoleID := shame.settings.ShameRoleID()
 		lastShameUserID, okLastShameUserID := shame.settings.LastShameUserID()
 		if okLastShameUserID && okRoleID {
-			go service.bot.GuildMemberRoleRemove(shame.settings.GuildID, lastShameUserID, roleID)
+			go func() {
+				utils.LogIfErr(utils.Logger, "guild-member-role-remove", service.bot.GuildMemberRoleRemove(shame.settings.GuildID, lastShameUserID, roleID))
+			}()
 		}
 
 		if okRoleID {
-			go service.bot.GuildMemberRoleAdd(shame.settings.GuildID, shame.message.Author.ID, roleID)
+			go func() {
+				utils.LogIfErr(utils.Logger, "guild-member-role-add", service.bot.GuildMemberRoleAdd(shame.settings.GuildID, shame.message.Author.ID, roleID))
+			}()
 		}
 
 		_, err = service.settings.Update(ctx, shame.settings.ID, db.Settings.LastShameUserID.Set(shame.message.Author.ID))
@@ -253,7 +262,7 @@ func (service *GameService) AddNumber(ctx context.Context, guildID string, numbe
 			return
 		}
 
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌"))
 
 		if saves.player >= 1 {
 			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromPlayer(ctx, message.Author.ID, 1)
@@ -262,17 +271,20 @@ func (service *GameService) AddNumber(ctx context.Context, guildID string, numbe
 				return
 			}
 
-			go service.bot.ChannelMessageSendReply(
-				message.ChannelID,
-				fmt.Sprintf(
-					`%s
+			go func() {
+				_, sendErr := service.bot.ChannelMessageSendReply(
+					message.ChannelID,
+					fmt.Sprintf(
+						`%s
 Used **1 of your own** saves, You have **%s/%s** saves left.`,
-					failReason,
-					strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-					strconv.FormatFloat(maxSaves, 'f', -1, 64),
-				),
-				message.Reference(),
-			)
+						failReason,
+						strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+						strconv.FormatFloat(maxSaves, 'f', -1, 64),
+					),
+					message.Reference(),
+				)
+				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+			}()
 			return
 		}
 
@@ -282,17 +294,20 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 				return
 			}
 
-			go service.bot.ChannelMessageSendReply(
-				message.ChannelID,
-				fmt.Sprintf(
-					`%s
+			go func() {
+				_, sendErr := service.bot.ChannelMessageSendReply(
+					message.ChannelID,
+					fmt.Sprintf(
+						`%s
 Used **1 server** save, There are **%s/%s** server saves left.`,
-					failReason,
-					strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-					strconv.FormatFloat(maxSaves, 'f', -1, 64),
-				),
-				message.Reference(),
-			)
+						failReason,
+						strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+						strconv.FormatFloat(maxSaves, 'f', -1, 64),
+					),
+					message.Reference(),
+				)
+				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+			}()
 			return
 		}
 
@@ -308,7 +323,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		}
 
 		pointsRemoved := int(history.Number / 10)
-		go service.points.RemoveGamePoints(ctx, guildID, message.Author.ID, pointsRemoved)
+		go func() {
+			utils.LogIfErr(utils.Logger, "remove-game-points", service.points.RemoveGamePoints(ctx, guildID, message.Author.ID, pointsRemoved))
+		}()
 
 		if pointsRemoved == 0 {
 			pointsRemoved = 1
@@ -322,26 +339,31 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 
 		pointsRemovedText = fmt.Sprintf("\n\n**%d %s been removed from your account.**", pointsRemoved, pointText)
 
-		go service.bot.ChannelMessageSendReply(
-			message.ChannelID,
-			fmt.Sprintf(
-				`%s
+		go func() {
+			_, sendErr := service.bot.ChannelMessageSendReply(
+				message.ChannelID,
+				fmt.Sprintf(
+					`%s
 **The game has ended on a streak of %d!**%s%s
 
 **Want to save the game?** Make sure to **/vote** for Kazu and earn yourself saves to save the game!`,
-				failReason,
-				number,
-				highScoreText,
-				pointsRemovedText,
-			),
-			message.Reference(),
-		)
+					failReason,
+					number,
+					highScoreText,
+					pointsRemovedText,
+				),
+				message.Reference(),
+			)
+			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+		}()
 
 		shame := ShameOptions{
 			message:  message,
 			settings: settings,
 		}
-		service.Start(ctx, guildID, db.GameTypeNormal, 1, true, &shame)
+		if _, _, startErr := service.Start(ctx, guildID, db.GameTypeNormal, 1, true, &shame); startErr != nil {
+			utils.Logger.Warnw("game: add number: restart failed", "error", startErr)
+		}
 		return
 	}
 
@@ -365,7 +387,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
-	go service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1)
+	go func() {
+		utils.LogIfErr(utils.Logger, "add-game-points", service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1))
+	}()
 	_, err = service.database.History.CreateOne(
 		db.History.UserID.Set(message.Author.ID),
 		db.History.Game.Link(db.Game.ID.Equals(game.ID)),
@@ -380,15 +404,17 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	isHighscore, isGameHighscored, err := service.checkStreak(ctx, settings, game, number)
 
 	if isGameHighscored {
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉")
-		go service.settings.ResetShame(ctx, guildID)
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉"))
+		go func() {
+			utils.LogIfErr(utils.Logger, "reset-shame", service.settings.ResetShame(ctx, guildID))
+		}()
 	}
 
 	emoji := "✅"
 	if isHighscore {
 		emoji = "☑️"
 	}
-	service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji)
+	utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji))
 	service.checkSpecialReactions(message, number)
 }
 
@@ -538,7 +564,7 @@ func (service *GameService) checkCooldown(ctx context.Context, userID string, ga
 
 func (service *GameService) replyAndDelete(message *discordgo.Message, messageToSend string, deleteAfter bool, emoji string) {
 	if len(emoji) > 0 {
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji)
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji))
 	}
 
 	sentMessage, err := service.bot.ChannelMessageSendReply(
@@ -553,53 +579,75 @@ func (service *GameService) replyAndDelete(message *discordgo.Message, messageTo
 
 	if deleteAfter {
 		time.AfterFunc(time.Second*5, func() {
-			service.bot.ChannelMessageDelete(sentMessage.ChannelID, sentMessage.ID)
+			utils.LogIfErr(utils.Logger, "channel-message-delete", service.bot.ChannelMessageDelete(sentMessage.ChannelID, sentMessage.ID))
 		})
 	}
 }
 
 func (service *GameService) checkSpecialReactions(message *discordgo.Message, number int) {
 	if number > 10 && utils.IsPalindrome(strconv.Itoa(number)) {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🪞")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🪞"))
+		}()
 	}
 
 	if number == 4 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🍀")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🍀"))
+		}()
 	}
 
 	if number == 69 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "niceone:1260697303224815696")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "niceone:1260697303224815696"))
+		}()
 	}
 
 	if number == 100 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "💯")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "💯"))
+		}()
 	}
 
 	if number == 360 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "⚪")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "⚪"))
+		}()
 	}
 
 	if number == 420 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🍃")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🍃"))
+		}()
 	}
 
 	if number == 666 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🤘")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🤘"))
+		}()
 	}
 
 	if number == 777 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎰")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎰"))
+		}()
 	}
 
 	if number == 1000 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "1000:1262411624019525684")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "1000:1262411624019525684"))
+		}()
 	}
 
 	if number == 10_000 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "10000:1262411765996851200")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "10000:1262411765996851200"))
+		}()
 	}
 
 	if number == 100_000 {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "100000:1262411649407647904")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "100000:1262411649407647904"))
+		}()
 	}
 }

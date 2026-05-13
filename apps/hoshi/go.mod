@@ -9,6 +9,7 @@ require (
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/shopspring/decimal v1.4.0
 	github.com/steebchen/prisma-client-go v0.44.0
+	golang.org/x/sync v0.20.0
 	jurien.dev/yugen/shared v0.0.0-00010101000000-000000000000
 )
 
@@ -16,6 +17,7 @@ require (
 	github.com/Code-Hex/dd v1.1.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/caarlos0/env/v11 v11.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4 // indirect
 	github.com/gofiber/fiber/v2 v2.52.5 // indirect
@@ -43,7 +45,6 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.0.0-beta2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )

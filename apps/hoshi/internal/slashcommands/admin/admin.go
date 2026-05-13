@@ -3,8 +3,6 @@ package slashcommands
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/hoshi/internal/services"
-	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	"jurien.dev/yugen/shared/middlewares"
 )
 
@@ -30,9 +28,6 @@ func GetAdminModule(container *di.Container) *AdminModule {
 }
 
 func (m *AdminModule) Commands() []*discordgoplus.Command {
-	_ = m.container.Get(localStatic.DiGuilds).(*services.GuildsService)
-	_ = m.container.Get(localStatic.DiNotify).(*services.NotifyService)
-
 	return []*discordgoplus.Command{
 		{
 			Name:        "admin",

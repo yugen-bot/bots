@@ -73,17 +73,13 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 	self := m.bot.State.User
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer, err := utils.CreateEmbedFooter(
+	footer := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
-	if err != nil {
-		utils.Logger.Error(err)
-		return
-	}
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 

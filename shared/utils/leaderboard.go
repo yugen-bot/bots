@@ -135,16 +135,11 @@ func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, sour
 	}
 
 	cfg := container.Get(static.DiConfig).(*config.Config)
-	footer, err := CreateEmbedFooter(
+	footer := CreateEmbedFooter(
 		container.Get(static.DiBot).(*discordgoplus.Bot),
 		&footerParams,
 		cfg.OwnerID,
 	)
-	if err != nil {
-		Logger.Error(err)
-		doError(ctx, source)
-		return
-	}
 
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 	guild, err := bot.Guild(ctx.Interaction.GuildID)

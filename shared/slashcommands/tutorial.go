@@ -23,16 +23,13 @@ func GetTutorialModule(container *di.Container) *TutorialModule {
 
 func (m *TutorialModule) tutorial(ctx *discordgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer, err := utils.CreateEmbedFooter(
+	footer := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
-	if err != nil {
-		return
-	}
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	tutorialText := m.container.Get(static.DiTutorialText).(string)
@@ -45,7 +42,7 @@ func (m *TutorialModule) tutorial(ctx *discordgoplus.Ctx) {
 		Footer:      footer,
 	}
 
-	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+	err := discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 	if err != nil {

@@ -8,13 +8,16 @@ import (
 )
 
 func InitDI() (container di.Container, err error) {
-	diBuilder, _ := di.NewEnhancedBuilder()
+	diBuilder, err := di.NewEnhancedBuilder()
+	if err != nil {
+		utils.Logger.Fatalw("failed to create DI builder", "error", err)
+	}
 
 	utils.Logger.Info("Building DI")
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiAppName,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return "Iro", nil
 		},
 	})
@@ -24,7 +27,7 @@ func InitDI() (container di.Container, err error) {
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiEmbedColor,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			// #df3565
 			return 0xdf3565, nil
 		},
@@ -32,12 +35,15 @@ func InitDI() (container di.Container, err error) {
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiVoteReward,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteRewardFunc(&ctn), nil
 		},
 	})
 
-	container, _ = diBuilder.Build()
+	container, err = diBuilder.Build()
+	if err != nil {
+		utils.Logger.Fatalw("failed to build DI container", "error", err)
+	}
 
 	return
 }

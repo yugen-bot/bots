@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -35,7 +36,12 @@ func (m *AdminGuildsModule) list(ctx *discordgoplus.Ctx) {
 func (m *AdminGuildsModule) listPage(ctx *discordgoplus.Ctx) {
 	page := 1
 	if p, ok := ctx.MessageComponentOptions["page"]; ok {
-		fmt.Sscanf(p, "%d", &page)
+		page64, err := strconv.ParseInt(p, 10, 64)
+		if err != nil {
+			page = 1 // fallback to first page
+		} else {
+			page = int(page64)
+		}
 	}
 	m.showList(ctx, page, true)
 }

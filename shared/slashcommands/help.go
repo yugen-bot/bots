@@ -23,17 +23,13 @@ func GetHelpModule(container *di.Container) *HelpModule {
 
 func (m *HelpModule) tutorial(ctx *discordgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer, err := utils.CreateEmbedFooter(
+	footer := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
-	if err != nil {
-		utils.Logger.Error(err)
-		return
-	}
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	helpText := m.container.Get(static.DiHelpText).(string)
@@ -46,7 +42,7 @@ func (m *HelpModule) tutorial(ctx *discordgoplus.Ctx) {
 		Footer:      footer,
 	}
 
-	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+	err := discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 	if err != nil {
