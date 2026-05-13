@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -43,7 +44,7 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	setting := ctx.Options["setting"].StringValue()
-	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
@@ -69,6 +70,7 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	}
 
 	_, err = m.settings.Update(
+		context.Background(),
 		settings.ID,
 		dbSetting,
 	)

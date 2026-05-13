@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -36,7 +37,7 @@ func (m *ProfileModule) profile(ctx *discordgoplus.Ctx) {
 		player = playerOption.UserValue(ctx.Session)
 	}
 
-	saves, err := m.saves.GetPlayerSavesByUserID(player.ID)
+	saves, err := m.saves.GetPlayerSavesByUserID(context.Background(), player.ID)
 	if err != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Sorry couldn't find your profile...",
@@ -44,7 +45,7 @@ func (m *ProfileModule) profile(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	points, err := m.points.GetPlayer(ctx.Interaction.GuildID, player.ID, true)
+	points, err := m.points.GetPlayer(context.Background(), ctx.Interaction.GuildID, player.ID, true)
 	if err != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Sorry couldn't find your profile...",

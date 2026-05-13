@@ -48,16 +48,16 @@ func CreateGameService(container *di.Container) *GameService {
 	}
 }
 
-func (service *GameService) Start(guildID string, gameType db.GameType, word string, recreate bool) (game *db.GameModel, started bool, err error) {
+func (service *GameService) Start(ctx context.Context, guildID string, gameType db.GameType, word string, recreate bool) (game *db.GameModel, started bool, err error) {
 	utils.Logger.Infof("Trying to start a game for %s", guildID)
 
-	currentGame, exists, err := service.GetCurrentGame(guildID)
+	currentGame, exists, err := service.GetCurrentGame(ctx, guildID)
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Error(err)
 		return game, started, err
 	}
 
-	settings, err := service.settings.GetByGuildId(guildID)
+	settings, err := service.settings.GetByGuildId(ctx, guildID)
 	if err != nil {
 		utils.Logger.Error(err)
 		return game, started, fmt.Errorf("game: start: get settings: %w", err)
@@ -82,7 +82,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, word str
 	}
 
 	if (exists && recreate) || (exists && currentGame.Type != gameType) {
-		service.End(currentGame.ID, db.GameStatusFailed)
+		service.End(ctx, currentGame.ID, db.GameStatusFailed)
 	}
 
 	started = true
@@ -92,7 +92,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, word str
 			db.Settings.ID.Equals(settings.ID),
 		),
 		db.Game.Type.Set(gameType),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		utils.Logger.Error(err)
 		return game, started, fmt.Errorf("game: start: create game: %w", err)
@@ -109,7 +109,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, word str
 		db.History.UserID.Set(self.ID),
 		db.History.Game.Link(db.Game.ID.Equals(game.ID)),
 		db.History.Word.Set(word),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		utils.Logger.Error(err)
 	}
@@ -129,12 +129,12 @@ The first letter is: **%s**`,
 	return game, started, err
 }
 
-func (service *GameService) End(gameID int, status db.GameStatus) (game *db.GameModel, err error) {
+func (service *GameService) End(ctx context.Context, gameID int, status db.GameStatus) (game *db.GameModel, err error) {
 	game, err = service.database.Game.FindUnique(
 		db.Game.ID.Equals(gameID),
 	).Update(
 		db.Game.Status.Set(status),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return game, fmt.Errorf("game: end: update game: %w", err)
 	}
@@ -177,12 +177,12 @@ func (service *GameService) ParseWord(message *discordgo.Message) (word string, 
 	return word, err
 }
 
-func (service *GameService) AddWord(guildID string, word string, message *discordgo.Message, settings *db.SettingsModel) {
+func (service *GameService) AddWord(ctx context.Context, guildID string, word string, message *discordgo.Message, settings *db.SettingsModel) {
 	if len(word) == 0 {
 		return
 	}
 
-	game, exists, err := service.GetCurrentGame(guildID)
+	game, exists, err := service.GetCurrentGame(ctx, guildID)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
@@ -192,7 +192,7 @@ func (service *GameService) AddWord(guildID string, word string, message *discor
 		return
 	}
 
-	history, _, err := service.GetLastHistory(game)
+	history, _, err := service.GetLastHistory(ctx, game)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
@@ -211,7 +211,7 @@ func (service *GameService) AddWord(guildID string, word string, message *discor
 
 	lastLetter := history.Word[len(history.Word)-1]
 	isCorrectLetter := word[0] == lastLetter
-	wordExists, err := service.dictionary.Check(word)
+	wordExists, err := service.dictionary.Check(ctx, word)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
@@ -229,7 +229,7 @@ func (service *GameService) AddWord(guildID string, word string, message *discor
 			return
 		}
 
-		saves, err := service.saves.GetSaves(settings, message.Author.ID)
+		saves, err := service.saves.GetSaves(ctx, settings, message.Author.ID)
 		if err != nil {
 			utils.Logger.Error(err)
 			return
@@ -238,7 +238,7 @@ func (service *GameService) AddWord(guildID string, word string, message *discor
 		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
 
 		if saves.player >= 1 {
-			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromPlayer(message.Author.ID, 1)
+			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromPlayer(ctx, message.Author.ID, 1)
 			if err != nil {
 				utils.Logger.Error(err)
 				return
@@ -259,7 +259,7 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 		}
 
 		if saves.guild >= 1 {
-			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromGuild(message.GuildID, settings, 1)
+			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromGuild(ctx, message.GuildID, settings, 1)
 			if err != nil {
 				return
 			}
@@ -278,13 +278,13 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			return
 		}
 
-		count, err := service.getCount(game.ID)
+		count, err := service.getCount(ctx, game.ID)
 		if err != nil {
 			utils.Logger.Error(err)
 			return
 		}
 
-		isHighscore, _, err := service.checkStreak(settings, game, count)
+		isHighscore, _, err := service.checkStreak(ctx, settings, game, count)
 		if err != nil {
 			utils.Logger.Error(err)
 			return
@@ -296,7 +296,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		}
 
 		pointsRemoved := int(count / 10)
-		go service.points.RemoveGamePoints(guildID, message.Author.ID, pointsRemoved)
+		go service.points.RemoveGamePoints(ctx, guildID, message.Author.ID, pointsRemoved)
 
 		if pointsRemoved == 0 {
 			pointsRemoved = 1
@@ -325,11 +325,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			message.Reference(),
 		)
 
-		service.Start(guildID, db.GameTypeNormal, "", true)
+		service.Start(ctx, guildID, db.GameTypeNormal, "", true)
 		return
 	}
 
-	usedInPastHundred, err := service.checkUsedInPastHundred(game.ID, word)
+	usedInPastHundred, err := service.checkUsedInPastHundred(ctx, game.ID, word)
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Error(err)
 		return
@@ -349,6 +349,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 
 	cooldown, err := service.checkCooldown(
+		ctx,
 		message.Author.ID,
 		game.ID,
 		settings.Cooldown,
@@ -368,25 +369,25 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
-	go service.points.AddGamePoints(guildID, message.Author.ID, 1)
+	go service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1)
 	_, err = service.database.History.CreateOne(
 		db.History.UserID.Set(message.Author.ID),
 		db.History.Game.Link(db.Game.ID.Equals(game.ID)),
 		db.History.Word.Set(word),
 		db.History.MessageID.Set(message.ID),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
 	}
 
-	count, err := service.getCount(game.ID)
+	count, err := service.getCount(ctx, game.ID)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
 	}
 
-	isHighscore, isGameHighscored, err := service.checkStreak(settings, game, count)
+	isHighscore, isGameHighscored, err := service.checkStreak(ctx, settings, game, count)
 
 	if isGameHighscored {
 		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉")
@@ -406,7 +407,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 }
 
-func (service *GameService) IsEqualToLast(message *discordgo.Message, settings *db.SettingsModel, isDelete bool) (ok bool, word string) {
+func (service *GameService) IsEqualToLast(ctx context.Context, message *discordgo.Message, settings *db.SettingsModel, isDelete bool) (ok bool, word string) {
 	ok = true
 
 	if message == nil {
@@ -414,13 +415,13 @@ func (service *GameService) IsEqualToLast(message *discordgo.Message, settings *
 		return ok, word
 	}
 
-	game, exists, err := service.GetCurrentGame(message.GuildID)
+	game, exists, err := service.GetCurrentGame(ctx, message.GuildID)
 	if err != nil || !exists {
 		utils.Logger.Info("Couldnt find game", err)
 		return ok, word
 	}
 
-	history, _, err := service.GetLastHistory(game)
+	history, _, err := service.GetLastHistory(ctx, game)
 	if err != nil {
 		utils.Logger.Info("Couldnt find last history", err)
 		return ok, word
@@ -456,14 +457,14 @@ func (service *GameService) IsEqualToLast(message *discordgo.Message, settings *
 	return ok, word
 }
 
-func (service *GameService) GetCurrentGame(guildID string) (game *db.GameModel, exists bool, err error) {
+func (service *GameService) GetCurrentGame(ctx context.Context, guildID string) (game *db.GameModel, exists bool, err error) {
 	exists = true
 	game, err = service.database.Game.FindFirst(
 		db.Game.GuildID.Equals(guildID),
 		db.Game.Status.Equals(db.GameStatusInProgress),
 	).OrderBy(
 		db.Game.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(context.Background())
+	).Exec(ctx)
 
 	if errors.Is(err, db.ErrNotFound) {
 		err = nil
@@ -478,7 +479,7 @@ func (service *GameService) GetCurrentGame(guildID string) (game *db.GameModel, 
 	return game, exists, err
 }
 
-func (service *GameService) GetLastHistory(game *db.GameModel) (history *db.HistoryModel, exists bool, err error) {
+func (service *GameService) GetLastHistory(ctx context.Context, game *db.GameModel) (history *db.HistoryModel, exists bool, err error) {
 	if game == nil || game.Status != db.GameStatusInProgress {
 		exists = false
 		return history, exists, err
@@ -489,7 +490,7 @@ func (service *GameService) GetLastHistory(game *db.GameModel) (history *db.Hist
 		db.History.Game.Where(db.Game.ID.Equals(game.ID)),
 	).OrderBy(
 		db.History.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(context.Background())
+	).Exec(ctx)
 
 	if errors.Is(err, db.ErrNotFound) {
 		err = nil
@@ -504,7 +505,7 @@ func (service *GameService) GetLastHistory(game *db.GameModel) (history *db.Hist
 	return history, exists, err
 }
 
-func (service *GameService) getCount(gameID int) (count int, err error) {
+func (service *GameService) getCount(ctx context.Context, gameID int) (count int, err error) {
 	var res []struct {
 		Count string `json:"count"`
 	}
@@ -512,7 +513,7 @@ func (service *GameService) getCount(gameID int) (count int, err error) {
 	err = service.database.Prisma.QueryRaw(
 		`SELECT count(*) as count FROM "History" WHERE "gameId" = $1`,
 		gameID,
-	).Exec(context.Background(), &res)
+	).Exec(ctx, &res)
 	if err != nil {
 		return count, err
 	}
@@ -525,13 +526,13 @@ func (service *GameService) getCount(gameID int) (count int, err error) {
 	return count, err
 }
 
-func (service *GameService) checkStreak(settings *db.SettingsModel, game *db.GameModel, count int) (isHighscore bool, isGameHighscored bool, err error) {
+func (service *GameService) checkStreak(ctx context.Context, settings *db.SettingsModel, game *db.GameModel, count int) (isHighscore bool, isGameHighscored bool, err error) {
 	isHighscore = false
 	isGameHighscored = false
 
 	if count > settings.Highscore {
 		isHighscore = true
-		go service.settings.SetHighscoreByGuildID(settings.GuildID, count)
+		go service.settings.SetHighscoreByGuildID(ctx, settings.GuildID, count)
 
 		if !game.IsHighscored {
 			isGameHighscored = true
@@ -540,19 +541,19 @@ func (service *GameService) checkStreak(settings *db.SettingsModel, game *db.Gam
 				db.Game.ID.Equals(game.ID),
 			).Update(
 				db.Game.IsHighscored.Set(true),
-			).Exec(context.Background())
+			).Exec(ctx)
 		}
 	}
 
 	return isHighscore, isGameHighscored, err
 }
 
-func (service *GameService) checkUsedInPastHundred(gameID int, word string) (used bool, err error) {
+func (service *GameService) checkUsedInPastHundred(ctx context.Context, gameID int, word string) (used bool, err error) {
 	histories, err := service.database.History.FindMany(
 		db.History.Game.Where(db.Game.ID.Equals(gameID)),
 	).Take(100).OrderBy(
 		db.History.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return used, err
 	}
@@ -564,7 +565,7 @@ func (service *GameService) checkUsedInPastHundred(gameID int, word string) (use
 	return used, err
 }
 
-func (service *GameService) checkCooldown(userID string, gameID int, settingsCooldown int) (cooldown time.Time, err error) {
+func (service *GameService) checkCooldown(ctx context.Context, userID string, gameID int, settingsCooldown int) (cooldown time.Time, err error) {
 	if settingsCooldown == 0 {
 		cooldown = time.Now().Add(-time.Second * 600)
 		return cooldown, err
@@ -577,7 +578,7 @@ func (service *GameService) checkCooldown(userID string, gameID int, settingsCoo
 		db.History.CreatedAt.After(time.Now().Add(seconds)),
 	).Select(
 		db.History.CreatedAt.Field(),
-	).Exec(context.Background())
+	).Exec(ctx)
 
 	if errors.Is(err, db.ErrNotFound) {
 		cooldown = time.Now().Add(-time.Second * 10)

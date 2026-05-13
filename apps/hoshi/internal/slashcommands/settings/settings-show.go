@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -28,7 +29,7 @@ func GetSettingsShowModule(container *di.Container) *SettingsShowModule {
 func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildID(ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildID(context.Background(), ctx.Interaction.GuildID)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return

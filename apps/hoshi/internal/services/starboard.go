@@ -29,8 +29,8 @@ func CreateStarboardService(container *di.Container) *StarboardService {
 	}
 }
 
-func (s *StarboardService) CheckReaction(channelID, messageID, guildID, emojiID, emojiName string) {
-	settings, err := s.settings.GetByGuildID(guildID)
+func (s *StarboardService) CheckReaction(ctx context.Context, channelID, messageID, guildID, emojiID, emojiName string) {
+	settings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
@@ -48,7 +48,7 @@ func (s *StarboardService) CheckReaction(channelID, messageID, guildID, emojiID,
 		return
 	}
 
-	isTarget, _ := s.getLogByMessageID(messageID)
+	isTarget, _ := s.getLogByMessageID(ctx, messageID)
 	if isTarget != nil {
 		return
 	}
@@ -58,7 +58,6 @@ func (s *StarboardService) CheckReaction(channelID, messageID, guildID, emojiID,
 		reactionEmoji = emojiName
 	}
 
-	ctx := context.Background()
 	configurations, err := s.database.Starboards.FindMany(
 		db.Starboards.GuildID.Equals(guildID),
 		db.Starboards.SourceEmoji.Equals(reactionEmoji),
@@ -118,10 +117,10 @@ func (s *StarboardService) CheckReaction(channelID, messageID, guildID, emojiID,
 		count++
 	}
 
-	log, _ := s.getLogByOriginalID(messageID)
+	log, _ := s.getLogByOriginalID(ctx, messageID)
 
 	if count == 0 && log != nil {
-		s.deleteStarboard(log)
+		s.deleteStarboard(ctx, log)
 		return
 	}
 
@@ -141,30 +140,30 @@ func (s *StarboardService) CheckReaction(channelID, messageID, guildID, emojiID,
 		return
 	}
 
-	s.createStarboard(count, embed, msg, config.TargetChannelID, displayEmoji)
+	s.createStarboard(ctx, count, embed, msg, config.TargetChannelID, displayEmoji)
 }
 
-func (s *StarboardService) getLogByOriginalID(id string) (*db.LogModel, error) {
+func (s *StarboardService) getLogByOriginalID(ctx context.Context, id string) (*db.LogModel, error) {
 	result, err := s.database.Log.FindUnique(
 		db.Log.OriginalMessageID.Equals(id),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starboard: get log by original id: %w", err)
 	}
 	return result, nil
 }
 
-func (s *StarboardService) getLogByMessageID(id string) (*db.LogModel, error) {
+func (s *StarboardService) getLogByMessageID(ctx context.Context, id string) (*db.LogModel, error) {
 	result, err := s.database.Log.FindUnique(
 		db.Log.MessageID.Equals(id),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starboard: get log by message id: %w", err)
 	}
 	return result, nil
 }
 
-func (s *StarboardService) GetStarboardBySourceIDAndEmoji(guildID, sourceEmoji string, sourceChannelID *string) (*db.StarboardsModel, error) {
+func (s *StarboardService) GetStarboardBySourceIDAndEmoji(ctx context.Context, guildID, sourceEmoji string, sourceChannelID *string) (*db.StarboardsModel, error) {
 	var params []db.StarboardsWhereParam
 	params = append(params,
 		db.Starboards.GuildID.Equals(guildID),
@@ -176,15 +175,14 @@ func (s *StarboardService) GetStarboardBySourceIDAndEmoji(guildID, sourceEmoji s
 		params = append(params, db.Starboards.SourceChannelID.IsNull())
 	}
 
-	result, err := s.database.Starboards.FindFirst(params...).Exec(context.Background())
+	result, err := s.database.Starboards.FindFirst(params...).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starboard: get by source and emoji: %w", err)
 	}
 	return result, nil
 }
 
-func (s *StarboardService) GetStarboards(guildID string, page int) ([]db.StarboardsModel, int, error) {
-	ctx := context.Background()
+func (s *StarboardService) GetStarboards(ctx context.Context, guildID string, page int) ([]db.StarboardsModel, int, error) {
 	where := []db.StarboardsWhereParam{db.Starboards.GuildID.Equals(guildID)}
 	skip := (page - 1) * 10
 
@@ -201,7 +199,7 @@ func (s *StarboardService) GetStarboards(guildID string, page int) ([]db.Starboa
 	return items, len(total), nil
 }
 
-func (s *StarboardService) AddStarboard(guildID, sourceEmoji string, sourceChannelID *string, targetChannelID string) (*db.StarboardsModel, error) {
+func (s *StarboardService) AddStarboard(ctx context.Context, guildID, sourceEmoji string, sourceChannelID *string, targetChannelID string) (*db.StarboardsModel, error) {
 	optional := []db.StarboardsSetParam{
 		db.Starboards.SourceEmoji.Set(sourceEmoji),
 	}
@@ -213,15 +211,14 @@ func (s *StarboardService) AddStarboard(guildID, sourceEmoji string, sourceChann
 		db.Starboards.GuildID.Set(guildID),
 		db.Starboards.TargetChannelID.Set(targetChannelID),
 		optional...,
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starboard: add starboard: %w", err)
 	}
 	return result, nil
 }
 
-func (s *StarboardService) RemoveStarboardByID(guildID string, id int) (*db.StarboardsModel, error) {
-	ctx := context.Background()
+func (s *StarboardService) RemoveStarboardByID(ctx context.Context, guildID string, id int) (*db.StarboardsModel, error) {
 	config, err := s.database.Starboards.FindFirst(
 		db.Starboards.GuildID.Equals(guildID),
 		db.Starboards.ID.Equals(id),
@@ -277,7 +274,7 @@ func (s *StarboardService) createContentString(count int, emoji string, msg *dis
 		count, emoji, msg.GuildID, msg.ChannelID, msg.ID)
 }
 
-func (s *StarboardService) createStarboard(count int, embed *discordgo.MessageEmbed, msg *discordgo.Message, targetChannelID, emoji string) {
+func (s *StarboardService) createStarboard(ctx context.Context, count int, embed *discordgo.MessageEmbed, msg *discordgo.Message, targetChannelID, emoji string) {
 	sent, err := s.bot.ChannelMessageSendComplex(targetChannelID, &discordgo.MessageSend{
 		Content: s.createContentString(count, emoji, msg),
 		Embeds:  []*discordgo.MessageEmbed{embed},
@@ -292,7 +289,7 @@ func (s *StarboardService) createStarboard(count int, embed *discordgo.MessageEm
 		db.Log.ChannelID.Set(targetChannelID),
 		db.Log.MessageID.Set(sent.ID),
 		db.Log.OriginalMessageID.Set(msg.ID),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		utils.Logger.Errorw("starboard: create log entry failed", "error", fmt.Errorf("starboard: create log: %w", err))
 	}
@@ -313,7 +310,7 @@ func (s *StarboardService) updateStarboard(count int, embed *discordgo.MessageEm
 	}
 }
 
-func (s *StarboardService) deleteStarboard(log *db.LogModel) {
+func (s *StarboardService) deleteStarboard(ctx context.Context, log *db.LogModel) {
 	err := s.bot.ChannelMessageDelete(log.ChannelID, log.MessageID)
 	if err != nil {
 		utils.Logger.Error(err)
@@ -322,7 +319,7 @@ func (s *StarboardService) deleteStarboard(log *db.LogModel) {
 
 	_, err = s.database.Log.FindUnique(
 		db.Log.MessageID.Equals(log.MessageID),
-	).Delete().Exec(context.Background())
+	).Delete().Exec(ctx)
 	if err != nil {
 		utils.Logger.Errorw("starboard: delete log entry failed", "error", fmt.Errorf("starboard: delete log: %w", err))
 	}

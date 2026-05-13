@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -22,7 +23,7 @@ func CreateDictionaryService() *DictionaryService {
 	return &DictionaryService{}
 }
 
-func (service *DictionaryService) Check(word string) (bool, error) {
+func (service *DictionaryService) Check(ctx context.Context, word string) (bool, error) {
 	word = strings.ToLower(word)
 
 	replacer := strings.NewReplacer(
@@ -42,7 +43,7 @@ func (service *DictionaryService) Check(word string) (bool, error) {
 	}
 
 	utils.Logger.Debug(wiktionaryURL)
-	req, err := http.NewRequest("GET", wiktionaryURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", wiktionaryURL, nil)
 	if err != nil {
 		return false, fmt.Errorf("dictionary: new request: %w", err)
 	}

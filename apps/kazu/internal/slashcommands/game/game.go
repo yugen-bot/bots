@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -32,7 +33,7 @@ func GetGameModule(container *di.Container) *GameModule {
 func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
 	if err != nil {
 		return
 	}
@@ -52,6 +53,7 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 	}
 
 	_, started, err := m.game.Start(
+		context.Background(),
 		ctx.Interaction.GuildID,
 		db.GameTypeNormal,
 		startingNumber,

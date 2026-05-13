@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -52,7 +53,7 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 		sourceLabel = fmt.Sprintf("\nSource: <#%s>", id)
 	}
 
-	existing, _ := m.starboard.GetStarboardBySourceIDAndEmoji(ctx.Interaction.GuildID, key, sourceChannelID)
+	existing, _ := m.starboard.GetStarboardBySourceIDAndEmoji(context.Background(), ctx.Interaction.GuildID, key, sourceChannelID)
 	if existing != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "A starboard for the supplied rules already exists.",
@@ -60,7 +61,7 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	_, err := m.starboard.AddStarboard(ctx.Interaction.GuildID, key, sourceChannelID, destination.ID)
+	_, err := m.starboard.AddStarboard(context.Background(), ctx.Interaction.GuildID, key, sourceChannelID, destination.ID)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return

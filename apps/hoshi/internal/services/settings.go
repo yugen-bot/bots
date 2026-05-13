@@ -24,13 +24,12 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	}
 }
 
-func (s *SettingsService) GetByGuildID(guildID string, create ...bool) (*db.SettingsModel, error) {
+func (s *SettingsService) GetByGuildID(ctx context.Context, guildID string, create ...bool) (*db.SettingsModel, error) {
 	createBool := false
 	if len(create) > 0 {
 		createBool = create[0]
 	}
 
-	ctx := context.Background()
 	settings, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Exec(ctx)
@@ -50,28 +49,28 @@ func (s *SettingsService) GetByGuildID(guildID string, create ...bool) (*db.Sett
 	return settings, nil
 }
 
-func (s *SettingsService) Delete(guildID string) error {
+func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 	_, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
-	).Delete().Exec(context.Background())
+	).Delete().Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("settings: delete: %w", err)
 	}
 	return nil
 }
 
-func (s *SettingsService) Set(guildID string, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
+func (s *SettingsService) Set(ctx context.Context, guildID string, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
 	result, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
-	).Update(params...).Exec(context.Background())
+	).Update(params...).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: set: %w", err)
 	}
 	return result, nil
 }
 
-func (s *SettingsService) IgnoreChannel(guildID, channelID string, ignore bool) error {
-	settings, err := s.GetByGuildID(guildID)
+func (s *SettingsService) IgnoreChannel(ctx context.Context, guildID, channelID string, ignore bool) error {
+	settings, err := s.GetByGuildID(ctx, guildID)
 	if err != nil {
 		return err
 	}
@@ -91,7 +90,7 @@ func (s *SettingsService) IgnoreChannel(guildID, channelID string, ignore bool) 
 		ids = append(ids[:idx], ids[idx+1:]...)
 	}
 
-	_, err = s.Set(guildID, db.Settings.IgnoredChannelIds.Set(ids))
+	_, err = s.Set(ctx, guildID, db.Settings.IgnoredChannelIds.Set(ids))
 	if err != nil {
 		return fmt.Errorf("settings: ignore channel: %w", err)
 	}

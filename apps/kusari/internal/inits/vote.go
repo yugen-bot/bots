@@ -1,6 +1,7 @@
 package inits
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -34,7 +35,7 @@ func CreateVoteHandler(container *di.Container) func(userID string, source strin
 		if weekday == time.Saturday || weekday == time.Sunday {
 			amount = 0.5
 		}
-		_, _, err = saves.AddSaveToPlayer(user.ID, amount)
+		_, _, err = saves.AddSaveToPlayer(context.Background(), user.ID, amount)
 		return err
 	}
 }
@@ -42,7 +43,7 @@ func CreateVoteHandler(container *di.Container) func(userID string, source strin
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	voteReward := func(userID string) string {
 		saves := container.Get(localStatic.DiSaves).(*services.SavesService)
-		player, err := saves.GetPlayerSavesByUserID(userID)
+		player, err := saves.GetPlayerSavesByUserID(context.Background(), userID)
 		if err != nil {
 			utils.Logger.Error(err)
 			return ""

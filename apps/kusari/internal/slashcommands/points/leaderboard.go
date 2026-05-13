@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/jurienhamaker/discordgoplus"
@@ -25,7 +26,7 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 }
 
 func (m *LeaderboardModule) getItems(ctx *discordgoplus.Ctx, page int) ([]any, int, error) {
-	items, total, err := m.points.GetLeaderboardByGuildID(ctx.Interaction.GuildID, page)
+	items, total, err := m.points.GetLeaderboardByGuildID(context.Background(), ctx.Interaction.GuildID, page)
 	return utils.UnpackArray(items), total, err
 }
 

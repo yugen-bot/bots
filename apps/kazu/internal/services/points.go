@@ -23,12 +23,12 @@ func CreatePointsService(container *di.Container) *PointsService {
 	}
 }
 
-func (service *PointsService) GetPlayer(guildID string, userID string, setInGuild bool) (*db.PlayerStatsModel, error) {
+func (service *PointsService) GetPlayer(ctx context.Context, guildID string, userID string, setInGuild bool) (*db.PlayerStatsModel, error) {
 	created := false
 	player, err := service.database.PlayerStats.FindFirst(
 		db.PlayerStats.UserID.Equals(userID),
 		db.PlayerStats.GuildID.Equals(guildID),
-	).Exec(context.Background())
+	).Exec(ctx)
 
 	if errors.Is(err, db.ErrNotFound) {
 		created = true
@@ -36,7 +36,7 @@ func (service *PointsService) GetPlayer(guildID string, userID string, setInGuil
 			db.PlayerStats.UserID.Set(userID),
 			db.PlayerStats.GuildID.Set(guildID),
 			db.PlayerStats.InGuild.Set(true),
-		).Exec(context.Background())
+		).Exec(ctx)
 	}
 
 	if err != nil {
@@ -48,7 +48,7 @@ func (service *PointsService) GetPlayer(guildID string, userID string, setInGuil
 			db.PlayerStats.ID.Equals(player.ID),
 		).Update(
 			db.PlayerStats.InGuild.Set(true),
-		).Exec(context.Background())
+		).Exec(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("points: get player: set in guild: %w", err)
 		}
@@ -57,8 +57,8 @@ func (service *PointsService) GetPlayer(guildID string, userID string, setInGuil
 	return player, nil
 }
 
-func (service *PointsService) AddGamePoints(guildID string, userID string, amount int) error {
-	player, err := service.GetPlayer(guildID, userID, true)
+func (service *PointsService) AddGamePoints(ctx context.Context, guildID string, userID string, amount int) error {
+	player, err := service.GetPlayer(ctx, guildID, userID, true)
 	if err != nil {
 		return fmt.Errorf("points: add game points: %w", err)
 	}
@@ -67,7 +67,7 @@ func (service *PointsService) AddGamePoints(guildID string, userID string, amoun
 		db.PlayerStats.ID.Equals(player.ID),
 	).Update(
 		db.PlayerStats.Points.Increment(amount),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("points: add game points: update: %w", err)
 	}
@@ -75,8 +75,8 @@ func (service *PointsService) AddGamePoints(guildID string, userID string, amoun
 	return nil
 }
 
-func (service *PointsService) RemoveGamePoints(guildID string, userID string, amount int) error {
-	player, err := service.GetPlayer(guildID, userID, true)
+func (service *PointsService) RemoveGamePoints(ctx context.Context, guildID string, userID string, amount int) error {
+	player, err := service.GetPlayer(ctx, guildID, userID, true)
 	if err != nil {
 		return fmt.Errorf("points: remove game points: %w", err)
 	}
@@ -85,7 +85,7 @@ func (service *PointsService) RemoveGamePoints(guildID string, userID string, am
 		db.PlayerStats.ID.Equals(player.ID),
 	).Update(
 		db.PlayerStats.Points.Decrement(amount),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("points: remove game points: update: %w", err)
 	}
@@ -93,10 +93,10 @@ func (service *PointsService) RemoveGamePoints(guildID string, userID string, am
 	return nil
 }
 
-func (service *PointsService) ResetLeaderboardByGuildID(guildID string) error {
+func (service *PointsService) ResetLeaderboardByGuildID(ctx context.Context, guildID string) error {
 	_, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
-	).Delete().Exec(context.Background())
+	).Delete().Exec(ctx)
 
 	if errors.Is(err, db.ErrNotFound) {
 		return nil
@@ -109,11 +109,11 @@ func (service *PointsService) ResetLeaderboardByGuildID(guildID string) error {
 	return nil
 }
 
-func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(guildID string, userID string) error {
+func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(ctx context.Context, guildID string, userID string) error {
 	_, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
 		db.PlayerStats.UserID.Equals(userID),
-	).Delete().Exec(context.Background())
+	).Delete().Exec(ctx)
 
 	if errors.Is(err, db.ErrNotFound) {
 		return nil
@@ -136,12 +136,12 @@ type GetLeaderboardTotalByGuildIDResponse struct {
 	Err   error
 }
 
-func (service *PointsService) GetLeaderboardByGuildID(guildID string, page int) ([]db.PlayerStatsModel, int, error) {
+func (service *PointsService) GetLeaderboardByGuildID(ctx context.Context, guildID string, page int) ([]db.PlayerStatsModel, int, error) {
 	itemsChannel := make(chan GetLeaderboardItemsByGuildIDResponse)
 	totalChannel := make(chan GetLeaderboardTotalByGuildIDResponse)
 
-	go service.getLeaderboardItemsByGuildID(guildID, page, itemsChannel)
-	go service.getLeaderboardTotalByGuildID(guildID, totalChannel)
+	go service.getLeaderboardItemsByGuildID(ctx, guildID, page, itemsChannel)
+	go service.getLeaderboardTotalByGuildID(ctx, guildID, totalChannel)
 
 	itemsResult := <-itemsChannel
 	totalResult := <-totalChannel
@@ -157,7 +157,7 @@ func (service *PointsService) GetLeaderboardByGuildID(guildID string, page int) 
 	return items, total, err
 }
 
-func (service *PointsService) getLeaderboardItemsByGuildID(guildID string, page int, channel chan GetLeaderboardItemsByGuildIDResponse) {
+func (service *PointsService) getLeaderboardItemsByGuildID(ctx context.Context, guildID string, page int, channel chan GetLeaderboardItemsByGuildIDResponse) {
 	defer close(channel)
 	result := new(GetLeaderboardItemsByGuildIDResponse)
 
@@ -166,7 +166,7 @@ func (service *PointsService) getLeaderboardItemsByGuildID(guildID string, page 
 		db.PlayerStats.InGuild.Equals(true),
 	).OrderBy(
 		db.PlayerStats.Points.Order(db.DESC),
-	).Take(10).Skip((page - 1) * 10).Exec(context.Background())
+	).Take(10).Skip((page - 1) * 10).Exec(ctx)
 
 	result.Items = items
 	result.Err = err
@@ -174,7 +174,7 @@ func (service *PointsService) getLeaderboardItemsByGuildID(guildID string, page 
 	channel <- *result
 }
 
-func (service *PointsService) getLeaderboardTotalByGuildID(guildID string, channel chan GetLeaderboardTotalByGuildIDResponse) {
+func (service *PointsService) getLeaderboardTotalByGuildID(ctx context.Context, guildID string, channel chan GetLeaderboardTotalByGuildIDResponse) {
 	defer close(channel)
 	result := new(GetLeaderboardTotalByGuildIDResponse)
 
@@ -185,7 +185,7 @@ func (service *PointsService) getLeaderboardTotalByGuildID(guildID string, chann
 	err := service.database.Prisma.QueryRaw(
 		`SELECT count(*) as count FROM "PlayerStats" WHERE "guildId" = $1 AND "inGuild" = true`,
 		guildID,
-	).Exec(context.Background(), &res)
+	).Exec(ctx, &res)
 
 	count := 0
 	if err == nil && len(res) > 0 {

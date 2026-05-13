@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -34,7 +35,7 @@ func (m *SettingsIgnoreModule) ignore(ctx *discordgoplus.Ctx) {
 		label = fmt.Sprintf("<#%s>", ch.ID)
 	}
 
-	if err := m.settings.IgnoreChannel(ctx.Interaction.GuildID, channelID, true); err != nil {
+	if err := m.settings.IgnoreChannel(context.Background(), ctx.Interaction.GuildID, channelID, true); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

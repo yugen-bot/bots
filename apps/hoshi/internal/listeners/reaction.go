@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -26,7 +27,7 @@ func (d *reactionDebouncer) onReaction(channelID, messageID, guildID, emojiID, e
 
 	t := time.AfterFunc(500*time.Millisecond, func() {
 		d.timers.Delete(messageID)
-		d.svc.CheckReaction(channelID, messageID, guildID, emojiID, emojiName)
+		d.svc.CheckReaction(context.Background(), channelID, messageID, guildID, emojiID, emojiName)
 	})
 	d.timers.Store(messageID, t)
 }

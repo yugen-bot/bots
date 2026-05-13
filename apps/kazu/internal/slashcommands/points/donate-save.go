@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -33,12 +34,12 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	player, err := m.saves.GetPlayerSavesByUserID(ctx.Interaction.Member.User.ID)
+	player, err := m.saves.GetPlayerSavesByUserID(context.Background(), ctx.Interaction.Member.User.ID)
 	if err != nil {
 		return
 	}
 
-	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
 	if err != nil {
 		return
 	}
@@ -61,8 +62,8 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	go m.saves.DeductSaveFromPlayer(ctx.Interaction.Member.User.ID, 1)
-	saves, maxSaves, err := m.saves.AddSaveToGuild(settings.GuildID, settings, 0.2)
+	go m.saves.DeductSaveFromPlayer(context.Background(), ctx.Interaction.Member.User.ID, 1)
+	saves, maxSaves, err := m.saves.AddSaveToGuild(context.Background(), settings.GuildID, settings, 0.2)
 	if err != nil {
 		return
 	}

@@ -25,8 +25,7 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	}
 }
 
-func (service *SettingsService) GetByGuildId(guildID string) (*db.SettingsModel, error) {
-	ctx := context.Background()
+func (service *SettingsService) GetByGuildId(ctx context.Context, guildID string) (*db.SettingsModel, error) {
 	guildSettings, err := service.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Exec(ctx)
@@ -43,13 +42,13 @@ func (service *SettingsService) GetByGuildId(guildID string) (*db.SettingsModel,
 	return guildSettings, nil
 }
 
-func (service *SettingsService) SetHighscoreByGuildID(guildID string, highscore int) (*db.SettingsModel, error) {
+func (service *SettingsService) SetHighscoreByGuildID(ctx context.Context, guildID string, highscore int) (*db.SettingsModel, error) {
 	result, err := service.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Update(
 		db.Settings.Highscore.Set(highscore),
 		db.Settings.HighscoreDate.Set(time.Now()),
-	).Exec(context.Background())
+	).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: set highscore by guild id: %w", err)
 	}
@@ -57,8 +56,8 @@ func (service *SettingsService) SetHighscoreByGuildID(guildID string, highscore 
 	return result, nil
 }
 
-func (service *SettingsService) ResetShame(guildID string) error {
-	settings, err := service.GetByGuildId(guildID)
+func (service *SettingsService) ResetShame(ctx context.Context, guildID string) error {
+	settings, err := service.GetByGuildId(ctx, guildID)
 	if err != nil {
 		return fmt.Errorf("settings: reset shame: %w", err)
 	}
@@ -81,10 +80,10 @@ func (service *SettingsService) ResetShame(guildID string) error {
 	return nil
 }
 
-func (service *SettingsService) Update(settingsID int, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
+func (service *SettingsService) Update(ctx context.Context, settingsID int, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
 	settings, err := service.database.Settings.FindUnique(
 		db.Settings.ID.Equals(settingsID),
-	).Update(params...).Exec(context.Background())
+	).Update(params...).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: update: %w", err)
 	}

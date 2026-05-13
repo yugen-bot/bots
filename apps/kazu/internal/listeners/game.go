@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -43,12 +44,12 @@ func (listener *GameListener) MessageCreateHandler(bot *discordgo.Session, event
 		return
 	}
 
-	number, err := listener.service.ParseNumber(event.Message, settings.Math)
+	number, err := listener.service.ParseNumber(context.Background(), event.Message, settings.Math)
 	if err != nil {
 		return
 	}
 
-	listener.service.AddNumber(event.GuildID, number, event.Message, settings)
+	listener.service.AddNumber(context.Background(), event.GuildID, number, event.Message, settings)
 }
 
 func (listener *GameListener) MessageUpdateHandler(bot *discordgo.Session, event *discordgo.MessageUpdate) {
@@ -57,7 +58,7 @@ func (listener *GameListener) MessageUpdateHandler(bot *discordgo.Session, event
 		return
 	}
 
-	isEqual, number := listener.service.IsEqualToLast(event.Message, settings, false)
+	isEqual, number := listener.service.IsEqualToLast(context.Background(), event.Message, settings, false)
 	if isEqual {
 		return
 	}
@@ -75,7 +76,7 @@ func (listener *GameListener) MessageDeleteHandler(bot *discordgo.Session, event
 		return
 	}
 
-	isEqual, number := listener.service.IsEqualToLast(event.BeforeDelete, settings, true)
+	isEqual, number := listener.service.IsEqualToLast(context.Background(), event.BeforeDelete, settings, true)
 	if isEqual {
 		return
 	}
@@ -90,7 +91,7 @@ Last number was **%d**!`, event.BeforeDelete.Author.ID, number),
 func (listener *GameListener) getSettings(guildID string, channelID string) (ok bool, settings *db.SettingsModel) {
 	ok = false
 
-	settings, err := listener.settings.GetByGuildId(guildID)
+	settings, err := listener.settings.GetByGuildId(context.Background(), guildID)
 	if err != nil {
 		utils.Logger.Error("Failed to get settings", err)
 		return
