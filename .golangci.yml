@@ -1,33 +1,86 @@
 version: "2"
 run:
   tests: true
+  timeout: 5m
+  modules-download-mode: readonly
 linters:
   enable:
+    # default linters
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - unconvert
+    # code quality
+    - revive
+    - errorlint
+    - gocritic
+    - contextcheck
+    - nilerr
+    - noctx
+    - nolintlint
+    - nestif
+    - unparam
+    - whitespace
+    - wrapcheck
+    # security
+    - gosec
+    # style / misc
     - bodyclose
-    - exhaustive
     - goconst
     - godot
     - godox
     - gomoddirectives
     - goprintffuncname
-    - gosec
     - misspell
-    - nestif
-    - nilerr
-    - noctx
-    - nolintlint
     - prealloc
     - rowserrcheck
     - sqlclosecheck
     - tparallel
-    - unconvert
-    - unparam
-    - whitespace
-    - wrapcheck
   exclusions:
     generated: lax
     presets:
       - common-false-positives
+    rules:
+      # Generated Prisma client — skip entirely
+      - path: "apps/.*/prisma/db/"
+        linters:
+          - govet
+          - errcheck
+          - staticcheck
+          - gosimple
+          - revive
+          - errorlint
+          - gocritic
+          - contextcheck
+          - nilerr
+          - gosec
+          - wrapcheck
+      # Allow ignoring Close/Sync error returns in defers
+      - text: "Error return value of .*(Close|Sync)\\b"
+        linters:
+          - errcheck
+      # gosec: too noisy for Discord snowflake / int conversions
+      - text: "G115"
+        linters:
+          - gosec
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    revive:
+      rules:
+        - name: exported
+        - name: unexported-return
+        - name: error-strings
+        - name: error-return
+        - name: var-naming
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

@@ -14,12 +14,9 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func init() {
-	godotenv.Load()
-	utils.CreateLogger("kusari")
-}
-
 func main() {
+	godotenv.Load() //nolint:errcheck // missing .env is fine in production
+	utils.CreateLogger("kusari")
 	defer utils.Logger.Sync()
 
 	container, _ := inits.InitDI()

@@ -9,7 +9,7 @@ require (
 	github.com/jurienhamaker/discordgoplus v1.0.2-0.20260512212740-07724a0f538f
 	github.com/paul-milne/zap-loki v0.5.0
 	github.com/prometheus/client_golang v1.20.5
-	github.com/robfig/cron/v3 v3.0.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/thessem/zap-prettyconsole v0.5.2
 	go.uber.org/zap v1.27.0
