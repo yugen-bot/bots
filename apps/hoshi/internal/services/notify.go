@@ -24,8 +24,7 @@ func CreateNotifyService(container *di.Container) *NotifyService {
 	}
 }
 
-func (s *NotifyService) SendNotification(content string) (int, int, int, error) {
-	ctx := context.Background()
+func (s *NotifyService) SendNotification(ctx context.Context, content string) (int, int, int, error) {
 	settings, err := s.database.Settings.FindMany().Exec(ctx)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("notify: find settings: %w", err)

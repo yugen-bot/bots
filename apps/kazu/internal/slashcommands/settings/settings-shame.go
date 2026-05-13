@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -27,13 +28,14 @@ func (m *SettingsShameModule) setRole(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	role := ctx.Options["role"].RoleValue(ctx.Session, ctx.Interaction.GuildID)
-	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
 	_, err = m.settings.Update(
+		context.Background(),
 		settings.ID,
 		db.Settings.ShameRoleID.Set(role.ID),
 	)
@@ -51,13 +53,14 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	remove := ctx.Options["remove"].BoolValue()
-	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
 	_, err = m.settings.Update(
+		context.Background(),
 		settings.ID,
 		db.Settings.RemoveShameRoleAfterHighscore.Set(remove),
 	)

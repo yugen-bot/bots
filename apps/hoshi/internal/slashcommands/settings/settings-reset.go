@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -58,7 +59,7 @@ func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	_, err := m.settings.Set(ctx.Interaction.GuildID, param)
+	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, param)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return

@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -121,9 +122,9 @@ func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 	contentText := "The leaderboard points have been reset"
 	if ctx.MessageComponentOptions["userID"] != "none" {
 		contentText = fmt.Sprintf("%s for <@%s>", contentText, ctx.MessageComponentOptions["userID"])
-		go m.points.ResetLeaderboardByGuildIDAndUserID(ctx.Interaction.GuildID, ctx.MessageComponentOptions["userID"])
+		go m.points.ResetLeaderboardByGuildIDAndUserID(context.Background(), ctx.Interaction.GuildID, ctx.MessageComponentOptions["userID"])
 	} else {
-		go m.points.ResetLeaderboardByGuildID(ctx.Interaction.GuildID)
+		go m.points.ResetLeaderboardByGuildID(context.Background(), ctx.Interaction.GuildID)
 	}
 
 	discordgoplus.Update(ctx, &discordgo.InteractionResponseData{

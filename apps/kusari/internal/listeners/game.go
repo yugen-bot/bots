@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -48,7 +49,7 @@ func (listener *GameListener) MessageCreateHandler(bot *discordgo.Session, event
 		return
 	}
 
-	listener.service.AddWord(event.GuildID, word, event.Message, settings)
+	listener.service.AddWord(context.Background(), event.GuildID, word, event.Message, settings)
 }
 
 func (listener *GameListener) MessageUpdateHandler(bot *discordgo.Session, event *discordgo.MessageUpdate) {
@@ -61,7 +62,7 @@ func (listener *GameListener) MessageUpdateHandler(bot *discordgo.Session, event
 		return
 	}
 
-	isEqual, word := listener.service.IsEqualToLast(event.Message, settings, false)
+	isEqual, word := listener.service.IsEqualToLast(context.Background(), event.Message, settings, false)
 	if isEqual {
 		return
 	}
@@ -83,14 +84,14 @@ func (listener *GameListener) MessageDeleteHandler(bot *discordgo.Session, event
 		return
 	}
 
-	isEqual, word := listener.service.IsEqualToLast(event.BeforeDelete, settings, true)
+	isEqual, word := listener.service.IsEqualToLast(context.Background(), event.BeforeDelete, settings, true)
 	if isEqual {
 		return
 	}
 
 	go bot.ChannelMessageSend(
 		event.ChannelID,
-		fmt.Sprintf(`<@%s> just deleted their number 😒 
+		fmt.Sprintf(`<@%s> just deleted their number 😒
 Last word was **%s**!`, event.BeforeDelete.Author.ID, word),
 	)
 }
@@ -98,7 +99,7 @@ Last word was **%s**!`, event.BeforeDelete.Author.ID, word),
 func (listener *GameListener) getSettings(guildID string, channelID string) (ok bool, settings *db.SettingsModel) {
 	ok = false
 
-	settings, err := listener.settings.GetByGuildId(guildID)
+	settings, err := listener.settings.GetByGuildId(context.Background(), guildID)
 	if err != nil {
 		utils.Logger.Error("Failed to get settings", err)
 		return

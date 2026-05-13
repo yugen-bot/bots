@@ -1,6 +1,8 @@
 package slashcommands
 
 import (
+	"context"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
@@ -27,7 +29,7 @@ func (m *SettingsAuthorStarringModule) set(ctx *discordgoplus.Ctx) {
 
 	allowed := ctx.Options["allowed"].BoolValue()
 
-	_, err := m.settings.Set(ctx.Interaction.GuildID, db.Settings.Self.Set(allowed))
+	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.Self.Set(allowed))
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return

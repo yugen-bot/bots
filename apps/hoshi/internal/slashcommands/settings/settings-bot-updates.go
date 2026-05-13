@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -29,7 +30,7 @@ func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
 
-	_, err := m.settings.Set(ctx.Interaction.GuildID, db.Settings.BotUpdatesChannelID.Set(string(channel.ID)))
+	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.BotUpdatesChannelID.Set(string(channel.ID)))
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return

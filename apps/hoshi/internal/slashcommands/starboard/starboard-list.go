@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -48,7 +49,7 @@ func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isCompo
 	}
 
 	bot := m.container.Get(static.DiBot).(*discordgoplus.Bot)
-	items, total, err := m.starboard.GetStarboards(ctx.Interaction.GuildID, page)
+	items, total, err := m.starboard.GetStarboards(context.Background(), ctx.Interaction.GuildID, page)
 	if err != nil {
 		if isComponent {
 			discordgoplus.MessageComponentError(ctx)

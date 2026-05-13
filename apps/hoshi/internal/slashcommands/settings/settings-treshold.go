@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -35,7 +36,7 @@ func (m *SettingsTresholdModule) set(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	_, err := m.settings.Set(ctx.Interaction.GuildID, db.Settings.Treshold.Set(n))
+	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.Treshold.Set(n))
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return

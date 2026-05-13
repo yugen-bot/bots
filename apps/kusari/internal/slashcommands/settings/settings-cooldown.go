@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -30,13 +31,14 @@ func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 
 	seconds := ctx.Options["seconds"].IntValue()
 
-	settings, err := m.settings.GetByGuildId(ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
 	_, err = m.settings.Update(
+		context.Background(),
 		settings.ID,
 		db.Settings.Cooldown.Set(int(seconds)),
 	)

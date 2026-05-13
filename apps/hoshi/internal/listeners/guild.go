@@ -1,6 +1,8 @@
 package listeners
 
 import (
+	"context"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
@@ -15,7 +17,8 @@ func AddGuildListeners(container *di.Container) {
 	settingsSvc := container.Get(sharedStatic.DiSettings).(*services.SettingsService)
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildCreate) {
-		settings, err := settingsSvc.GetByGuildID(event.ID)
+		ctx := context.Background()
+		settings, err := settingsSvc.GetByGuildID(ctx, event.ID)
 		if err != nil {
 			return
 		}
@@ -42,13 +45,13 @@ func AddGuildListeners(container *di.Container) {
 			}
 		}
 
-		if _, err := settingsSvc.GetByGuildID(event.ID); err != nil {
+		if _, err := settingsSvc.GetByGuildID(ctx, event.ID); err != nil {
 			utils.Logger.With("guildID", event.ID).Warn("Failed to seed settings on guild create")
 		}
 	})
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildDelete) {
 		utils.Logger.Infof("Left guild: %s", event.ID)
-		settingsSvc.Delete(event.ID)
+		settingsSvc.Delete(context.Background(), event.ID)
 	})
 }

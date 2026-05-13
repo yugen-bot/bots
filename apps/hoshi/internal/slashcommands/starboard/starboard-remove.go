@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -27,7 +28,7 @@ func (m *StarboardRemoveModule) remove(ctx *discordgoplus.Ctx) {
 
 	id := int(ctx.Options["id"].IntValue())
 
-	config, err := m.starboard.RemoveStarboardByID(ctx.Interaction.GuildID, id)
+	config, err := m.starboard.RemoveStarboardByID(context.Background(), ctx.Interaction.GuildID, id)
 	if err != nil || config == nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: fmt.Sprintf("No starboard configuration found with ID %d.", id),

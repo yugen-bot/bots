@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -57,7 +58,7 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 		},
 	})
 
-	total, successByBotChannel, successByStarboard, err := m.notifyService.SendNotification(content)
+	total, successByBotChannel, successByStarboard, err := m.notifyService.SendNotification(context.Background(), content)
 	if err != nil {
 		utils.Logger.Error(err)
 		ctx.Session.FollowupMessageCreate(ctx.Interaction, true, &discordgo.WebhookParams{
