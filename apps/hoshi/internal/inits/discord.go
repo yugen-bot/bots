@@ -1,6 +1,8 @@
 package inits
 
 import (
+	"fmt"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
@@ -17,9 +19,7 @@ const (
 		discordgo.IntentMessageContent
 )
 
-func InitDiscordBot(container *di.Container) (release func()) {
-	release = func() {}
-
+func InitDiscordBot(container *di.Container) error {
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	bot.Identify.Intents = Intents
@@ -38,15 +38,13 @@ func InitDiscordBot(container *di.Container) (release func()) {
 	listeners.AddGuildListeners(container)
 	listeners.AddReactionListeners(container)
 
-	err := InitCommands(container)
-	if err != nil {
-		utils.Logger.Panic(err)
+	if err := InitCommands(container); err != nil {
+		return fmt.Errorf("discord: init commands: %w", err)
 	}
 
-	err = bot.Open()
-	if err != nil {
-		utils.Logger.Panic(err)
+	if err := bot.Open(); err != nil {
+		return fmt.Errorf("discord: open: %w", err)
 	}
 
-	return
+	return nil
 }

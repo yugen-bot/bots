@@ -1,8 +1,10 @@
 package inits
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
@@ -12,13 +14,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func listen(app *fiber.App) {
-	utils.Logger.Info("Initializing api...")
-	utils.Logger.Fatal(app.Listen(fmt.Sprintf("%s:%s", os.Getenv(static.EnvApiHost), os.Getenv(static.EnvApiPort))))
-}
-
-func InitAPI(container *di.Container) (app *fiber.App) {
-	app = fiber.New(fiber.Config{
+// RunHTTP starts the Fiber HTTP server and blocks until ctx is cancelled,
+// then shuts down gracefully. Intended to be run in an errgroup goroutine.
+func RunHTTP(ctx context.Context, container *di.Container) error {
+	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
 
@@ -31,7 +30,22 @@ func InitAPI(container *di.Container) (app *fiber.App) {
 	api.AddSharedRoutes(app, router, container)
 	api.AddSharedMiddleware(app)
 
-	go listen(app)
+	addr := fmt.Sprintf("%s:%s", os.Getenv(static.EnvApiHost), os.Getenv(static.EnvApiPort))
+	utils.Logger.Info("Initializing api...")
 
-	return
+	errCh := make(chan error, 1)
+	go func() { errCh <- app.Listen(addr) }()
+
+	select {
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		utils.Logger.Info("Shutting down HTTP server...")
+		return app.ShutdownWithContext(shutdownCtx)
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("api: listen: %w", err)
+		}
+		return nil
+	}
 }

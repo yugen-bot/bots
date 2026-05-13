@@ -1,6 +1,6 @@
 module jurien.dev/yugen/kusari
 
-go 1.23.3
+go 1.25.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
@@ -10,6 +10,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/steebchen/prisma-client-go v0.44.0
 	github.com/zekroTJA/shinpuru v0.0.0-20240828005211-d93172643d5f
+	golang.org/x/sync v0.20.0
 	golang.org/x/text v0.23.0
 	jurien.dev/yugen/shared v0.0.0-00010101000000-000000000000
 )
