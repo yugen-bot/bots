@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
@@ -33,27 +34,40 @@ func (s *SettingsService) GetByGuildID(guildID string, create ...bool) (*db.Sett
 	settings, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Exec(ctx)
+	if err != nil && !createBool {
+		return nil, fmt.Errorf("settings: find by guild: %w", err)
+	}
 
 	if (err != nil || settings == nil) && createBool {
 		settings, err = s.database.Settings.CreateOne(
 			db.Settings.GuildID.Set(guildID),
 		).Exec(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("settings: create: %w", err)
+		}
 	}
 
-	return settings, err
+	return settings, nil
 }
 
 func (s *SettingsService) Delete(guildID string) error {
 	_, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Delete().Exec(context.Background())
-	return err
+	if err != nil {
+		return fmt.Errorf("settings: delete: %w", err)
+	}
+	return nil
 }
 
 func (s *SettingsService) Set(guildID string, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
-	return s.database.Settings.FindUnique(
+	result, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Update(params...).Exec(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("settings: set: %w", err)
+	}
+	return result, nil
 }
 
 func (s *SettingsService) IgnoreChannel(guildID, channelID string, ignore bool) error {
@@ -78,5 +92,8 @@ func (s *SettingsService) IgnoreChannel(guildID, channelID string, ignore bool) 
 	}
 
 	_, err = s.Set(guildID, db.Settings.IgnoredChannelIds.Set(ids))
-	return err
+	if err != nil {
+		return fmt.Errorf("settings: ignore channel: %w", err)
+	}
+	return nil
 }

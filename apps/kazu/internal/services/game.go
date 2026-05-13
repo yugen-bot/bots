@@ -19,6 +19,13 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
+var (
+	ErrNoChannelIDConfigured = errors.New("no channel id configured")
+	ErrAuthorIsBot           = errors.New("author is bot")
+	ErrNumberCannotBeZero    = errors.New("number cannot be zero")
+	ErrCouldNotParseNumber   = errors.New("could not parse to a valid number")
+)
+
 type GameService struct {
 	bot      *discordgoplus.Bot
 	database *db.PrismaClient
@@ -47,7 +54,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, starting
 	utils.Logger.Infof("Trying to start a game for %s", guildID)
 
 	currentGame, exists, err := service.GetCurrentGame(guildID)
-	if err != nil && err != db.ErrNotFound {
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Error(err)
 		return game, started, err
 	}
@@ -55,12 +62,12 @@ func (service *GameService) Start(guildID string, gameType db.GameType, starting
 	settings, err := service.settings.GetByGuildId(guildID)
 	if err != nil {
 		utils.Logger.Error(err)
-		return game, started, err
+		return game, started, fmt.Errorf("game: start: get settings: %w", err)
 	}
 
 	channelID, ok := settings.ChannelID()
 	if !ok {
-		err = errors.New("No channelID configured")
+		err = ErrNoChannelIDConfigured
 		utils.Logger.Error(err)
 		return game, started, err
 	}
@@ -68,7 +75,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, starting
 	channel, err := service.bot.Channel(channelID)
 	if err != nil {
 		utils.Logger.Error(err)
-		return game, started, err
+		return game, started, fmt.Errorf("game: start: get channel: %w", err)
 	}
 
 	if exists && !recreate {
@@ -90,7 +97,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, starting
 	).Exec(context.Background())
 	if err != nil {
 		utils.Logger.Error(err)
-		return game, started, err
+		return game, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
 	self := service.bot.State.User
@@ -127,6 +134,9 @@ func (service *GameService) End(gameID int, status db.GameStatus, shame ...*Sham
 	).Update(
 		db.Game.Status.Set(status),
 	).Exec(context.Background())
+	if err != nil {
+		return game, fmt.Errorf("game: end: update game: %w", err)
+	}
 
 	if hasShame {
 		shame := shame[0]
@@ -143,7 +153,7 @@ func (service *GameService) End(gameID int, status db.GameStatus, shame ...*Sham
 		_, err = service.settings.Update(shame.settings.ID, db.Settings.LastShameUserID.Set(shame.message.Author.ID))
 		if err != nil {
 			utils.Logger.Error(err)
-			return game, err
+			return game, fmt.Errorf("game: end: update shame settings: %w", err)
 		}
 	}
 
@@ -153,7 +163,7 @@ func (service *GameService) End(gameID int, status db.GameStatus, shame ...*Sham
 func (service *GameService) ParseNumber(message *discordgo.Message, math bool) (i int, err error) {
 	if message.Author.Bot {
 		i = -1
-		err = errors.New("Author is bot")
+		err = ErrAuthorIsBot
 		return i, err
 	}
 
@@ -162,7 +172,7 @@ func (service *GameService) ParseNumber(message *discordgo.Message, math bool) (
 
 		if i == 0 {
 			i = -1
-			err = errors.New("Can't have the number be 0")
+			err = ErrNumberCannotBeZero
 		}
 
 		return i, err
@@ -185,7 +195,7 @@ func (service *GameService) ParseNumber(message *discordgo.Message, math bool) (
 	parsedAsFloat, ok := result.(float64)
 	if !ok {
 		i = -1
-		err = errors.New("Couldn't parse to a valid number")
+		err = ErrCouldNotParseNumber
 		return i, err
 	}
 
@@ -193,7 +203,7 @@ func (service *GameService) ParseNumber(message *discordgo.Message, math bool) (
 
 	if i == 0 {
 		i = -1
-		err = errors.New("Can't have the number be 0")
+		err = ErrNumberCannotBeZero
 	}
 
 	return i, err
@@ -431,9 +441,14 @@ func (service *GameService) GetCurrentGame(guildID string) (game *db.GameModel, 
 		db.Game.CreatedAt.Order(db.SortOrderDesc),
 	).Exec(context.Background())
 
-	if err == db.ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		err = nil
 		exists = false
+		return game, exists, err
+	}
+
+	if err != nil {
+		return game, exists, fmt.Errorf("game: get current: %w", err)
 	}
 
 	return game, exists, err
@@ -452,9 +467,14 @@ func (service *GameService) GetLastHistory(game *db.GameModel) (history *db.Hist
 		db.History.CreatedAt.Order(db.SortOrderDesc),
 	).Exec(context.Background())
 
-	if err == db.ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		err = nil
 		exists = false
+		return history, exists, err
+	}
+
+	if err != nil {
+		return history, exists, fmt.Errorf("game: get last history: %w", err)
 	}
 
 	return history, exists, err
