@@ -1,0 +1,36 @@
+name: "Lint"
+
+on:
+  pull_request:
+    branches: ["go", "main"]
+  push:
+    branches: ["go"]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - shared
+          - apps/hoshi
+          - apps/iro
+          - apps/kazu
+          - apps/kusari
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.3"
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.1
+          working-directory: ${{ matrix.module }}
+          args: --timeout=5m
