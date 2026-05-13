@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Knetic/govaluate"
+	"github.com/expr-lang/expr"
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
@@ -24,6 +24,8 @@ var (
 	ErrAuthorIsBot           = errors.New("author is bot")
 	ErrNumberCannotBeZero    = errors.New("number cannot be zero")
 	ErrCouldNotParseNumber   = errors.New("could not parse to a valid number")
+	ErrExprTooLong           = errors.New("expression too long")
+	ErrExprNotNumber         = errors.New("expression did not evaluate to a number")
 )
 
 type GameService struct {
@@ -180,25 +182,27 @@ func (service *GameService) ParseNumber(ctx context.Context, message *discordgo.
 		return i, err
 	}
 
-	utils.Logger.With("Message", message.Content).Debug("Creating evaluation")
-	expression, err := govaluate.NewEvaluableExpression(message.Content)
-	if err != nil {
-		return i, err
+	const maxExprLen = 256
+	if len(message.Content) > maxExprLen {
+		return 0, ErrExprTooLong
 	}
 
-	utils.Logger.With("Message", message.Content, "Expression", expression).Debug("Evaluating expression")
-	params := make(map[string]interface{})
-	result, err := expression.Evaluate(params)
-	if err != nil {
-		return i, err
+	utils.Logger.With("Message", message.Content).Debug("Compiling expression")
+	program, compileErr := expr.Compile(message.Content, expr.AsFloat64())
+	if compileErr != nil {
+		return 0, fmt.Errorf("services/game: compile expr: %w", compileErr)
+	}
+
+	utils.Logger.With("Message", message.Content).Debug("Evaluating expression")
+	result, evalErr := expr.Run(program, nil)
+	if evalErr != nil {
+		return 0, fmt.Errorf("services/game: eval expr: %w", evalErr)
 	}
 
 	utils.Logger.With("Message", message.Content, "result", result).Debug("Evaluation result")
 	parsedAsFloat, ok := result.(float64)
 	if !ok {
-		i = -1
-		err = ErrCouldNotParseNumber
-		return i, err
+		return 0, ErrExprNotNumber
 	}
 
 	i = int(parsedAsFloat)
