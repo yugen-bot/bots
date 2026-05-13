@@ -21,8 +21,8 @@ const (
 	EnvDiscordLogsReportChannelID = "DISCORD_LOGS_REPORT_CHANNEL_ID"
 	EnvDiscordVoteReportChannelID = "DISCORD_VOTE_REPORT_CHANNEL_ID"
 
-	EnvApiHost = "API_LISTEN_HOST"
-	EnvApiPort = "API_LISTEN_PORT"
+	EnvAPIHost = "API_LISTEN_HOST"
+	EnvAPIPort = "API_LISTEN_PORT"
 
 	EnvTopGGSync     = "TOP_GG_SYNC"
 	EnvTopGGVoteLink = "TOP_GG_VOTE_LINK"

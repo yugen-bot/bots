@@ -47,17 +47,13 @@ func (m *VoteModule) Run(ctx *discordgoplus.Ctx) {
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 
-	footer, err := utils.CreateEmbedFooter(
+	footer := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: true,
 		},
 		cfg.OwnerID,
 	)
-	if err != nil {
-		utils.Logger.Error(err)
-		return
-	}
 
 	embed := &discordgo.MessageEmbed{
 		Color: embedColor,

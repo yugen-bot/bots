@@ -25,6 +25,9 @@ import (
 var (
 	ErrNoChannelIDConfigured = errors.New("no channel id configured")
 	ErrAuthorIsBot           = errors.New("author is bot")
+
+	firstLetterRegex = regexp.MustCompile("^[A-Za-z!]+$")
+	lastLetterRegex  = regexp.MustCompile("^[A-Za-z]+$")
 )
 
 type GameService struct {
@@ -90,7 +93,9 @@ func (service *GameService) Start(
 	}
 
 	if (exists && recreate) || (exists && currentGame.Type != gameType) {
-		service.End(ctx, currentGame.ID, db.GameStatusFailed)
+		if _, endErr := service.End(ctx, currentGame.ID, db.GameStatusFailed); endErr != nil {
+			utils.Logger.Warnw("game: start: end current game failed", "error", endErr)
+		}
 	}
 
 	started = true
@@ -125,15 +130,18 @@ func (service *GameService) Start(
 	if channel.Type == discordgo.ChannelTypeGuildText ||
 		channel.Type == discordgo.ChannelTypeGuildPublicThread ||
 		channel.Type == discordgo.ChannelTypeGuildPrivateThread {
-		service.bot.ChannelMessageSend(
-			channelID,
-			fmt.Sprintf(
-				`**A new game has started!**
+		go func() {
+			_, sendErr := service.bot.ChannelMessageSend(
+				channelID,
+				fmt.Sprintf(
+					`**A new game has started!**
 The first letter is: **%s**`,
 
-				strings.ToUpper(string(word[len(word)-1])),
-			),
-		)
+					strings.ToUpper(string(word[len(word)-1])),
+				),
+			)
+			utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
+		}()
 	}
 
 	return game, started, err
@@ -170,9 +178,6 @@ func (service *GameService) ParseWord(
 	}
 
 	word = words[0]
-
-	firstLetterRegex, _ := regexp.Compile("^[A-Za-z!]+$")
-	lastLetterRegex, _ := regexp.Compile("^[A-Za-z]+$")
 
 	if !firstLetterRegex.MatchString(string(word[0])) {
 		word = ""
@@ -223,12 +228,15 @@ func (service *GameService) AddWord(
 	isSameUser := service.cfg.Env != "development" &&
 		message.Author.ID == history.UserID
 	if isSameUser {
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🕒")
-		go service.bot.ChannelMessageSendReply(
-			message.ChannelID,
-			"Sorry, but you can't add a word twice in a row! Please wait for another player to add a word.",
-			message.Reference(),
-		)
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🕒"))
+		go func() {
+			_, sendErr := service.bot.ChannelMessageSendReply(
+				message.ChannelID,
+				"Sorry, but you can't add a word twice in a row! Please wait for another player to add a word.",
+				message.Reference(),
+			)
+			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+		}()
 		return
 	}
 
@@ -266,7 +274,7 @@ func (service *GameService) AddWord(
 			return
 		}
 
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌"))
 
 		if saves.player >= 1 {
 			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromPlayer(
@@ -279,17 +287,20 @@ func (service *GameService) AddWord(
 				return
 			}
 
-			go service.bot.ChannelMessageSendReply(
-				message.ChannelID,
-				fmt.Sprintf(
-					`%s
+			go func() {
+				_, sendErr := service.bot.ChannelMessageSendReply(
+					message.ChannelID,
+					fmt.Sprintf(
+						`%s
 Used **1 of your own** saves, You have **%s/%s** saves left.`,
-					failReason,
-					strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-					strconv.FormatFloat(maxSaves, 'f', -1, 64),
-				),
-				message.Reference(),
-			)
+						failReason,
+						strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+						strconv.FormatFloat(maxSaves, 'f', -1, 64),
+					),
+					message.Reference(),
+				)
+				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+			}()
 			return
 		}
 
@@ -304,17 +315,20 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 				return
 			}
 
-			go service.bot.ChannelMessageSendReply(
-				message.ChannelID,
-				fmt.Sprintf(
-					`%s
+			go func() {
+				_, sendErr := service.bot.ChannelMessageSendReply(
+					message.ChannelID,
+					fmt.Sprintf(
+						`%s
 Used **1 server** save, There are **%s/%s** server saves left.`,
-					failReason,
-					strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-					strconv.FormatFloat(maxSaves, 'f', -1, 64),
-				),
-				message.Reference(),
-			)
+						failReason,
+						strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+						strconv.FormatFloat(maxSaves, 'f', -1, 64),
+					),
+					message.Reference(),
+				)
+				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+			}()
 			return
 		}
 
@@ -336,12 +350,14 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		}
 
 		pointsRemoved := int(count / 10)
-		go service.points.RemoveGamePoints(
-			ctx,
-			guildID,
-			message.Author.ID,
-			pointsRemoved,
-		)
+		go func() {
+			utils.LogIfErr(utils.Logger, "remove-game-points", service.points.RemoveGamePoints(
+				ctx,
+				guildID,
+				message.Author.ID,
+				pointsRemoved,
+			))
+		}()
 
 		if pointsRemoved == 0 {
 			pointsRemoved = 1
@@ -359,22 +375,27 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			pointText,
 		)
 
-		go service.bot.ChannelMessageSendReply(
-			message.ChannelID,
-			fmt.Sprintf(
-				`%s
+		go func() {
+			_, sendErr := service.bot.ChannelMessageSendReply(
+				message.ChannelID,
+				fmt.Sprintf(
+					`%s
 **The game has ended on a streak of %d!**%s%s
 
 **Want to save the game?** Make sure to **/vote** for Kusari and earn yourself saves to save the game!`,
-				failReason,
-				count,
-				highScoreText,
-				pointsRemovedText,
-			),
-			message.Reference(),
-		)
+					failReason,
+					count,
+					highScoreText,
+					pointsRemovedText,
+				),
+				message.Reference(),
+			)
+			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+		}()
 
-		service.Start(ctx, guildID, db.GameTypeNormal, "", true)
+		if _, _, startErr := service.Start(ctx, guildID, db.GameTypeNormal, "", true); startErr != nil {
+			utils.Logger.Warnw("game: add word: restart failed", "error", startErr)
+		}
 		return
 	}
 
@@ -421,7 +442,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
-	go service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1)
+	go func() {
+		utils.LogIfErr(utils.Logger, "add-game-points", service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1))
+	}()
 	_, err = service.database.History.CreateOne(
 		db.History.UserID.Set(message.Author.ID),
 		db.History.Game.Link(db.Game.ID.Equals(game.ID)),
@@ -447,20 +470,22 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	)
 
 	if isGameHighscored {
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉")
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉"))
 	}
 
 	emoji := "✅"
 	if isHighscore {
 		emoji = "☑️"
 	}
-	service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji)
+	utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji))
 	service.checkSpecialReactions(message, word)
 
 	service.setNumber(message, count)
 
 	if utils.IsPalindrome(word) {
-		go service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🪞")
+		go func() {
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🪞"))
+		}()
 	}
 }
 
@@ -687,7 +712,7 @@ func (service *GameService) replyAndDelete(
 	emoji string,
 ) {
 	if len(emoji) > 0 {
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji)
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji))
 	}
 
 	sentMessage, err := service.bot.ChannelMessageSendReply(
@@ -702,10 +727,10 @@ func (service *GameService) replyAndDelete(
 
 	if deleteAfter {
 		time.AfterFunc(time.Second*5, func() {
-			service.bot.ChannelMessageDelete(
+			utils.LogIfErr(utils.Logger, "channel-message-delete", service.bot.ChannelMessageDelete(
 				sentMessage.ChannelID,
 				sentMessage.ID,
-			)
+			))
 		})
 	}
 }
@@ -777,7 +802,7 @@ func (service *GameService) setNumber(message *discordgo.Message, count int) {
 			}
 
 			usedEmojis = append(usedEmojis, emoji)
-			service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji)
+			utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji))
 			break
 		}
 	}

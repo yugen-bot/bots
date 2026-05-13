@@ -24,17 +24,13 @@ func GetInviteModule(container *di.Container) *InviteModule {
 func (m *InviteModule) invite(ctx *discordgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 
-	footer, err := utils.CreateEmbedFooter(
+	footer := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
-	if err != nil {
-		utils.Logger.Error(err)
-		return
-	}
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	appName := m.container.Get(static.DiAppName).(string)
@@ -47,7 +43,7 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 		Footer: footer,
 	}
 
-	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+	err := discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{

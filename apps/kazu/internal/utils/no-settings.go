@@ -22,7 +22,7 @@ That's it! Have fun playing!`
 
 func NoSettingsReply(ctx *discordgoplus.Ctx, container *di.Container, ephemeral bool) {
 	cfg := container.Get(static.DiConfig).(*config.Config)
-	footer, _ := shared.CreateEmbedFooter(
+	footer := shared.CreateEmbedFooter(
 		container.Get(static.DiBot).(*discordgoplus.Bot),
 		&shared.CreateEmbedFooterParams{
 			IsVote: false,

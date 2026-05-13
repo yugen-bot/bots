@@ -14,18 +14,21 @@ import (
 )
 
 func InitDI() (container di.Container, err error) {
-	diBuilder, _ := di.NewEnhancedBuilder()
+	diBuilder, err := di.NewEnhancedBuilder()
+	if err != nil {
+		utils.Logger.Fatalw("failed to create DI builder", "error", err)
+	}
 
 	// init database
 	diBuilder.Add(&di.Def{
 		Name: static.DiDatabase,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			client := db.NewClient()
 			err := client.Prisma.Connect()
 
 			return client, err
 		},
-		Close: func(obj interface{}) error {
+		Close: func(obj any) error {
 			database := obj.(*db.PrismaClient)
 			utils.Logger.Info("Shutting down database connection...")
 			database.Disconnect()
@@ -38,21 +41,21 @@ func InitDI() (container di.Container, err error) {
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiAppName,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return "Kazu", nil
 		},
 	})
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiHelpText,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return fmt.Sprintf("%s\n\nWant to know how to play the game? Use `/tutorial`!", localUtils.NoSettingsDescription), nil
 		},
 	})
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiTutorialText,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return `**How to Play:**
 - The first count must be 1.
 - Each count afterwards has to be one number higher than the previous count. It can also be an equation when math is enabled.
@@ -74,7 +77,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiEmbedColor,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			// #5d7fed
 			return 0x5d7fed, nil
 		},
@@ -82,7 +85,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiVoteReward,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteRewardFunc(&ctn), nil
 		},
 	})
@@ -90,7 +93,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	// init settings service
 	diBuilder.Add(&di.Def{
 		Name: static.DiSettings,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return services.CreateSettingsService(&ctn), nil
 		},
 	})
@@ -98,7 +101,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	// init saves service
 	diBuilder.Add(&di.Def{
 		Name: localStatic.DiSaves,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return services.CreateSavesService(&ctn), nil
 		},
 	})
@@ -106,7 +109,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	// init points service
 	diBuilder.Add(&di.Def{
 		Name: localStatic.DiPoints,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return services.CreatePointsService(&ctn), nil
 		},
 	})
@@ -114,7 +117,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	// init game service
 	diBuilder.Add(&di.Def{
 		Name: localStatic.DiGame,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return services.CreateGameService(&ctn), nil
 		},
 	})
@@ -122,12 +125,15 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	// create vote handler
 	diBuilder.Add(&di.Def{
 		Name: static.DiVoteHandler,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteHandler(&ctn), nil
 		},
 	})
 
-	container, _ = diBuilder.Build()
+	container, err = diBuilder.Build()
+	if err != nil {
+		utils.Logger.Fatalw("failed to build DI container", "error", err)
+	}
 
 	return
 }

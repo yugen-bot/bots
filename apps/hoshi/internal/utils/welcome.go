@@ -22,10 +22,7 @@ To add another starboard, use ` + "`/starboard add`" + `.
 - Hoshi does not *yet* support super reactions!`
 
 func SendWelcomeMessage(channel *discordgo.Channel, bot *discordgoplus.Bot, ownerID string) error {
-	footer, err := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, ownerID)
-	if err != nil {
-		return err
-	}
+	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, ownerID)
 
 	embed := &discordgo.MessageEmbed{
 		Title:       "Thank you for inviting Hoshi!",
@@ -34,7 +31,7 @@ func SendWelcomeMessage(channel *discordgo.Channel, bot *discordgoplus.Bot, owne
 		Footer:      footer,
 	}
 
-	_, err = bot.ChannelMessageSendComplex(channel.ID, &discordgo.MessageSend{
+	_, err := bot.ChannelMessageSendComplex(channel.ID, &discordgo.MessageSend{
 		Embeds: []*discordgo.MessageEmbed{embed},
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{

@@ -12,7 +12,7 @@ import (
 func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiConfig,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			cfg, err := config.Load()
 			return &cfg, err
 		},
@@ -20,11 +20,11 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiBot,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
 			return discordgoplus.New(cfg.DiscordToken)
 		},
-		Close: func(obj interface{}) error {
+		Close: func(obj any) error {
 			bot := obj.(*discordgoplus.Bot)
 
 			utils.Logger.Info("Shutting down bot...")
@@ -35,10 +35,10 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiCron,
-		Build: func(ctn di.Container) (interface{}, error) {
+		Build: func(ctn di.Container) (any, error) {
 			return cron.New(), nil
 		},
-		Close: func(obj interface{}) error {
+		Close: func(obj any) error {
 			c := obj.(*cron.Cron)
 			utils.Logger.Info("Stopping cron jobs...")
 			c.Stop()

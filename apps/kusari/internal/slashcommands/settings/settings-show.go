@@ -59,7 +59,7 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	}
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer, _ := utils.CreateEmbedFooter(
+	footer := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,

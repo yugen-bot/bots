@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -38,7 +39,12 @@ func (m *StarboardListModule) list(ctx *discordgoplus.Ctx) {
 func (m *StarboardListModule) listPage(ctx *discordgoplus.Ctx) {
 	page := 1
 	if p, ok := ctx.MessageComponentOptions["page"]; ok {
-		fmt.Sscanf(p, "%d", &page)
+		page64, err := strconv.ParseInt(p, 10, 64)
+		if err != nil {
+			page = 1 // fallback to first page
+		} else {
+			page = int(page64)
+		}
 	}
 	m.showList(ctx, page, true)
 }
@@ -87,8 +93,7 @@ func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isCompo
 
 	for i, c := range items {
 		ids[i] = fmt.Sprintf("%d", c.ID)
-		_, key, display, unicode := localUtils.ResolveEmoji(c.SourceEmoji, bot)
-		_ = key
+		_, _, display, unicode := localUtils.ResolveEmoji(c.SourceEmoji, bot)
 		emojiDisplay := c.SourceEmoji
 		if !unicode {
 			emojiDisplay = display

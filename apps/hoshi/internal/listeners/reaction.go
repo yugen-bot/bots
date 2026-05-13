@@ -20,14 +20,23 @@ type reactionDebouncer struct {
 	bot    *discordgoplus.Bot
 }
 
-func (d *reactionDebouncer) onReaction(channelID, messageID, guildID, emojiID, emojiName string) {
+func (d *reactionDebouncer) onReaction(
+	channelID, messageID, guildID, emojiID, emojiName string,
+) {
 	if existing, ok := d.timers.LoadAndDelete(messageID); ok {
 		existing.(*time.Timer).Stop()
 	}
 
 	t := time.AfterFunc(500*time.Millisecond, func() {
 		d.timers.Delete(messageID)
-		d.svc.CheckReaction(context.Background(), channelID, messageID, guildID, emojiID, emojiName)
+		d.svc.CheckReaction(
+			context.Background(),
+			channelID,
+			messageID,
+			guildID,
+			emojiID,
+			emojiName,
+		)
 	})
 	d.timers.Store(messageID, t)
 }
@@ -43,10 +52,24 @@ func AddReactionListeners(container *di.Container) {
 			return
 		}
 
-		d.onReaction(r.ChannelID, r.MessageID, r.GuildID, r.Emoji.ID, r.Emoji.Name)
+		d.onReaction(
+			r.ChannelID,
+			r.MessageID,
+			r.GuildID,
+			r.Emoji.ID,
+			r.Emoji.Name,
+		)
 	})
 
-	bot.AddHandler(func(s *discordgo.Session, r *discordgo.MessageReactionRemove) {
-		d.onReaction(r.ChannelID, r.MessageID, r.GuildID, r.Emoji.ID, r.Emoji.Name)
-	})
+	bot.AddHandler(
+		func(s *discordgo.Session, r *discordgo.MessageReactionRemove) {
+			d.onReaction(
+				r.ChannelID,
+				r.MessageID,
+				r.GuildID,
+				r.Emoji.ID,
+				r.Emoji.Name,
+			)
+		},
+	)
 }

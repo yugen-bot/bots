@@ -38,18 +38,13 @@ func (m *ResetLeaderboardModule) err(ctx *discordgoplus.Ctx) {
 
 func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer, err := utils.CreateEmbedFooter(
+	footer := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
-	if err != nil {
-		utils.Logger.Error(err)
-		m.err(ctx)
-		return
-	}
 
 	guild, err := m.bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {
