@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
@@ -23,14 +24,16 @@ func CreateNotifyService(container *di.Container) *NotifyService {
 	}
 }
 
-func (s *NotifyService) SendNotification(content string) (total, successByBotChannel, successByStarboard int, err error) {
+func (s *NotifyService) SendNotification(content string) (int, int, int, error) {
 	ctx := context.Background()
 	settings, err := s.database.Settings.FindMany().Exec(ctx)
 	if err != nil {
-		return
+		return 0, 0, 0, fmt.Errorf("notify: find settings: %w", err)
 	}
 
-	total = len(settings)
+	total := len(settings)
+	successByBotChannel := 0
+	successByStarboard := 0
 
 	for _, setting := range settings {
 		channelID := ""
@@ -62,5 +65,5 @@ func (s *NotifyService) SendNotification(content string) (total, successByBotCha
 		}
 	}
 
-	return
+	return total, successByBotChannel, successByStarboard, nil
 }

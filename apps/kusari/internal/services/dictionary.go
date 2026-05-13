@@ -22,7 +22,7 @@ func CreateDictionaryService() *DictionaryService {
 	return &DictionaryService{}
 }
 
-func (service *DictionaryService) Check(word string) (found bool, err error) {
+func (service *DictionaryService) Check(word string) (bool, error) {
 	word = strings.ToLower(word)
 
 	replacer := strings.NewReplacer(
@@ -44,8 +44,7 @@ func (service *DictionaryService) Check(word string) (found bool, err error) {
 	utils.Logger.Debug(wiktionaryURL)
 	req, err := http.NewRequest("GET", wiktionaryURL, nil)
 	if err != nil {
-		utils.Logger.Fatal(err)
-		return
+		return false, fmt.Errorf("dictionary: new request: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "YugenKusari/1.0 (https://github.com/jurienhamaker/yugen;info@jurien.dev) Go-http-client/1.1")
@@ -53,8 +52,7 @@ func (service *DictionaryService) Check(word string) (found bool, err error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.Logger.Fatal(err)
-		return
+		return false, fmt.Errorf("dictionary: do request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -64,32 +62,28 @@ func (service *DictionaryService) Check(word string) (found bool, err error) {
 	var respBody []any
 	err = json.NewDecoder(resp.Body).Decode(&respBody)
 	if err != nil {
-		utils.Logger.Fatal(err)
-		return
+		return false, fmt.Errorf("dictionary: decode response: %w", err)
 	}
 
 	if len(respBody) == 0 {
-		return
+		return false, nil
 	}
 
 	dataWords, err := json.Marshal(respBody[1])
 	if err != nil {
-		utils.Logger.With("Error", err).Fatal("Marshaling words")
-		return
+		return false, fmt.Errorf("dictionary: marshal words: %w", err)
 	}
 	var words []string
 	err = json.Unmarshal(dataWords, &words)
 	if err != nil {
-		utils.Logger.With("Error", err).Fatal("Unmarshaling words")
-		return
+		return false, fmt.Errorf("dictionary: unmarshal words: %w", err)
 	}
 
-	found = slices.Contains(words, word)
-
+	found := slices.Contains(words, word)
 	if !found {
 		caser := cases.Title(language.English)
 		found = slices.Contains(words, caser.String(word))
 	}
 
-	return
+	return found, nil
 }

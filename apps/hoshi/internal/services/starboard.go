@@ -145,15 +145,23 @@ func (s *StarboardService) CheckReaction(channelID, messageID, guildID, emojiID,
 }
 
 func (s *StarboardService) getLogByOriginalID(id string) (*db.LogModel, error) {
-	return s.database.Log.FindUnique(
+	result, err := s.database.Log.FindUnique(
 		db.Log.OriginalMessageID.Equals(id),
 	).Exec(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("starboard: get log by original id: %w", err)
+	}
+	return result, nil
 }
 
 func (s *StarboardService) getLogByMessageID(id string) (*db.LogModel, error) {
-	return s.database.Log.FindUnique(
+	result, err := s.database.Log.FindUnique(
 		db.Log.MessageID.Equals(id),
 	).Exec(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("starboard: get log by message id: %w", err)
+	}
+	return result, nil
 }
 
 func (s *StarboardService) GetStarboardBySourceIDAndEmoji(guildID, sourceEmoji string, sourceChannelID *string) (*db.StarboardsModel, error) {
@@ -168,7 +176,11 @@ func (s *StarboardService) GetStarboardBySourceIDAndEmoji(guildID, sourceEmoji s
 		params = append(params, db.Starboards.SourceChannelID.IsNull())
 	}
 
-	return s.database.Starboards.FindFirst(params...).Exec(context.Background())
+	result, err := s.database.Starboards.FindFirst(params...).Exec(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("starboard: get by source and emoji: %w", err)
+	}
+	return result, nil
 }
 
 func (s *StarboardService) GetStarboards(guildID string, page int) ([]db.StarboardsModel, int, error) {
@@ -178,12 +190,12 @@ func (s *StarboardService) GetStarboards(guildID string, page int) ([]db.Starboa
 
 	items, err := s.database.Starboards.FindMany(where...).Skip(skip).Take(10).Exec(ctx)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("starboard: get starboards page: %w", err)
 	}
 
 	total, err := s.database.Starboards.FindMany(where...).Exec(ctx)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("starboard: get starboards total: %w", err)
 	}
 
 	return items, len(total), nil
@@ -197,11 +209,15 @@ func (s *StarboardService) AddStarboard(guildID, sourceEmoji string, sourceChann
 		optional = append(optional, db.Starboards.SourceChannelID.Set(*sourceChannelID))
 	}
 
-	return s.database.Starboards.CreateOne(
+	result, err := s.database.Starboards.CreateOne(
 		db.Starboards.GuildID.Set(guildID),
 		db.Starboards.TargetChannelID.Set(targetChannelID),
 		optional...,
 	).Exec(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("starboard: add starboard: %w", err)
+	}
+	return result, nil
 }
 
 func (s *StarboardService) RemoveStarboardByID(guildID string, id int) (*db.StarboardsModel, error) {
@@ -210,14 +226,20 @@ func (s *StarboardService) RemoveStarboardByID(guildID string, id int) (*db.Star
 		db.Starboards.GuildID.Equals(guildID),
 		db.Starboards.ID.Equals(id),
 	).Exec(ctx)
-	if err != nil || config == nil {
-		return nil, err
+	if err != nil {
+		return nil, fmt.Errorf("starboard: remove by id find: %w", err)
+	}
+	if config == nil {
+		return nil, nil
 	}
 
 	_, err = s.database.Starboards.FindUnique(
 		db.Starboards.ID.Equals(config.ID),
 	).Delete().Exec(ctx)
-	return config, err
+	if err != nil {
+		return nil, fmt.Errorf("starboard: remove by id delete: %w", err)
+	}
+	return config, nil
 }
 
 func (s *StarboardService) createEmbed(msg *discordgo.Message) *discordgo.MessageEmbed {
@@ -272,7 +294,7 @@ func (s *StarboardService) createStarboard(count int, embed *discordgo.MessageEm
 		db.Log.OriginalMessageID.Set(msg.ID),
 	).Exec(context.Background())
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: create log entry failed", "error", fmt.Errorf("starboard: create log: %w", err))
 	}
 
 	s.bot.MessageReactionAdd(targetChannelID, sent.ID, emoji)
@@ -302,6 +324,6 @@ func (s *StarboardService) deleteStarboard(log *db.LogModel) {
 		db.Log.MessageID.Equals(log.MessageID),
 	).Delete().Exec(context.Background())
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: delete log entry failed", "error", fmt.Errorf("starboard: delete log: %w", err))
 	}
 }

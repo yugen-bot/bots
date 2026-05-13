@@ -15,14 +15,13 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func doRequest(url string, token string, body []byte, source string) (err error) {
+func doRequest(url string, token string, body []byte, source string) error {
 	contentType := "application/json"
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
-		utils.Logger.Fatal(err)
-		return
+		return fmt.Errorf("vote: doRequest: new request: %w", err)
 	}
 
 	req.Header.Add("Content-Type", contentType)
@@ -30,15 +29,13 @@ func doRequest(url string, token string, body []byte, source string) (err error)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.Logger.Fatal(err)
-		return
+		return fmt.Errorf("vote: doRequest: do request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		utils.Logger.Fatal(err)
-		return
+		return fmt.Errorf("vote: doRequest: read body: %w", err)
 	}
 
 	if resp.StatusCode != 200 {
@@ -47,7 +44,7 @@ func doRequest(url string, token string, body []byte, source string) (err error)
 
 	utils.Logger.Infof("Synced %s", source)
 
-	return
+	return nil
 }
 
 func postTopGG(token string, clientID string, servers int) error {
@@ -73,14 +70,22 @@ func postStats(bot *discordgoplus.Bot) {
 	topGGToken := os.Getenv(static.EnvTopGGToken)
 
 	if syncTopGG && len(topGGToken) > 0 {
-		go postTopGG(topGGToken, clientID, servers)
+		go func() {
+			if err := postTopGG(topGGToken, clientID, servers); err != nil {
+				utils.Logger.Errorw("vote: post top.gg failed", "error", err)
+			}
+		}()
 	}
 
 	syncDiscordBotList := os.Getenv(static.EnvDiscordBotListSync) == "true"
 	discordBotListToken := os.Getenv(static.EnvDiscordBotListToken)
 
 	if syncDiscordBotList && len(discordBotListToken) > 0 {
-		go postDiscordBotList(discordBotListToken, clientID, servers)
+		go func() {
+			if err := postDiscordBotList(discordBotListToken, clientID, servers); err != nil {
+				utils.Logger.Errorw("vote: post discordbotlist failed", "error", err)
+			}
+		}()
 	}
 }
 

@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/sarulabs/di/v2"
@@ -21,14 +23,14 @@ func CreatePointsService(container *di.Container) *PointsService {
 	}
 }
 
-func (service *PointsService) GetPlayer(guildID string, userID string, setInGuild bool) (player *db.PlayerStatsModel, err error) {
+func (service *PointsService) GetPlayer(guildID string, userID string, setInGuild bool) (*db.PlayerStatsModel, error) {
 	created := false
-	player, err = service.database.PlayerStats.FindFirst(
+	player, err := service.database.PlayerStats.FindFirst(
 		db.PlayerStats.UserID.Equals(userID),
 		db.PlayerStats.GuildID.Equals(guildID),
 	).Exec(context.Background())
 
-	if err == db.ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		created = true
 		player, err = service.database.PlayerStats.CreateOne(
 			db.PlayerStats.UserID.Set(userID),
@@ -38,7 +40,7 @@ func (service *PointsService) GetPlayer(guildID string, userID string, setInGuil
 	}
 
 	if err != nil {
-		return
+		return nil, fmt.Errorf("points: get player: %w", err)
 	}
 
 	if setInGuild && !created {
@@ -47,15 +49,18 @@ func (service *PointsService) GetPlayer(guildID string, userID string, setInGuil
 		).Update(
 			db.PlayerStats.InGuild.Set(true),
 		).Exec(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("points: get player: set in guild: %w", err)
+		}
 	}
 
-	return
+	return player, nil
 }
 
-func (service *PointsService) AddGamePoints(guildID string, userID string, amount int) (err error) {
+func (service *PointsService) AddGamePoints(guildID string, userID string, amount int) error {
 	player, err := service.GetPlayer(guildID, userID, true)
 	if err != nil {
-		return
+		return fmt.Errorf("points: add game points: %w", err)
 	}
 
 	_, err = service.database.PlayerStats.FindUnique(
@@ -63,14 +68,17 @@ func (service *PointsService) AddGamePoints(guildID string, userID string, amoun
 	).Update(
 		db.PlayerStats.Points.Increment(amount),
 	).Exec(context.Background())
+	if err != nil {
+		return fmt.Errorf("points: add game points: update: %w", err)
+	}
 
-	return
+	return nil
 }
 
-func (service *PointsService) RemoveGamePoints(guildID string, userID string, amount int) (err error) {
+func (service *PointsService) RemoveGamePoints(guildID string, userID string, amount int) error {
 	player, err := service.GetPlayer(guildID, userID, true)
 	if err != nil {
-		return
+		return fmt.Errorf("points: remove game points: %w", err)
 	}
 
 	_, err = service.database.PlayerStats.FindUnique(
@@ -78,33 +86,44 @@ func (service *PointsService) RemoveGamePoints(guildID string, userID string, am
 	).Update(
 		db.PlayerStats.Points.Decrement(amount),
 	).Exec(context.Background())
+	if err != nil {
+		return fmt.Errorf("points: remove game points: update: %w", err)
+	}
 
-	return
+	return nil
 }
 
-func (service *PointsService) ResetLeaderboardByGuildID(guildID string) (err error) {
-	_, err = service.database.PlayerStats.FindMany(
+func (service *PointsService) ResetLeaderboardByGuildID(guildID string) error {
+	_, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
 	).Delete().Exec(context.Background())
 
-	if err == db.ErrNotFound {
-		err = nil
+	if errors.Is(err, db.ErrNotFound) {
+		return nil
 	}
 
-	return
+	if err != nil {
+		return fmt.Errorf("points: reset leaderboard by guild id: %w", err)
+	}
+
+	return nil
 }
 
-func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(guildID string, userID string) (err error) {
-	_, err = service.database.PlayerStats.FindMany(
+func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(guildID string, userID string) error {
+	_, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
 		db.PlayerStats.UserID.Equals(userID),
 	).Delete().Exec(context.Background())
 
-	if err == db.ErrNotFound {
-		err = nil
+	if errors.Is(err, db.ErrNotFound) {
+		return nil
 	}
 
-	return
+	if err != nil {
+		return fmt.Errorf("points: reset leaderboard by guild id and user id: %w", err)
+	}
+
+	return nil
 }
 
 type GetLeaderboardItemsByGuildIDResponse struct {
@@ -117,7 +136,7 @@ type GetLeaderboardTotalByGuildIDResponse struct {
 	Err   error
 }
 
-func (service *PointsService) GetLeaderboardByGuildID(guildID string, page int) (items []db.PlayerStatsModel, total int, err error) {
+func (service *PointsService) GetLeaderboardByGuildID(guildID string, page int) ([]db.PlayerStatsModel, int, error) {
 	itemsChannel := make(chan GetLeaderboardItemsByGuildIDResponse)
 	totalChannel := make(chan GetLeaderboardTotalByGuildIDResponse)
 
@@ -127,15 +146,15 @@ func (service *PointsService) GetLeaderboardByGuildID(guildID string, page int) 
 	itemsResult := <-itemsChannel
 	totalResult := <-totalChannel
 
-	items = itemsResult.Items
-	total = totalResult.Total
+	items := itemsResult.Items
+	total := totalResult.Total
 
-	err = itemsResult.Err
+	err := itemsResult.Err
 	if totalResult.Err != nil && err == nil {
 		err = totalResult.Err
 	}
 
-	return
+	return items, total, err
 }
 
 func (service *PointsService) getLeaderboardItemsByGuildID(guildID string, page int, channel chan GetLeaderboardItemsByGuildIDResponse) {
@@ -169,7 +188,7 @@ func (service *PointsService) getLeaderboardTotalByGuildID(guildID string, chann
 	).Exec(context.Background(), &res)
 
 	count := 0
-	if len(res) > 0 {
+	if err == nil && len(res) > 0 {
 		count, err = strconv.Atoi(res[0].Count)
 	}
 

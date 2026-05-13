@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jurienhamaker/discordgoplus"
@@ -24,9 +25,9 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	}
 }
 
-func (service *SettingsService) GetByGuildId(guildID string) (guildSettings *db.SettingsModel, err error) {
+func (service *SettingsService) GetByGuildId(guildID string) (*db.SettingsModel, error) {
 	ctx := context.Background()
-	guildSettings, err = service.database.Settings.FindUnique(
+	guildSettings, err := service.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Exec(ctx)
 
@@ -34,26 +35,35 @@ func (service *SettingsService) GetByGuildId(guildID string) (guildSettings *db.
 		guildSettings, err = service.database.Settings.CreateOne(
 			db.Settings.GuildID.Set(guildID),
 		).Exec(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("settings: get guild settings: create: %w", err)
+		}
 	}
 
-	return
+	return guildSettings, nil
 }
 
-func (service *SettingsService) SetHighscoreByGuildID(guildID string, highscore int) (result *db.SettingsModel, err error) {
-	result, err = service.database.Settings.FindUnique(
+func (service *SettingsService) SetHighscoreByGuildID(guildID string, highscore int) (*db.SettingsModel, error) {
+	result, err := service.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Update(
 		db.Settings.Highscore.Set(highscore),
 		db.Settings.HighscoreDate.Set(time.Now()),
 	).Exec(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("settings: set highscore by guild id: %w", err)
+	}
 
-	return
+	return result, nil
 }
 
-func (service *SettingsService) Update(settingsID int, params ...db.SettingsSetParam) (settings *db.SettingsModel, err error) {
-	settings, err = service.database.Settings.FindUnique(
+func (service *SettingsService) Update(settingsID int, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
+	settings, err := service.database.Settings.FindUnique(
 		db.Settings.ID.Equals(settingsID),
 	).Update(params...).Exec(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("settings: update: %w", err)
+	}
 
-	return
+	return settings, nil
 }

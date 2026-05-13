@@ -22,6 +22,11 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
+var (
+	ErrNoChannelIDConfigured = errors.New("no channel id configured")
+	ErrAuthorIsBot           = errors.New("author is bot")
+)
+
 type GameService struct {
 	bot        *discordgoplus.Bot
 	database   *db.PrismaClient
@@ -47,7 +52,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, word str
 	utils.Logger.Infof("Trying to start a game for %s", guildID)
 
 	currentGame, exists, err := service.GetCurrentGame(guildID)
-	if err != nil && err != db.ErrNotFound {
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Error(err)
 		return game, started, err
 	}
@@ -55,12 +60,12 @@ func (service *GameService) Start(guildID string, gameType db.GameType, word str
 	settings, err := service.settings.GetByGuildId(guildID)
 	if err != nil {
 		utils.Logger.Error(err)
-		return game, started, err
+		return game, started, fmt.Errorf("game: start: get settings: %w", err)
 	}
 
 	channelID, ok := settings.ChannelID()
 	if !ok {
-		err = errors.New("No channelID configured")
+		err = ErrNoChannelIDConfigured
 		utils.Logger.Error(err)
 		return game, started, err
 	}
@@ -68,7 +73,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, word str
 	channel, err := service.bot.Channel(channelID)
 	if err != nil {
 		utils.Logger.Error(err)
-		return game, started, err
+		return game, started, fmt.Errorf("game: start: get channel: %w", err)
 	}
 
 	if exists && !recreate {
@@ -90,7 +95,7 @@ func (service *GameService) Start(guildID string, gameType db.GameType, word str
 	).Exec(context.Background())
 	if err != nil {
 		utils.Logger.Error(err)
-		return game, started, err
+		return game, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
 	self := service.bot.State.User
@@ -130,13 +135,16 @@ func (service *GameService) End(gameID int, status db.GameStatus) (game *db.Game
 	).Update(
 		db.Game.Status.Set(status),
 	).Exec(context.Background())
+	if err != nil {
+		return game, fmt.Errorf("game: end: update game: %w", err)
+	}
 
 	return game, err
 }
 
 func (service *GameService) ParseWord(message *discordgo.Message) (word string, err error) {
 	if message.Author.Bot {
-		err = errors.New("Author is bot")
+		err = ErrAuthorIsBot
 		return word, err
 	}
 
@@ -322,7 +330,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 
 	usedInPastHundred, err := service.checkUsedInPastHundred(game.ID, word)
-	if err != nil && err != db.ErrNotFound {
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Error(err)
 		return
 	}
@@ -345,7 +353,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		game.ID,
 		settings.Cooldown,
 	)
-	if err != nil && err != db.ErrNotFound {
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Error(err)
 		return
 	}
@@ -457,9 +465,14 @@ func (service *GameService) GetCurrentGame(guildID string) (game *db.GameModel, 
 		db.Game.CreatedAt.Order(db.SortOrderDesc),
 	).Exec(context.Background())
 
-	if err == db.ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		err = nil
 		exists = false
+		return game, exists, err
+	}
+
+	if err != nil {
+		return game, exists, fmt.Errorf("game: get current: %w", err)
 	}
 
 	return game, exists, err
@@ -478,9 +491,14 @@ func (service *GameService) GetLastHistory(game *db.GameModel) (history *db.Hist
 		db.History.CreatedAt.Order(db.SortOrderDesc),
 	).Exec(context.Background())
 
-	if err == db.ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		err = nil
 		exists = false
+		return history, exists, err
+	}
+
+	if err != nil {
+		return history, exists, fmt.Errorf("game: get last history: %w", err)
 	}
 
 	return history, exists, err
@@ -561,7 +579,7 @@ func (service *GameService) checkCooldown(userID string, gameID int, settingsCoo
 		db.History.CreatedAt.Field(),
 	).Exec(context.Background())
 
-	if err == db.ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		cooldown = time.Now().Add(-time.Second * 10)
 		return cooldown, err
 	}
