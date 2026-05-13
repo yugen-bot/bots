@@ -1,11 +1,9 @@
-go 1.23.3
-
-toolchain go1.23.3
+go 1.25.0
 
 use (
-	./shared
 	./apps/hoshi
 	./apps/iro
 	./apps/kazu
 	./apps/kusari
+	./shared
 )

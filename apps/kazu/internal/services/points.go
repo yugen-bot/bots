@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/sarulabs/di/v2"
+	"golang.org/x/sync/errgroup"
 	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -126,74 +127,61 @@ func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(ctx context.Con
 	return nil
 }
 
-type GetLeaderboardItemsByGuildIDResponse struct {
-	Items []db.PlayerStatsModel
-	Err   error
-}
-
-type GetLeaderboardTotalByGuildIDResponse struct {
-	Total int
-	Err   error
-}
-
 func (service *PointsService) GetLeaderboardByGuildID(ctx context.Context, guildID string, page int) ([]db.PlayerStatsModel, int, error) {
-	itemsChannel := make(chan GetLeaderboardItemsByGuildIDResponse)
-	totalChannel := make(chan GetLeaderboardTotalByGuildIDResponse)
+	g, gctx := errgroup.WithContext(ctx)
 
-	go service.getLeaderboardItemsByGuildID(ctx, guildID, page, itemsChannel)
-	go service.getLeaderboardTotalByGuildID(ctx, guildID, totalChannel)
+	var items []db.PlayerStatsModel
+	var total int
 
-	itemsResult := <-itemsChannel
-	totalResult := <-totalChannel
+	g.Go(func() error {
+		var err error
+		items, err = service.getLeaderboardItemsByGuildID(gctx, guildID, page)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		total, err = service.getLeaderboardTotalByGuildID(gctx, guildID)
+		return err
+	})
 
-	items := itemsResult.Items
-	total := totalResult.Total
-
-	err := itemsResult.Err
-	if totalResult.Err != nil && err == nil {
-		err = totalResult.Err
+	if err := g.Wait(); err != nil {
+		return nil, 0, fmt.Errorf("points: get leaderboard: %w", err)
 	}
-
-	return items, total, err
+	return items, total, nil
 }
 
-func (service *PointsService) getLeaderboardItemsByGuildID(ctx context.Context, guildID string, page int, channel chan GetLeaderboardItemsByGuildIDResponse) {
-	defer close(channel)
-	result := new(GetLeaderboardItemsByGuildIDResponse)
-
+func (service *PointsService) getLeaderboardItemsByGuildID(ctx context.Context, guildID string, page int) ([]db.PlayerStatsModel, error) {
 	items, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
 		db.PlayerStats.InGuild.Equals(true),
 	).OrderBy(
 		db.PlayerStats.Points.Order(db.DESC),
 	).Take(10).Skip((page - 1) * 10).Exec(ctx)
-
-	result.Items = items
-	result.Err = err
-
-	channel <- *result
+	if err != nil {
+		return nil, fmt.Errorf("points: get leaderboard items: %w", err)
+	}
+	return items, nil
 }
 
-func (service *PointsService) getLeaderboardTotalByGuildID(ctx context.Context, guildID string, channel chan GetLeaderboardTotalByGuildIDResponse) {
-	defer close(channel)
-	result := new(GetLeaderboardTotalByGuildIDResponse)
-
+func (service *PointsService) getLeaderboardTotalByGuildID(ctx context.Context, guildID string) (int, error) {
 	var res []struct {
 		Count string `json:"count"`
 	}
 
-	err := service.database.Prisma.QueryRaw(
+	if err := service.database.Prisma.QueryRaw(
 		`SELECT count(*) as count FROM "PlayerStats" WHERE "guildId" = $1 AND "inGuild" = true`,
 		guildID,
-	).Exec(ctx, &res)
-
-	count := 0
-	if err == nil && len(res) > 0 {
-		count, err = strconv.Atoi(res[0].Count)
+	).Exec(ctx, &res); err != nil {
+		return 0, fmt.Errorf("points: get leaderboard total: %w", err)
 	}
 
-	result.Total = count
-	result.Err = err
+	if len(res) == 0 {
+		return 0, nil
+	}
 
-	channel <- *result
+	count, err := strconv.Atoi(res[0].Count)
+	if err != nil {
+		return 0, fmt.Errorf("points: parse leaderboard total: %w", err)
+	}
+	return count, nil
 }
