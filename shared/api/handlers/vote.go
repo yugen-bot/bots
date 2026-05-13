@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -54,7 +54,8 @@ func (handler *VoteHandler) authMiddleware(c *fiber.Ctx) error {
 		return c.SendStatus(403)
 	}
 
-	if authHeaderValue != os.Getenv(static.EnvWebhookAuthorizationToken) {
+	cfg := handler.container.Get(static.DiConfig).(*config.Config)
+	if authHeaderValue != cfg.WebhookAuthorizationToken {
 		return c.SendStatus(403)
 	}
 
@@ -123,8 +124,9 @@ func (handler *VoteHandler) handleVote(userID string, source string) {
 func (handler *VoteHandler) sendLogMessage(userID string, source string) {
 	bot := handler.container.Get(static.DiBot).(*discordgoplus.Bot)
 
+	cfg := handler.container.Get(static.DiConfig).(*config.Config)
 	content := fmt.Sprintf("<@%s> has voted on **%s**!", userID, source)
-	channelID := os.Getenv(static.EnvDiscordVoteReportChannelID)
+	channelID := cfg.VoteChannelID
 	bot.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
 		Content:         content,
 		AllowedMentions: &discordgo.MessageAllowedMentions{},

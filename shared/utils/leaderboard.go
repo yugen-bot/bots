@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -133,9 +134,11 @@ func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, sour
 		footerParams.Text = fmt.Sprintf("Page %d/%d", page, maxPage)
 	}
 
+	cfg := container.Get(static.DiConfig).(*config.Config)
 	footer, err := CreateEmbedFooter(
 		container.Get(static.DiBot).(*discordgoplus.Bot),
 		&footerParams,
+		cfg.OwnerID,
 	)
 	if err != nil {
 		Logger.Error(err)

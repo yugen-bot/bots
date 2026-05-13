@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 	localStatic "jurien.dev/yugen/kazu/internal/static"
 	"jurien.dev/yugen/kazu/prisma/db"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -28,6 +28,7 @@ var (
 
 type GameService struct {
 	bot      *discordgoplus.Bot
+	cfg      *config.Config
 	database *db.PrismaClient
 	settings *SettingsService
 	saves    *SavesService
@@ -38,6 +39,7 @@ func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 	return &GameService{
 		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
+		cfg:      container.Get(static.DiConfig).(*config.Config),
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(static.DiSettings).(*SettingsService),
 		saves:    container.Get(localStatic.DiSaves).(*SavesService),
@@ -227,7 +229,7 @@ func (service *GameService) AddNumber(ctx context.Context, guildID string, numbe
 	}
 
 	isNextNumber := number == history.Number+1
-	isSameUser := message.Author.ID == history.UserID && os.Getenv(static.Env) != "development"
+	isSameUser := message.Author.ID == history.UserID && service.cfg.Env != "development"
 
 	if !isNextNumber || isSameUser {
 		failReason := fmt.Sprintf("<@%s> counted twice in a row!", message.Author.ID)

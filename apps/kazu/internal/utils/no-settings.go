@@ -7,6 +7,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	shared "jurien.dev/yugen/shared/utils"
 )
@@ -20,11 +21,13 @@ const NoSettingsDescription = `Someone with ` + "`Manage Server`" + ` permission
 That's it! Have fun playing!`
 
 func NoSettingsReply(ctx *discordgoplus.Ctx, container *di.Container, ephemeral bool) {
+	cfg := container.Get(static.DiConfig).(*config.Config)
 	footer, _ := shared.CreateEmbedFooter(
 		container.Get(static.DiBot).(*discordgoplus.Bot),
 		&shared.CreateEmbedFooterParams{
 			IsVote: false,
 		},
+		cfg.OwnerID,
 	)
 
 	embed := &discordgo.MessageEmbed{

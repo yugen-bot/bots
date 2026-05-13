@@ -8,6 +8,7 @@ import (
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/iro/internal/listeners"
 	sharedListeners "jurien.dev/yugen/shared/listeners"
+	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -27,6 +28,8 @@ func InitDiscordBot(container *di.Container) error {
 		utils.Logger.Infof("Logged in as: %v#%v", bot.State.User.Username, bot.State.User.Discriminator)
 		bot.UpdateWatchStatus(0, "colors 🎨")
 	})
+
+	middlewares.InitMiddlewares(container)
 
 	// shared
 	sharedListeners.AddLogListeners(container)

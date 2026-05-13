@@ -5,6 +5,7 @@ import (
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/utils"
 
 	game "jurien.dev/yugen/kazu/internal/slashcommands/game"
@@ -43,7 +44,8 @@ func InitCommands(container *di.Container) (err error) {
 	bot.AddHandler(bot.Router.HandleInteraction)
 	bot.AddHandler(bot.Router.HandleInteractionMessageComponent)
 
-	err = utils.SyncCommands(bot, len(modules))
+	cfg := container.Get(static.DiConfig).(*config.Config)
+	err = utils.SyncCommands(bot, cfg, len(modules))
 
 	return
 }

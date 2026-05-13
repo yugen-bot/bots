@@ -21,8 +21,8 @@ To add another starboard, use ` + "`/starboard add`" + `.
 *Notes:*
 - Hoshi does not *yet* support super reactions!`
 
-func SendWelcomeMessage(channel *discordgo.Channel, bot *discordgoplus.Bot) error {
-	footer, err := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false})
+func SendWelcomeMessage(channel *discordgo.Channel, bot *discordgoplus.Bot, ownerID string) error {
+	footer, err := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, ownerID)
 	if err != nil {
 		return err
 	}

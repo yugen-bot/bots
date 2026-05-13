@@ -6,21 +6,22 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"slices"
 	"strings"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/utils"
 )
 
-type DictionaryService struct{}
+type DictionaryService struct {
+	cfg *config.Config
+}
 
-func CreateDictionaryService() *DictionaryService {
+func CreateDictionaryService(cfg *config.Config) *DictionaryService {
 	utils.Logger.Info("Creating Dictionary Service")
-	return &DictionaryService{}
+	return &DictionaryService{cfg: cfg}
 }
 
 func (service *DictionaryService) Check(ctx context.Context, word string) (bool, error) {
@@ -49,7 +50,7 @@ func (service *DictionaryService) Check(ctx context.Context, word string) (bool,
 	}
 
 	req.Header.Set("User-Agent", "YugenKusari/1.0 (https://github.com/jurienhamaker/yugen;info@jurien.dev) Go-http-client/1.1")
-	req.SetBasicAuth(os.Getenv(static.EnvWiktionaryUsername), os.Getenv(static.EnvWiktionaryPassword))
+	req.SetBasicAuth(service.cfg.WiktionaryUsername, service.cfg.WiktionaryPassword)
 
 	resp, err := client.Do(req)
 	if err != nil {
