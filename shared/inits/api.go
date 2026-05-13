@@ -3,13 +3,13 @@ package inits
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/api"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -30,7 +30,8 @@ func RunHTTP(ctx context.Context, container *di.Container) error {
 	api.AddSharedRoutes(app, router, container)
 	api.AddSharedMiddleware(app)
 
-	addr := fmt.Sprintf("%s:%s", os.Getenv(static.EnvApiHost), os.Getenv(static.EnvApiPort))
+	cfg := container.Get(static.DiConfig).(*config.Config)
+	addr := fmt.Sprintf("%s:%s", cfg.APIHost, cfg.APIPort)
 	utils.Logger.Info("Initializing api...")
 
 	errCh := make(chan error, 1)

@@ -19,6 +19,7 @@ require (
 	github.com/Code-Hex/dd v1.1.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/caarlos0/env/v11 v11.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect

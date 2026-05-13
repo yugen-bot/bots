@@ -8,6 +8,7 @@ import (
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
+	"jurien.dev/yugen/shared/config"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -15,6 +16,7 @@ import (
 func AddGuildListeners(container *di.Container) {
 	bot := container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
 	settingsSvc := container.Get(sharedStatic.DiSettings).(*services.SettingsService)
+	cfg := container.Get(sharedStatic.DiConfig).(*config.Config)
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildCreate) {
 		ctx := context.Background()
@@ -40,7 +42,7 @@ func AddGuildListeners(container *di.Container) {
 			}
 
 			if perms&discordgo.PermissionSendMessages != 0 {
-				localUtils.SendWelcomeMessage(ch, bot)
+				localUtils.SendWelcomeMessage(ch, bot, cfg.OwnerID)
 				break
 			}
 		}

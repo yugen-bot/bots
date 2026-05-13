@@ -1,22 +1,20 @@
 package utils
 
 import (
-	"os"
-
 	"github.com/jurienhamaker/discordgoplus"
-	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/config"
 )
 
-func SyncCommands(bot *discordgoplus.Bot, amount int) (err error) {
-	if os.Getenv(static.EnvSyncCommands) == "true" {
+func SyncCommands(bot *discordgoplus.Bot, cfg *config.Config, amount int) (err error) {
+	if cfg.SyncCommands {
 		Logger.Infof("Syncing commands of %d modules", amount)
 
 		var developmentGuildId string
-		if os.Getenv(static.Env) != "production" {
-			developmentGuildId = os.Getenv(static.EnvDiscordDevelopmentGuildID)
+		if cfg.Env != "production" {
+			developmentGuildId = cfg.DiscordDevelopmentGuild
 		}
 
-		err = bot.Router.Sync(bot.Session, os.Getenv(static.EnvDiscordAppID), developmentGuildId)
+		err = bot.Router.Sync(bot.Session, cfg.DiscordAppID, developmentGuildId)
 	}
 
 	return

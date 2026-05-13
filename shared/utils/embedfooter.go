@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
@@ -13,8 +12,8 @@ type CreateEmbedFooterParams struct {
 	IsVote bool
 }
 
-func CreateEmbedFooter(bot *discordgoplus.Bot, params *CreateEmbedFooterParams) (embed *discordgo.MessageEmbedFooter, err error) {
-	botAuthor, err := bot.User(os.Getenv("OWNER_ID"))
+func CreateEmbedFooter(bot *discordgoplus.Bot, params *CreateEmbedFooterParams, ownerID string) (embed *discordgo.MessageEmbedFooter, err error) {
+	botAuthor, err := bot.User(ownerID)
 	if err != nil {
 		return
 	}

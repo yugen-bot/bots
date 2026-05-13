@@ -7,6 +7,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/listeners"
+	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 
@@ -33,6 +34,8 @@ func InitDiscordBot(container *di.Container) error {
 		utils.Logger.Infof("Logged in as: %v#%v", bot.State.User.Username, bot.State.User.Discriminator)
 		bot.UpdateGameStatus(0, fmt.Sprintf("%s 🧮", bot.State.User.Username))
 	})
+
+	middlewares.InitMiddlewares(container)
 
 	// shared
 	sharedListeners.AddLogListeners(container)

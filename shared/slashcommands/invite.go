@@ -2,11 +2,11 @@ package slashcommands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -22,11 +22,14 @@ func GetInviteModule(container *di.Container) *InviteModule {
 }
 
 func (m *InviteModule) invite(ctx *discordgoplus.Ctx) {
+	cfg := m.container.Get(static.DiConfig).(*config.Config)
+
 	footer, err := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
+		cfg.OwnerID,
 	)
 	if err != nil {
 		utils.Logger.Error(err)
@@ -52,7 +55,7 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 					discordgo.Button{
 						Style: discordgo.LinkButton,
 						Label: fmt.Sprintf("Invite %s to your server 🎉", appName),
-						URL:   os.Getenv("INVITE_LINK"),
+						URL:   cfg.InviteLink,
 					},
 				},
 			},

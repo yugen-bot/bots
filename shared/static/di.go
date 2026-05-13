@@ -1,6 +1,8 @@
 package static
 
 const (
+	DiConfig         = "config"
+
 	DiBot            = "discordbot"
 	DiCron           = "cron"
 	DiCacheLifetimes = "cacheliftimes"

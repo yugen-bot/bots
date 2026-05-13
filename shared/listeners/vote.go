@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -61,13 +61,13 @@ func postDiscordBotList(token string, clientID string, servers int) error {
 	return doRequest(url, token, body, "discordbotlist")
 }
 
-func postStats(bot *discordgoplus.Bot) {
-	clientID := os.Getenv(static.EnvDiscordAppID)
+func postStats(bot *discordgoplus.Bot, cfg *config.Config) {
+	clientID := cfg.DiscordAppID
 
 	servers := len(bot.State.Guilds)
 
-	syncTopGG := os.Getenv(static.EnvTopGGSync) == "true"
-	topGGToken := os.Getenv(static.EnvTopGGToken)
+	syncTopGG := cfg.TopGGSync
+	topGGToken := cfg.TopGGToken
 
 	if syncTopGG && len(topGGToken) > 0 {
 		go func() {
@@ -77,8 +77,8 @@ func postStats(bot *discordgoplus.Bot) {
 		}()
 	}
 
-	syncDiscordBotList := os.Getenv(static.EnvDiscordBotListSync) == "true"
-	discordBotListToken := os.Getenv(static.EnvDiscordBotListToken)
+	syncDiscordBotList := cfg.DiscordBotListSync
+	discordBotListToken := cfg.DiscordBotListToken
 
 	if syncDiscordBotList && len(discordBotListToken) > 0 {
 		go func() {
@@ -92,12 +92,13 @@ func postStats(bot *discordgoplus.Bot) {
 func AddVoteListeners(container *di.Container) {
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 	cron := container.Get(static.DiCron).(*cron.Cron)
+	cfg := container.Get(static.DiConfig).(*config.Config)
 
 	cron.AddFunc("@every 3h", func() {
-		go postStats(bot)
+		go postStats(bot, cfg)
 	})
 
 	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
-		go postStats(bot)
+		go postStats(bot, cfg)
 	})
 }

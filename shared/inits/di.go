@@ -1,20 +1,28 @@
 package inits
 
 import (
-	"os"
-
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
+		Name: static.DiConfig,
+		Build: func(ctn di.Container) (interface{}, error) {
+			cfg, err := config.Load()
+			return &cfg, err
+		},
+	})
+
+	diBuilder.Add(&di.Def{
 		Name: static.DiBot,
 		Build: func(ctn di.Container) (interface{}, error) {
-			return discordgoplus.New(os.Getenv(static.EnvDiscordToken))
+			cfg := ctn.Get(static.DiConfig).(*config.Config)
+			return discordgoplus.New(cfg.DiscordToken)
 		},
 		Close: func(obj interface{}) error {
 			bot := obj.(*discordgoplus.Bot)
@@ -31,9 +39,9 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 			return cron.New(), nil
 		},
 		Close: func(obj interface{}) error {
-			cron := obj.(*cron.Cron)
+			c := obj.(*cron.Cron)
 			utils.Logger.Info("Stopping cron jobs...")
-			cron.Stop()
+			c.Stop()
 			return nil
 		},
 	})

@@ -8,6 +8,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kusari/internal/services"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -57,11 +58,13 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		cooldownText = "None"
 	}
 
+	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer, _ := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
+		cfg.OwnerID,
 	)
 
 	embed := &discordgo.MessageEmbed{

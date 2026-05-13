@@ -2,11 +2,11 @@ package listeners
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -23,7 +23,8 @@ func sendLogMessage(container *di.Container, event *discordgo.InteractionCreate,
 	}
 
 	message := fmt.Sprintf("Interaction **%s** used by **%s** (%s) in **%s** (%s)", name, event.Member.User.Username, event.Member.User.ID, guild.Name, guild.ID)
-	channelID := os.Getenv(static.EnvDiscordLogsReportChannelID)
+	cfg := container.Get(static.DiConfig).(*config.Config)
+	channelID := cfg.LogsChannelID
 	bot.ChannelMessageSend(channelID, message)
 }
 

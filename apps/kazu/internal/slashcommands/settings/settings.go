@@ -8,6 +8,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/services"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -92,11 +93,13 @@ func (m *SettingsModule) Show(ctx *discordgoplus.Ctx) {
 		mathText = "Enabled"
 	}
 
+	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer, _ := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
+		cfg.OwnerID,
 	)
 
 	embed := &discordgo.MessageEmbed{

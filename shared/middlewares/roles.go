@@ -2,19 +2,29 @@ package middlewares
 
 import (
 	"errors"
-	"os"
 	"slices"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
+	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
+// ownerIDs is set once at startup via InitMiddlewares.
+var ownerIDs []string
+
+// InitMiddlewares stores the owner ID list from config so the package-level
+// middleware functions can use it without reading os.Getenv on every request.
+func InitMiddlewares(container *di.Container) {
+	cfg := container.Get(static.DiConfig).(*config.Config)
+	ownerIDs = cfg.OwnerIDs
+}
+
 func checkBase(ctx *discordgoplus.Ctx) (bool, error) {
 	if ctx.Interaction == nil || ctx.Interaction.Member == nil {
-		return false, errors.New("Member not accessible")
+		return false, errors.New("member not accessible")
 	}
 
 	interaction := ctx.Interaction
@@ -28,8 +38,7 @@ func checkBase(ctx *discordgoplus.Ctx) (bool, error) {
 		return false, nil
 	}
 
-	ownerIds := strings.Split(os.Getenv(static.EnvOwnerIDs), ",")
-	if len(ownerIds) > 0 && slices.Contains(ownerIds, interaction.Member.User.ID) {
+	if len(ownerIDs) > 0 && slices.Contains(ownerIDs, interaction.Member.User.ID) {
 		return true, nil
 	}
 
@@ -44,12 +53,10 @@ func checkAdmin(ctx *discordgoplus.Ctx) (bool, error) {
 
 	perms := ctx.Interaction.Member.Permissions
 
-	// admin check
 	if perms&discordgo.PermissionAdministrator != 0 {
 		return true, nil
 	}
 
-	// guild manage check
 	if perms&discordgo.PermissionManageGuild != 0 {
 		return true, nil
 	}
@@ -63,7 +70,6 @@ func checkModerator(ctx *discordgoplus.Ctx) (bool, error) {
 		return admin, err
 	}
 
-	// moderator check
 	perms := ctx.Interaction.Member.Permissions
 	return perms&discordgo.PermissionBanMembers != 0, nil
 }

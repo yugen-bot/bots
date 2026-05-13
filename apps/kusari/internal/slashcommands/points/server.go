@@ -9,6 +9,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 
@@ -71,11 +72,13 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 
 	self := m.bot.State.User
 
+	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer, err := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
+		cfg.OwnerID,
 	)
 	if err != nil {
 		utils.Logger.Error(err)

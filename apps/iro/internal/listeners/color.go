@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image/color"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/zekroTJA/colorname"
 	"github.com/zekroTJA/shinpuru/pkg/colors"
 	"github.com/zekroTJA/timedmap"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -27,6 +27,7 @@ var rxColorHex = regexp.MustCompile(`^#?[\dA-Fa-f]{6,8}$`)
 
 type ColorListener struct {
 	bot        *discordgoplus.Bot
+	cfg        *config.Config
 	emojiCache *timedmap.TimedMap
 }
 
@@ -34,6 +35,7 @@ func GetColorListener(container *di.Container) *ColorListener {
 	utils.Logger.Info("Creating Color Listener")
 	return &ColorListener{
 		bot:        container.Get(static.DiBot).(*discordgoplus.Bot),
+		cfg:        container.Get(static.DiConfig).(*config.Config),
 		emojiCache: timedmap.New(1 * time.Minute),
 	}
 }
@@ -208,7 +210,7 @@ func (listener *ColorListener) createReaction(bot *discordgo.Session, message *d
 	dataUri := fmt.Sprintf("data:image/png;base64,%s", b64Data)
 
 	// Upload guild emote
-	clientId := os.Getenv(static.EnvDiscordAppID)
+	clientId := listener.cfg.DiscordAppID
 	emoji, err := bot.ApplicationEmojiCreate(clientId, &discordgo.EmojiParams{
 		Name:  "hex" + hexClr,
 		Image: dataUri,

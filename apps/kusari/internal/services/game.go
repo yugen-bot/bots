@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
-	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 	localStatic "jurien.dev/yugen/kusari/internal/static"
 	"jurien.dev/yugen/kusari/prisma/db"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -29,6 +29,7 @@ var (
 
 type GameService struct {
 	bot        *discordgoplus.Bot
+	cfg        *config.Config
 	database   *db.PrismaClient
 	settings   *SettingsService
 	saves      *SavesService
@@ -40,6 +41,7 @@ func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 	return &GameService{
 		bot:        container.Get(static.DiBot).(*discordgoplus.Bot),
+		cfg:        container.Get(static.DiConfig).(*config.Config),
 		database:   container.Get(static.DiDatabase).(*db.PrismaClient),
 		settings:   container.Get(static.DiSettings).(*SettingsService),
 		saves:      container.Get(localStatic.DiSaves).(*SavesService),
@@ -198,7 +200,7 @@ func (service *GameService) AddWord(ctx context.Context, guildID string, word st
 		return
 	}
 
-	isSameUser := os.Getenv(static.Env) != "development" && message.Author.ID == history.UserID
+	isSameUser := service.cfg.Env != "development" && message.Author.ID == history.UserID
 	if isSameUser {
 		service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🕒")
 		go service.bot.ChannelMessageSendReply(

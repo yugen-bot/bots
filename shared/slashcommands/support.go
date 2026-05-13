@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -21,11 +22,13 @@ func GetSupportModule(container *di.Container) *SupportModule {
 }
 
 func (m *SupportModule) support(ctx *discordgoplus.Ctx) {
+	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer, err := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
+		cfg.OwnerID,
 	)
 	if err != nil {
 		utils.Logger.Error(err)

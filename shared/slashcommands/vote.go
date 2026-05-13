@@ -2,11 +2,11 @@ package slashcommands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -45,11 +45,14 @@ func (m *VoteModule) Run(ctx *discordgoplus.Ctx) {
 		voteReward = "\n" + voteReward
 	}
 
+	cfg := m.container.Get(static.DiConfig).(*config.Config)
+
 	footer, err := utils.CreateEmbedFooter(
 		m.container.Get(static.DiBot).(*discordgoplus.Bot),
 		&utils.CreateEmbedFooterParams{
 			IsVote: true,
 		},
+		cfg.OwnerID,
 	)
 	if err != nil {
 		utils.Logger.Error(err)
@@ -66,8 +69,8 @@ Please use any of the links below to vote for %s!%s`, name, name, voteReward),
 
 	components := []discordgo.MessageComponent{}
 
-	topGGVoteLink := os.Getenv(static.EnvTopGGVoteLink)
-	discordBotListVoteLink := os.Getenv(static.EnvDiscordBotListVoteLink)
+	topGGVoteLink := cfg.TopGGVoteLink
+	discordBotListVoteLink := cfg.DiscordBotListVoteLink
 
 	if len(topGGVoteLink) > 0 {
 		components = append(components, discordgo.Button{
