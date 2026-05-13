@@ -1,7 +1,8 @@
 package services
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
@@ -25,8 +26,8 @@ func (s *GuildsService) GetData(page int) ([]*discordgo.Guild, int) {
 	guilds := make([]*discordgo.Guild, len(s.bot.State.Guilds))
 	copy(guilds, s.bot.State.Guilds)
 
-	sort.Slice(guilds, func(i, j int) bool {
-		return guilds[i].MemberCount > guilds[j].MemberCount
+	slices.SortFunc(guilds, func(a, b *discordgo.Guild) int {
+		return cmp.Compare(b.MemberCount, a.MemberCount)
 	})
 
 	total := len(guilds)
