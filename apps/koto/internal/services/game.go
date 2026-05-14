@@ -48,7 +48,13 @@ func CreateGameService(container *di.Container) *GameService {
 
 // Start creates a new game. schedule=true means cron-started. recreate=true ends current game first.
 // word="" means pick randomly.
-func (s *GameService) Start(ctx context.Context, guildID string, schedule bool, recreate bool, word string) (bool, error) {
+func (s *GameService) Start(
+	ctx context.Context,
+	guildID string,
+	schedule bool,
+	recreate bool,
+	word string,
+) (bool, error) {
 	utils.Logger.Infof("Trying to start a game for %s", guildID)
 
 	currentGame, err := s.GetCurrentGame(ctx, guildID)
@@ -57,12 +63,20 @@ func (s *GameService) Start(ctx context.Context, guildID string, schedule bool, 
 	}
 
 	if currentGame != nil && !recreate {
-		utils.Logger.Debugf("Already active game %d (no recreate) for %s", currentGame.ID, guildID)
+		utils.Logger.Debugf(
+			"Already active game %d (no recreate) for %s",
+			currentGame.ID,
+			guildID,
+		)
 		return false, nil
 	}
 
 	if currentGame != nil && recreate {
-		if endErr := s.EndGame(ctx, currentGame.ID, db.GameStatusFailed); endErr != nil {
+		if endErr := s.EndGame(
+			ctx,
+			currentGame.ID,
+			db.GameStatusFailed,
+		); endErr != nil {
 			utils.Logger.Warnf("game: start: end current failed: %v", endErr)
 		}
 		time.Sleep(500 * time.Millisecond)
@@ -95,7 +109,10 @@ func (s *GameService) Start(ctx context.Context, guildID string, schedule bool, 
 		word = s.words.GetRandom(ignoredWords, false)
 	}
 	if word == "" {
-		return false, fmt.Errorf("game: start: could not pick word for %s", guildID)
+		return false, fmt.Errorf(
+			"game: start: could not pick word for %s",
+			guildID,
+		)
 	}
 
 	settings, err := s.settings.GetByGuildID(ctx, guildID)
@@ -108,7 +125,9 @@ func (s *GameService) Start(ctx context.Context, guildID string, schedule bool, 
 		// Year-3000 sentinel: timer doesn't start until first guess
 		endingAt = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
 	} else {
-		endingAt = roundToNearestMinute(time.Now().Add(time.Duration(settings.TimeLimit) * time.Minute))
+		endingAt = roundToNearestMinute(
+			time.Now().Add(time.Duration(settings.TimeLimit) * time.Minute),
+		)
 	}
 
 	baseMeta := s.createBaseState(word)
@@ -137,14 +156,27 @@ func (s *GameService) Start(ctx context.Context, guildID string, schedule bool, 
 }
 
 // Guess processes a player's word guess.
-func (s *GameService) Guess(ctx context.Context, guildID string, word string, message *discordgo.Message, settings *db.SettingsModel) error {
+func (s *GameService) Guess(
+	ctx context.Context,
+	guildID string,
+	word string,
+	message *discordgo.Message,
+	settings *db.SettingsModel,
+) error {
 	game, err := s.GetCurrentGame(ctx, guildID)
-	if err != nil || game == nil {
+	if err != nil {
+		return fmt.Errorf("game: guess: get current game: %w", err)
+	}
+	if game == nil {
 		return nil
 	}
 
 	// Ensure player exists
-	if _, pErr := s.points.GetPlayer(ctx, guildID, message.Author.ID); pErr != nil {
+	if _, pErr := s.points.GetPlayer(
+		ctx,
+		guildID,
+		message.Author.ID,
+	); pErr != nil {
 		utils.Logger.Warnf("game: guess: get player failed: %v", pErr)
 	}
 
@@ -162,7 +194,11 @@ func (s *GameService) Guess(ctx context.Context, guildID string, word string, me
 	if os.Getenv("ENV") == "production" {
 		for _, g := range guesses {
 			if g.Word == word {
-				s.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌") //nolint:errcheck
+				s.bot.MessageReactionAdd(
+					message.ChannelID,
+					message.ID,
+					"❌",
+				)
 				return nil
 			}
 		}
@@ -171,14 +207,32 @@ func (s *GameService) Guess(ctx context.Context, guildID string, word string, me
 	// Cooldown check
 	cooldown := s.checkCooldown(message.Author.ID, guesses, settings)
 	if cooldown.Hit || cooldown.RepeatHit {
-		s.bot.MessageReactionAdd(message.ChannelID, message.ID, "🕒") //nolint:errcheck
-		suffix := fmt.Sprintf("you can guess again <t:%d:R>", cooldown.Result.Unix())
+		s.bot.MessageReactionAdd(
+			message.ChannelID,
+			message.ID,
+			"🕒",
+		)
+		suffix := fmt.Sprintf(
+			"you can guess again <t:%d:R>",
+			cooldown.Result.Unix(),
+		)
 		if cooldown.Hit && cooldown.RepeatHit {
-			suffix = fmt.Sprintf("you can guess again <t:%d:R> on your own or <t:%d:R> after a guess from another player.", cooldown.RepeatResult.Unix(), cooldown.Result.Unix())
+			suffix = fmt.Sprintf(
+				"you can guess again <t:%d:R> on your own or <t:%d:R> after a guess from another player.",
+				cooldown.RepeatResult.Unix(),
+				cooldown.Result.Unix(),
+			)
 		} else if !cooldown.Hit && cooldown.RepeatHit {
-			suffix = fmt.Sprintf("you can guess again <t:%d:R> or immediately after a guess from another player.", cooldown.RepeatResult.Unix())
+			suffix = fmt.Sprintf(
+				"you can guess again <t:%d:R> or immediately after a guess from another player.",
+				cooldown.RepeatResult.Unix(),
+			)
 		}
-		s.bot.ChannelMessageSendReply(message.ChannelID, fmt.Sprintf("You're on a cooldown, %s", suffix), message.Reference()) //nolint:errcheck
+		s.bot.ChannelMessageSendReply(
+			message.ChannelID,
+			fmt.Sprintf("You're on a cooldown, %s", suffix),
+			message.Reference(),
+		)
 		return nil
 	}
 
@@ -189,7 +243,11 @@ func (s *GameService) Guess(ctx context.Context, guildID string, word string, me
 	}
 
 	// Score the guess
-	guessMeta, guessed, points, updatedGameMeta := s.checkWord(game.Word, word, gameMeta)
+	guessMeta, guessed, points, updatedGameMeta := s.checkWord(
+		game.Word,
+		word,
+		gameMeta,
+	)
 
 	// Persist the guess
 	guessMetaJSON, err := json.Marshal(guessMeta)
@@ -224,7 +282,9 @@ func (s *GameService) Guess(ctx context.Context, guildID string, word string, me
 	}
 	// If startAfterFirstGuess and this is the first guess, set real endingAt
 	if settings.StartAfterFirstGuess && len(guesses) == 0 {
-		realEndingAt := roundToNearestMinute(time.Now().Add(time.Duration(settings.TimeLimit) * time.Minute))
+		realEndingAt := roundToNearestMinute(
+			time.Now().Add(time.Duration(settings.TimeLimit) * time.Minute),
+		)
 		updateParams = append(updateParams, db.Game.EndingAt.Set(realEndingAt))
 	}
 
@@ -237,9 +297,13 @@ func (s *GameService) Guess(ctx context.Context, guildID string, word string, me
 
 	// React to guess message
 	if guessed {
-		s.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉") //nolint:errcheck
+		s.bot.MessageReactionAdd(
+			message.ChannelID,
+			message.ID,
+			"🎉",
+		)
 	} else {
-		s.bot.MessageReactionAdd(message.ChannelID, message.ID, "✅") //nolint:errcheck
+		s.bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
 	}
 
 	// Fetch updated guesses list (with new guess)
@@ -252,51 +316,77 @@ func (s *GameService) Guess(ctx context.Context, guildID string, word string, me
 	// Apply points if won
 	if guessed {
 		go func() {
-			if applyErr := s.points.ApplyPoints(context.Background(), updatedGame, allGuesses, message.Author.ID); applyErr != nil {
-				utils.Logger.Warnf("game: guess: apply points failed: %v", applyErr)
+			if applyErr := s.points.ApplyPoints(
+				context.Background(),
+				updatedGame,
+				allGuesses,
+				message.Author.ID,
+			); applyErr != nil {
+				utils.Logger.Warnf(
+					"game: guess: apply points failed: %v",
+					applyErr,
+				)
 			}
 		}()
 	}
 
 	// Inform cooldown
-	if newStatus != db.GameStatusCompleted && settings.InformCooldownAfterGuess {
+	if newStatus != db.GameStatusCompleted &&
+		settings.InformCooldownAfterGuess {
 		go func() {
 			backToBackPart := ""
 			if settings.EnableBackToBackCooldown {
-				backToBackPart = fmt.Sprintf("<t:%d:R> on your own or ",
-					createdGuess.CreatedAt.Add(time.Duration(settings.BackToBackCooldown)*time.Second).Unix())
+				backToBackPart = fmt.Sprintf(
+					"<t:%d:R> on your own or ",
+					createdGuess.CreatedAt.Add(time.Duration(settings.BackToBackCooldown)*time.Second).
+						Unix(),
+				)
 			}
 			afterPart := ""
 			if settings.EnableBackToBackCooldown {
 				afterPart = " after a guess from another player"
 			}
-			msg := fmt.Sprintf("You are now on a cooldown. You can guess again %s<t:%d:R>%s.",
+			msg := fmt.Sprintf(
+				"You are now on a cooldown. You can guess again %s<t:%d:R>%s.",
 				backToBackPart,
-				createdGuess.CreatedAt.Add(time.Duration(settings.Cooldown)*time.Second).Unix(),
+				createdGuess.CreatedAt.Add(time.Duration(settings.Cooldown)*time.Second).
+					Unix(),
 				afterPart,
 			)
-			s.bot.ChannelMessageSendReply(message.ChannelID, msg, message.Reference()) //nolint:errcheck
+			s.bot.ChannelMessageSendReply(
+				message.ChannelID,
+				msg,
+				message.Reference(),
+			)
 		}()
 	}
 
 	// Recreate embed message
 	go func() {
-		if msgErr := s.message.Create(context.Background(), updatedGame, allGuesses, false); msgErr != nil {
-			utils.Logger.Warnf("game: guess: recreate message failed: %v", msgErr)
+		if msgErr := s.message.Create(
+			context.Background(),
+			updatedGame,
+			allGuesses,
+			false,
+		); msgErr != nil {
+			utils.Logger.Warnf(
+				"game: guess: recreate message failed: %v",
+				msgErr,
+			)
 		}
 	}()
 
 	// Handle terminal status
 	if newStatus != db.GameStatusInProgress {
 		// Delete guesses for privacy
-		s.database.Guess.FindMany( //nolint:errcheck
+		s.database.Guess.FindMany(
 			db.Guess.GameID.Equals(updatedGame.ID),
 		).Delete().Exec(context.Background())
 
 		// Auto-start if configured
 		if settings.AutoStart {
 			time.Sleep(500 * time.Millisecond)
-			go s.Start(context.Background(), guildID, false, false, "") //nolint:errcheck
+			go s.Start(context.Background(), guildID, false, false, "")
 		}
 	}
 
@@ -304,7 +394,11 @@ func (s *GameService) Guess(ctx context.Context, guildID string, word string, me
 }
 
 // EndGame ends a game with the given status, recreates message, deletes guesses.
-func (s *GameService) EndGame(ctx context.Context, gameID int, status db.GameStatus) error {
+func (s *GameService) EndGame(
+	ctx context.Context,
+	gameID int,
+	status db.GameStatus,
+) error {
 	game, err := s.database.Game.FindUnique(
 		db.Game.ID.Equals(gameID),
 	).Update(
@@ -323,7 +417,7 @@ func (s *GameService) EndGame(ctx context.Context, gameID int, status db.GameSta
 	}
 
 	// Delete guesses for privacy
-	s.database.Guess.FindMany( //nolint:errcheck
+	s.database.Guess.FindMany(
 		db.Guess.GameID.Equals(game.ID),
 	).Delete().Exec(ctx)
 
@@ -331,7 +425,10 @@ func (s *GameService) EndGame(ctx context.Context, gameID int, status db.GameSta
 }
 
 // GetCurrentGame returns the active (IN_PROGRESS) game for a guild, or nil if none.
-func (s *GameService) GetCurrentGame(ctx context.Context, guildID string) (*db.GameModel, error) {
+func (s *GameService) GetCurrentGame(
+	ctx context.Context,
+	guildID string,
+) (*db.GameModel, error) {
 	game, err := s.database.Game.FindFirst(
 		db.Game.GuildID.Equals(guildID),
 		db.Game.Status.Equals(db.GameStatusInProgress),
@@ -348,7 +445,11 @@ func (s *GameService) GetCurrentGame(ctx context.Context, guildID string) (*db.G
 
 // checkWord scores a guess against the target word.
 // Returns: per-letter meta, guessed(bool), total points, updated game meta.
-func (s *GameService) checkWord(word string, guess string, state *localUtils.GameMeta) (localUtils.GuessMetaSlice, bool, int, *localUtils.GameMeta) {
+func (s *GameService) checkWord(
+	word string,
+	guess string,
+	state *localUtils.GameMeta,
+) (localUtils.GuessMetaSlice, bool, int, *localUtils.GameMeta) {
 	meta := make(localUtils.GuessMetaSlice, len(guess))
 	unmatched := map[rune]int{}   // unmatched word letters
 	letterCount := map[rune]int{} // matched count per letter
@@ -365,14 +466,17 @@ func (s *GameService) checkWord(word string, guess string, state *localUtils.Gam
 			letterCount[letter]++
 
 			var pts int
-			if prev, ok := state.Discovery.Correct[string(letter)]; ok && prev < letterCount[letter] {
+			if prev, ok := state.Discovery.Correct[string(letter)]; ok &&
+				prev < letterCount[letter] {
 				pts = 2
 				state.Discovery.Correct[string(letter)] = letterCount[letter]
-				if prev2, ok2 := state.Discovery.Almost[string(letter)]; ok2 && prev2 >= letterCount[letter] {
+				if prev2, ok2 := state.Discovery.Almost[string(letter)]; ok2 &&
+					prev2 >= letterCount[letter] {
 					pts = 1
 				}
 			}
-			if prev, ok := state.Discovery.Almost[string(letter)]; !ok || prev < letterCount[letter] {
+			if prev, ok := state.Discovery.Almost[string(letter)]; !ok ||
+				prev < letterCount[letter] {
 				state.Discovery.Almost[string(letter)] = letterCount[letter]
 			}
 
@@ -382,7 +486,8 @@ func (s *GameService) checkWord(word string, guess string, state *localUtils.Gam
 				Letter: string(letter),
 			}
 
-			if existing, ok := state.Keyboard[string(letter)]; !ok || existing != localUtils.GameTypeCorrect {
+			if existing, ok := state.Keyboard[string(letter)]; !ok ||
+				existing != localUtils.GameTypeCorrect {
 				state.Keyboard[string(letter)] = localUtils.GameTypeCorrect
 			}
 
@@ -406,7 +511,8 @@ func (s *GameService) checkWord(word string, guess string, state *localUtils.Gam
 				letterCount[letter]++
 
 				var pts int
-				if prev, ok := state.Discovery.Almost[string(letter)]; !ok || prev < letterCount[letter] {
+				if prev, ok := state.Discovery.Almost[string(letter)]; !ok ||
+					prev < letterCount[letter] {
 					pts = 1
 					state.Discovery.Almost[string(letter)] = letterCount[letter]
 				}
@@ -418,7 +524,8 @@ func (s *GameService) checkWord(word string, guess string, state *localUtils.Gam
 				}
 				unmatched[letter]--
 
-				if existing, ok := state.Keyboard[string(letter)]; !ok || existing != localUtils.GameTypeCorrect {
+				if existing, ok := state.Keyboard[string(letter)]; !ok ||
+					existing != localUtils.GameTypeCorrect {
 					state.Keyboard[string(letter)] = localUtils.GameTypeAlmost
 				}
 
@@ -475,16 +582,24 @@ func (s *GameService) checkCooldown(
 
 	now := time.Now()
 	backToBackHit := settings.EnableBackToBackCooldown &&
-		lastGuessByUser.CreatedAt.After(now.Add(-time.Duration(settings.BackToBackCooldown)*time.Second)) &&
+		lastGuessByUser.CreatedAt.After(
+			now.Add(-time.Duration(settings.BackToBackCooldown)*time.Second),
+		) &&
 		userID == lastGuess.UserID
-	cooldownHit := lastGuessByUser.CreatedAt.After(now.Add(-time.Duration(settings.Cooldown) * time.Second))
+	cooldownHit := lastGuessByUser.CreatedAt.After(
+		now.Add(-time.Duration(settings.Cooldown) * time.Second),
+	)
 
 	if backToBackHit || cooldownHit {
 		return cooldownResult{
-			Hit:          cooldownHit,
-			RepeatHit:    backToBackHit,
-			Result:       lastGuessByUser.CreatedAt.Add(time.Duration(settings.Cooldown) * time.Second),
-			RepeatResult: lastGuessByUser.CreatedAt.Add(time.Duration(settings.BackToBackCooldown) * time.Second),
+			Hit:       cooldownHit,
+			RepeatHit: backToBackHit,
+			Result: lastGuessByUser.CreatedAt.Add(
+				time.Duration(settings.Cooldown) * time.Second,
+			),
+			RepeatResult: lastGuessByUser.CreatedAt.Add(
+				time.Duration(settings.BackToBackCooldown) * time.Second,
+			),
 		}
 	}
 

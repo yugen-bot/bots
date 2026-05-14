@@ -21,19 +21,45 @@ func AddGuildListeners(container *di.Container) {
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildCreate) {
 		ctx := context.Background()
 		if _, err := settingsSvc.GetByGuildID(ctx, event.ID, true); err != nil {
-			utils.Logger.Warnf("guild create: seed settings failed for %s: %v", event.ID, err)
+			utils.Logger.Warnf(
+				"guild create: seed settings failed for %s: %v",
+				event.ID,
+				err,
+			)
 		}
 		go localUtils.SendWelcomeMessage(bot, event.ID)
 	})
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildDelete) {
 		utils.Logger.Infof("Left guild: %s", event.ID)
-		if err := settingsSvc.Delete(context.Background(), event.ID); err != nil {
-			utils.Logger.Warnf("guild delete: cleanup failed for %s: %v", event.ID, err)
+		if err := settingsSvc.Delete(
+			context.Background(),
+			event.ID,
+		); err != nil {
+			utils.Logger.Warnf(
+				"guild delete: cleanup failed for %s: %v",
+				event.ID,
+				err,
+			)
 		}
 	})
 
-	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildMemberRemove) {
-		go pointsSvc.RemovePlayerFromGuild(context.Background(), event.GuildID, event.User.ID) //nolint:errcheck
-	})
+	bot.AddHandler(
+		func(s *discordgo.Session, event *discordgo.GuildMemberRemove) {
+			go func() {
+				if err := pointsSvc.RemovePlayerFromGuild(
+					context.Background(),
+					event.GuildID,
+					event.User.ID,
+				); err != nil {
+					utils.Logger.Warnf(
+						"guild member remove: %s/%s: %v",
+						event.GuildID,
+						event.User.ID,
+						err,
+					)
+				}
+			}()
+		},
+	)
 }

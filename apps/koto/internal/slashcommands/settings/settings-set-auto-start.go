@@ -28,7 +28,11 @@ func (m *SetAutoStartModule) set(ctx *discordgoplus.Ctx) {
 
 	enabled := ctx.Options["enabled"].BoolValue()
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.AutoStart.Set(enabled)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.AutoStart.Set(enabled),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

@@ -16,7 +16,9 @@ type SetInformCooldownModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSetInformCooldownModule(container *di.Container) *SetInformCooldownModule {
+func GetSetInformCooldownModule(
+	container *di.Container,
+) *SetInformCooldownModule {
 	return &SetInformCooldownModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -28,7 +30,11 @@ func (m *SetInformCooldownModule) set(ctx *discordgoplus.Ctx) {
 
 	enabled := ctx.Options["enabled"].BoolValue()
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.InformCooldownAfterGuess.Set(enabled)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.InformCooldownAfterGuess.Set(enabled),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

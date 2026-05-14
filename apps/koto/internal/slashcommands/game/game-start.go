@@ -43,7 +43,7 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 	}
 
 	isModerator := ctx.Interaction.Member != nil &&
-		ctx.Interaction.Member.Permissions&discordgo.PermissionManageServer != 0
+		ctx.Interaction.Member.Permissions&discordgo.PermissionManageGuild != 0
 
 	if !settings.MembersCanStart && !isModerator {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
@@ -59,11 +59,21 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 	}
 
 	if !started {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "There is already an active game!"}, true)
+		discordgoplus.FollowUp(
+			ctx,
+			&discordgo.WebhookParams{
+				Content: "There is already an active game!",
+			},
+			true,
+		)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Game started!"}, true)
+	discordgoplus.FollowUp(
+		ctx,
+		&discordgo.WebhookParams{Content: "Game started!"},
+		true,
+	)
 }
 
 func (m *GameStartModule) Commands() []*discordgoplus.Command {

@@ -40,7 +40,10 @@ func InitDI() (container di.Container, err error) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiHelpText,
 		Build: func(ctn di.Container) (any, error) {
-			return fmt.Sprintf("%s\n\nWant to know how to play? Use `/tutorial`!", localUtils.NoSettingsDescription), nil
+			return fmt.Sprintf(
+				"%s\n\nWant to know how to play? Use `/tutorial`!",
+				localUtils.NoSettingsDescription,
+			), nil
 		},
 	})
 
@@ -70,8 +73,10 @@ Koto is a Wordle-style game! Guess the 6-letter word by typing words in the conf
 		Name: static.DiDatabase,
 		Build: func(ctn di.Container) (any, error) {
 			client := db.NewClient()
-			err := client.Prisma.Connect()
-			return client, err
+			if connectErr := client.Prisma.Connect(); connectErr != nil {
+				return nil, fmt.Errorf("prisma connect: %w", connectErr)
+			}
+			return client, nil
 		},
 		Close: func(obj any) error {
 			database := obj.(*db.PrismaClient)

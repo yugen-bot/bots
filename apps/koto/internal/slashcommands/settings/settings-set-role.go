@@ -34,7 +34,10 @@ func (m *SetRoleModule) set(ctx *discordgoplus.Ctx) {
 		params = append(params, db.Settings.PingOnlyNew.Set(opt.BoolValue()))
 	}
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, params...); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		params...); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

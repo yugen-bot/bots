@@ -34,7 +34,11 @@ func CreateWordsService() *WordsService {
 	svc := &WordsService{Amount: len(words)}
 	svc.buildMaps(words, exists)
 
-	utils.Logger.Infof("Words service ready: %d game words, %d guess words", len(words), len(exists))
+	utils.Logger.Infof(
+		"Words service ready: %d game words, %d guess words",
+		len(words),
+		len(exists),
+	)
 	return svc
 }
 
@@ -117,15 +121,19 @@ func (s *WordsService) randomLetter() byte {
 	max := s.cumulativeLetterWeights[len(s.cumulativeLetterWeights)-1]
 	r := rand.Float64() * max
 
-	idx, _ := slices.BinarySearchFunc(s.cumulativeLetterWeights, r, func(a, b float64) int {
-		if a < b {
-			return -1
-		}
-		if a > b {
-			return 1
-		}
-		return 0
-	})
+	idx, _ := slices.BinarySearchFunc(
+		s.cumulativeLetterWeights,
+		r,
+		func(a, b float64) int {
+			if a < b {
+				return -1
+			}
+			if a > b {
+				return 1
+			}
+			return 0
+		},
+	)
 
 	if idx >= len(s.letters) {
 		idx = len(s.letters) - 1

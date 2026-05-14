@@ -28,13 +28,20 @@ func (m *SetChannelModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.ChannelID.Set(channel.ID)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.ChannelID.Set(channel.ID),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Koto will listen for guesses in <#%s>!", channel.ID),
+		Content: fmt.Sprintf(
+			"Koto will listen for guesses in <#%s>!",
+			channel.ID,
+		),
 	}, true)
 }
 

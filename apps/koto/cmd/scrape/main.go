@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -53,7 +54,12 @@ func main() {
 		utils.Logger.Infof("Scraping from offset %d...", offset)
 
 		url := fmt.Sprintf("%s&offset=%d", baseURL, offset)
-		req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequestWithContext(
+			context.Background(),
+			"GET",
+			url,
+			nil,
+		)
 		if err != nil {
 			utils.Logger.Fatalf("create request: %v", err)
 		}
@@ -129,8 +135,8 @@ func main() {
 	if err := os.WriteFile(
 		*outputPath,
 		data,
-		0o644,
-	); err != nil { //nolint:gosec
+		0o600,
+	); err != nil {
 		utils.Logger.Fatalf("write output: %v", err)
 	}
 

@@ -16,6 +16,7 @@ jobs:
           - apps/iro
           - apps/kazu
           - apps/kusari
+          - apps/koto
 
     steps:
       - name: Checkout repository

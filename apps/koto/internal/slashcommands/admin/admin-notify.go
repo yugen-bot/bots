@@ -51,27 +51,42 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 	fields := discordgoplus.ParseModalData(ctx.ModalData)
 	content := fields["message"]
 
-	ctx.Session.InteractionRespond(ctx.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
+	ctx.InteractionRespond(ctx.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Flags: discordgo.MessageFlagsEphemeral,
 		},
 	})
 
-	total, success, err := m.notifyService.SendNotification(context.Background(), content)
+	total, success, err := m.notifyService.SendNotification(
+		context.Background(),
+		content,
+	)
 	if err != nil {
 		utils.Logger.Error(err)
-		ctx.Session.FollowupMessageCreate(ctx.Interaction, true, &discordgo.WebhookParams{ //nolint:errcheck
-			Content: "Something went wrong sending the notification.",
-			Flags:   discordgo.MessageFlagsEphemeral,
-		})
+		ctx.FollowupMessageCreate(
+			ctx.Interaction,
+			true,
+			&discordgo.WebhookParams{
+				Content: "Something went wrong sending the notification.",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		)
 		return
 	}
 
-	ctx.Session.FollowupMessageCreate(ctx.Interaction, true, &discordgo.WebhookParams{ //nolint:errcheck
-		Content: fmt.Sprintf("Message sent to %d of %d guilds.", success, total),
-		Flags:   discordgo.MessageFlagsEphemeral,
-	})
+	ctx.FollowupMessageCreate(
+		ctx.Interaction,
+		true,
+		&discordgo.WebhookParams{
+			Content: fmt.Sprintf(
+				"Message sent to %d of %d guilds.",
+				success,
+				total,
+			),
+			Flags: discordgo.MessageFlagsEphemeral,
+		},
+	)
 }
 
 func (m *AdminNotifyModule) Modals() []*discordgoplus.Modal {

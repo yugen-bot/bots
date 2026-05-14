@@ -53,7 +53,7 @@ func (m *LeaderboardModule) leaderboard(ctx *discordgoplus.Ctx) {
 
 func (m *LeaderboardModule) leaderboardPage(ctx *discordgoplus.Ctx) {
 	// CustomID format: LEADERBOARD/:data where data = "type/page"
-	data, _ := ctx.MessageComponentOptions["data"]
+	data := ctx.MessageComponentOptions["data"]
 	leaderboardType := "points"
 	page := 1
 
@@ -70,8 +70,17 @@ func (m *LeaderboardModule) leaderboardPage(ctx *discordgoplus.Ctx) {
 	m.showLeaderboard(ctx, leaderboardType, page, true, true)
 }
 
-func (m *LeaderboardModule) showLeaderboard(ctx *discordgoplus.Ctx, leaderboardType string, page int, ephemeral bool, isComponent bool) {
-	settings, err := m.settings.GetByGuildID(context.Background(), ctx.Interaction.GuildID)
+func (m *LeaderboardModule) showLeaderboard(
+	ctx *discordgoplus.Ctx,
+	leaderboardType string,
+	page int,
+	ephemeral bool,
+	isComponent bool,
+) {
+	settings, err := m.settings.GetByGuildID(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil || settings == nil {
 		localUtils.ReplyNoSettings(ctx)
 		return
@@ -83,7 +92,12 @@ func (m *LeaderboardModule) showLeaderboard(ctx *discordgoplus.Ctx, leaderboardT
 		return
 	}
 
-	players, total, err := m.points.GetLeaderboard(context.Background(), ctx.Interaction.GuildID, leaderboardType, page)
+	players, total, err := m.points.GetLeaderboard(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		leaderboardType,
+		page,
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, ephemeral)
 		return
@@ -108,7 +122,7 @@ func (m *LeaderboardModule) showLeaderboard(ctx *discordgoplus.Ctx, leaderboardT
 		default:
 			value = p.Points
 		}
-		sb.WriteString(fmt.Sprintf("%d. <@%s>: **%d**\n", rank, p.UserID, value))
+		fmt.Fprintf(&sb, "%d. <@%s>: **%d**\n", rank, p.UserID, value)
 	}
 
 	if sb.Len() == 0 {
@@ -116,7 +130,11 @@ func (m *LeaderboardModule) showLeaderboard(ctx *discordgoplus.Ctx, leaderboardT
 	}
 
 	bot := m.container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
-	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, "")
+	footer := utils.CreateEmbedFooter(
+		bot,
+		&utils.CreateEmbedFooterParams{IsVote: false},
+		"",
+	)
 	if footer != nil && maxPage > 1 {
 		footer.Text = fmt.Sprintf("Page %d/%d | %s", page, maxPage, footer.Text)
 	}
@@ -146,7 +164,10 @@ func (m *LeaderboardModule) showLeaderboard(ctx *discordgoplus.Ctx, leaderboardT
 
 	components := []discordgo.MessageComponent{}
 	if len(buttons) > 0 {
-		components = append(components, discordgo.ActionsRow{Components: buttons})
+		components = append(
+			components,
+			discordgo.ActionsRow{Components: buttons},
+		)
 	}
 
 	if isComponent {

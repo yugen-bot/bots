@@ -2,7 +2,6 @@ package settings
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
@@ -17,7 +16,9 @@ type SetBackToBackCooldownModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSetBackToBackCooldownModule(container *di.Container) *SetBackToBackCooldownModule {
+func GetSetBackToBackCooldownModule(
+	container *di.Container,
+) *SetBackToBackCooldownModule {
 	return &SetBackToBackCooldownModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -29,19 +30,27 @@ func (m *SetBackToBackCooldownModule) set(ctx *discordgoplus.Ctx) {
 
 	enable := ctx.Options["enable"].BoolValue()
 
-	params := []db.SettingsSetParam{db.Settings.EnableBackToBackCooldown.Set(enable)}
+	params := []db.SettingsSetParam{
+		db.Settings.EnableBackToBackCooldown.Set(enable),
+	}
 	if opt, ok := ctx.Options["duration"]; ok {
-		params = append(params, db.Settings.BackToBackCooldown.Set(int(opt.IntValue())))
+		params = append(
+			params,
+			db.Settings.BackToBackCooldown.Set(int(opt.IntValue())),
+		)
 	}
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, params...); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		params...); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	if enable {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Content: fmt.Sprintf("Back-to-back cooldown has been **enabled**!"),
+			Content: "Back-to-back cooldown has been **enabled**!",
 		}, true)
 	} else {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{

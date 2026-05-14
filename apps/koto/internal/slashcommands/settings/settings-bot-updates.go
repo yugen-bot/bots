@@ -29,13 +29,20 @@ func (m *BotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.BotUpdatesChannelID.Set(channel.ID)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.BotUpdatesChannelID.Set(channel.ID),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Koto will send its updates to <#%s>!", channel.ID),
+		Content: fmt.Sprintf(
+			"Koto will send its updates to <#%s>!",
+			channel.ID,
+		),
 	}, true)
 }
 

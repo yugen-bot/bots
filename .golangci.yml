@@ -9,7 +9,6 @@ linters:
     - govet
     - errcheck
     - staticcheck
-    - gosimple
     - ineffassign
     - unconvert
     # code quality
@@ -49,7 +48,6 @@ linters:
           - govet
           - errcheck
           - staticcheck
-          - gosimple
           - revive
           - errorlint
           - gocritic
@@ -65,6 +63,102 @@ linters:
       - text: "G115"
         linters:
           - gosec
+      # errcheck: DI builder Add() — errors are unrecoverable at startup
+      - text: "Error return value of `.*\\.Add` is not checked"
+        linters:
+          - errcheck
+      # errcheck: discordgoplus response helpers are fire-and-forget
+      - text: "Error return value of `discordgoplus\\."
+        linters:
+          - errcheck
+      # errcheck: discord session methods (reactions, messages, interactions) are fire-and-forget
+      - text: "Error return value of `.*(MessageReaction|ChannelMessage|InteractionRespond|FollowupMessage|UpdateWatchStatus)"
+        linters:
+          - errcheck
+      # errcheck: game Start in goroutines is fire-and-forget auto-restart
+      - source: "go s\\.Start\\("
+        linters:
+          - errcheck
+      # errcheck: database.Disconnect in DI teardown defers
+      - text: "Error return value of `.*\\.Disconnect` is not checked"
+        linters:
+          - errcheck
+      # errcheck: DeleteWithSubContainers in defers — error is unactionable
+      - text: "Error return value of `.*DeleteWithSubContainers` is not checked"
+        linters:
+          - errcheck
+      # errcheck: prisma deleteMany fire-and-forget in background goroutines
+      - source: "\\.Delete\\(\\)\\.Exec\\("
+        linters:
+          - errcheck
+      # gosec G104: duplicate of errcheck — already handled by errcheck exclusions above
+      - text: "G104"
+        linters:
+          - gosec
+      # gosec G404: math/rand for word selection, not cryptography
+      - text: "G404"
+        linters:
+          - gosec
+      # gosec G118: background context goroutines for scheduled bot ops
+      - text: "G118"
+        linters:
+          - gosec
+      # gomoddirectives: replace directives are required for the shared module
+      - text: "local replacement are not allowed"
+        linters:
+          - gomoddirectives
+      # revive: exported symbols do not require doc comments in this codebase
+      - text: "exported: exported"
+        linters:
+          - revive
+      # revive: package stutter is acceptable in these internal packages
+      - text: "type name will be used as.*stutters"
+        linters:
+          - revive
+      # revive: comment format not enforced
+      - text: "comment on exported.*should be of the form"
+        linters:
+          - revive
+      # revive: var-naming for initialisms (ASCIINumbers etc.)
+      - text: "var-naming: var"
+        linters:
+          - revive
+      # wrapcheck: prisma Exec errors are wrapped at the service boundary
+      - text: "error returned from external package is unwrapped: sig: func.*\\.Exec\\("
+        linters:
+          - wrapcheck
+      # wrapcheck: json.Unmarshal errors are context-local, wrapped above
+      - text: "error returned from external package is unwrapped.*json\\.Unmarshal"
+        linters:
+          - wrapcheck
+      # wrapcheck: lifecycle.Connect errors are fatal at startup
+      - text: "error returned from external package is unwrapped: sig: func.*lifecycle.*Connect"
+        linters:
+          - wrapcheck
+      # godot: comments don't require trailing periods in this codebase
+      - text: "Comment should end"
+        linters:
+          - godot
+      # gocritic: os.Exit after defer in main() is intentional for fatal startup errors
+      - text: "exitAfterDefer"
+        linters:
+          - gocritic
+      # nestif: wordle scoring algorithm has inherently complex branching
+      - path: "internal/services/game\\.go"
+        linters:
+          - nestif
+      # contextcheck: game service goroutines use background context intentionally
+      - path: "internal/services/game\\.go"
+        linters:
+          - contextcheck
+      # goconst: repeated strings across different packages can't share a const
+      - path: "internal/slashcommands/"
+        linters:
+          - goconst
+      # prealloc: slice preallocation in slash command builders is not performance-critical
+      - path: "internal/slashcommands/"
+        linters:
+          - prealloc
   settings:
     govet:
       enable-all: true
