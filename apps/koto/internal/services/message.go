@@ -174,12 +174,14 @@ func (m *MessageService) buildRows(
 	if len(rows) < localStatic.MaxGuesses && status == db.GameStatusInProgress {
 		for i := localStatic.MaxGuesses - len(rows); i > 0; i-- {
 			blank := make(localUtils.GuessMetaSlice, localStatic.WordLength)
+
 			for j := 0; j < localStatic.WordLength; j++ {
 				blank[j] = localUtils.GuessMeta{
 					Type:   localUtils.GameTypeDefault,
 					Letter: "blank",
 				}
 			}
+
 			rows = append(rows, rowData{
 				meta:      blank,
 				userID:    m.bot.State.User.ID,
@@ -195,7 +197,9 @@ func (m *MessageService) buildRows(
 	})
 
 	receivedBonus := map[string]bool{}
+
 	var sb strings.Builder
+
 	for i, row := range rows {
 		sb.WriteString(localStatic.AsciiNumbers[i+1])
 		for _, letterMeta := range row.meta {
