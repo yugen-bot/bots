@@ -21,7 +21,7 @@ func main() {
 	godotenv.Load() //nolint:errcheck // missing .env is fine in production
 	utils.CreateLogger("kazu")
 
-	defer utils.Logger.Sync()
+	defer utils.Shutdown()
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),

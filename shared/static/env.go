@@ -36,4 +36,10 @@ const (
 
 	EnvWiktionaryUsername = "WIKTIONARY_USERNAME"
 	EnvWiktionaryPassword = "WIKTIONARY_PASSWORD"
+
+	EnvSentryDSN              = "SENTRY_DSN"
+	EnvSentryEnvironment      = "SENTRY_ENVIRONMENT"
+	EnvSentryRelease          = "SENTRY_RELEASE"
+	EnvSentryTracesSampleRate = "SENTRY_TRACES_SAMPLE_RATE"
+	EnvSentryDebug            = "SENTRY_DEBUG"
 )

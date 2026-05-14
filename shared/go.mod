@@ -13,14 +13,16 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/thessem/zap-prettyconsole v0.5.2
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 )
 
 require (
 	github.com/Code-Hex/dd v1.1.0 // indirect
+	github.com/TheZeroSlave/zapsentry v1.24.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/getsentry/sentry-go v0.46.2 // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
@@ -39,6 +41,7 @@ require (
 	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
