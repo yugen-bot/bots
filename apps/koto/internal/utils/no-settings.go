@@ -9,8 +9,11 @@ const NoSettingsDescription = "Koto hasn't been configured yet! Ask a moderator 
 
 // ReplyNoSettings sends an ephemeral reply indicating settings are not configured.
 func ReplyNoSettings(ctx *discordgoplus.Ctx) {
-	discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{ //nolint:errcheck
-		Content: NoSettingsDescription,
-		Flags:   discordgo.MessageFlagsEphemeral,
-	})
+	discordgoplus.Respond(
+		ctx,
+		&discordgo.InteractionResponseData{
+			Content: NoSettingsDescription,
+			Flags:   discordgo.MessageFlagsEphemeral,
+		},
+	)
 }

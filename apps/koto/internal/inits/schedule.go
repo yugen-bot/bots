@@ -40,17 +40,31 @@ func InitSchedule(container *di.Container) {
 
 		outOfTimeCount = len(outOfTimeGames)
 		for _, game := range outOfTimeGames {
-			if err := gameSvc.EndGame(ctx, game.ID, db.GameStatusOutOfTime); err != nil {
-				utils.Logger.Warnf("schedule: end game %d: %v", game.ID, err)
+			if endErr := gameSvc.EndGame(
+				ctx,
+				game.ID,
+				db.GameStatusOutOfTime,
+			); endErr != nil {
+				utils.Logger.Warnf("schedule: end game %d: %v", game.ID, endErr)
 				continue
 			}
 			// Auto-start if configured
 			settings, sErr := settingsSvc.GetByGuildID(ctx, game.GuildID)
 			if sErr == nil && settings != nil && settings.AutoStart {
 				time.Sleep(500 * time.Millisecond)
-				started, startErr := gameSvc.Start(ctx, game.GuildID, false, false, "")
+				started, startErr := gameSvc.Start(
+					ctx,
+					game.GuildID,
+					false,
+					false,
+					"",
+				)
 				if startErr != nil {
-					utils.Logger.Warnf("schedule: auto-start after end for %s: %v", game.GuildID, startErr)
+					utils.Logger.Warnf(
+						"schedule: auto-start after end for %s: %v",
+						game.GuildID,
+						startErr,
+					)
 				}
 				if started {
 					startedGames++
@@ -78,13 +92,22 @@ func InitSchedule(container *di.Container) {
 			}
 
 			checkedGuilds++
-			if started := checkAndStartGame(ctx, database, gameSvc, setting); started {
+			if started := checkAndStartGame(
+				ctx,
+				database,
+				gameSvc,
+				setting,
+			); started {
 				startedGames++
 			}
 		}
 
-		utils.Logger.Infof("Schedule: ended %d games, checked %d guilds, started %d games",
-			outOfTimeCount, checkedGuilds, startedGames)
+		utils.Logger.Infof(
+			"Schedule: ended %d games, checked %d guilds, started %d games",
+			outOfTimeCount,
+			checkedGuilds,
+			startedGames,
+		)
 	})
 }
 
@@ -109,9 +132,19 @@ func checkAndStartGame(
 	).Take(1).Exec(ctx)
 	if err != nil || len(lastGames) == 0 {
 		// No previous game → start immediately
-		started, startErr := gameSvc.Start(ctx, setting.GuildID, true, false, "")
+		started, startErr := gameSvc.Start(
+			ctx,
+			setting.GuildID,
+			true,
+			false,
+			"",
+		)
 		if startErr != nil {
-			utils.Logger.Warnf("schedule: initial start for %s: %v", setting.GuildID, startErr)
+			utils.Logger.Warnf(
+				"schedule: initial start for %s: %v",
+				setting.GuildID,
+				startErr,
+			)
 			return false
 		}
 		return started
@@ -140,7 +173,11 @@ func checkAndStartGame(
 
 	started, startErr := gameSvc.Start(ctx, setting.GuildID, true, false, "")
 	if startErr != nil {
-		utils.Logger.Warnf("schedule: start for %s: %v", setting.GuildID, startErr)
+		utils.Logger.Warnf(
+			"schedule: start for %s: %v",
+			setting.GuildID,
+			startErr,
+		)
 		return false
 	}
 	return started

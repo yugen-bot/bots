@@ -7,10 +7,10 @@ import (
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 
+	slashcommands "jurien.dev/yugen/koto/internal/slashcommands"
 	admin "jurien.dev/yugen/koto/internal/slashcommands/admin"
 	gameCmd "jurien.dev/yugen/koto/internal/slashcommands/game"
 	settingsCmd "jurien.dev/yugen/koto/internal/slashcommands/settings"
-	slashcommands "jurien.dev/yugen/koto/internal/slashcommands"
 	sharedSlashcommands "jurien.dev/yugen/shared/slashcommands"
 )
 

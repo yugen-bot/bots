@@ -11,7 +11,9 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	}
 }
 
-func CreateVoteHandler(container *di.Container) func(bot *discordgoplus.Bot, userID string) {
+func CreateVoteHandler(
+	container *di.Container,
+) func(bot *discordgoplus.Bot, userID string) {
 	return func(bot *discordgoplus.Bot, userID string) {
 		// No vote handler needed for now
 	}

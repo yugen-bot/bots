@@ -50,11 +50,21 @@ func (m *GameResetModule) reset(ctx *discordgoplus.Ctx) {
 	}
 
 	if !started {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Failed to reset the game."}, true)
+		discordgoplus.FollowUp(
+			ctx,
+			&discordgo.WebhookParams{Content: "Failed to reset the game."},
+			true,
+		)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Game has been reset and a new one started!"}, true)
+	discordgoplus.FollowUp(
+		ctx,
+		&discordgo.WebhookParams{
+			Content: "Game has been reset and a new one started!",
+		},
+		true,
+	)
 }
 
 func (m *GameResetModule) Commands() []*discordgoplus.Command {

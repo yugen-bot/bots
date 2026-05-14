@@ -29,13 +29,20 @@ func (m *SetFrequencyModule) set(ctx *discordgoplus.Ctx) {
 
 	minutes := int(ctx.Options["frequency"].IntValue())
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.Frequency.Set(minutes)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.Frequency.Set(minutes),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Koto will start a new game every **%d** minutes!", minutes),
+		Content: fmt.Sprintf(
+			"Koto will start a new game every **%d** minutes!",
+			minutes,
+		),
 	}, true)
 }
 

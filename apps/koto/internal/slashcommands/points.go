@@ -15,9 +15,9 @@ import (
 )
 
 type PointsModule struct {
-	container    *di.Container
-	pointsSvc    *services.PointsService
-	settingsSvc  *services.SettingsService
+	container   *di.Container
+	pointsSvc   *services.PointsService
+	settingsSvc *services.SettingsService
 }
 
 func GetPointsModule(container *di.Container) *PointsModule {
@@ -31,7 +31,10 @@ func GetPointsModule(container *di.Container) *PointsModule {
 func (m *PointsModule) points(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settingsSvc.GetByGuildID(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settingsSvc.GetByGuildID(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil || settings == nil {
 		localUtils.ReplyNoSettings(ctx)
 		return
@@ -43,26 +46,51 @@ func (m *PointsModule) points(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	player, err := m.pointsSvc.GetPlayer(context.Background(), ctx.Interaction.GuildID, ctx.Interaction.Member.User.ID, false)
+	player, err := m.pointsSvc.GetPlayer(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		ctx.Interaction.Member.User.ID,
+		false,
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	bot := m.container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
-	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, "")
+	footer := utils.CreateEmbedFooter(
+		bot,
+		&utils.CreateEmbedFooterParams{IsVote: false},
+		"",
+	)
 	embed := &discordgo.MessageEmbed{
 		Title: "Your Koto Stats",
 		Color: localStatic.EmbedColor,
 		Fields: []*discordgo.MessageEmbedField{
-			{Name: "Points", Value: fmt.Sprintf("%d", player.Points), Inline: true},
-			{Name: "Games Participated", Value: fmt.Sprintf("%d", player.Participated), Inline: true},
-			{Name: "Games Won", Value: fmt.Sprintf("%d", player.Wins), Inline: true},
+			{
+				Name:   "Points",
+				Value:  fmt.Sprintf("%d", player.Points),
+				Inline: true,
+			},
+			{
+				Name:   "Games Participated",
+				Value:  fmt.Sprintf("%d", player.Participated),
+				Inline: true,
+			},
+			{
+				Name:   "Games Won",
+				Value:  fmt.Sprintf("%d", player.Wins),
+				Inline: true,
+			},
 		},
 		Footer: footer,
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Embeds: []*discordgo.MessageEmbed{embed}}, true)
+	discordgoplus.FollowUp(
+		ctx,
+		&discordgo.WebhookParams{Embeds: []*discordgo.MessageEmbed{embed}},
+		true,
+	)
 }
 
 func (m *PointsModule) Commands() []*discordgoplus.Command {

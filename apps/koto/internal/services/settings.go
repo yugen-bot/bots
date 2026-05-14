@@ -25,7 +25,11 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 }
 
 // GetByGuildID finds settings for a guild. If create=true, creates if not found.
-func (s *SettingsService) GetByGuildID(ctx context.Context, guildID string, create ...bool) (*db.SettingsModel, error) {
+func (s *SettingsService) GetByGuildID(
+	ctx context.Context,
+	guildID string,
+	create ...bool,
+) (*db.SettingsModel, error) {
 	createBool := false
 	if len(create) > 0 {
 		createBool = create[0]
@@ -62,7 +66,11 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 }
 
 // Set updates specific settings fields.
-func (s *SettingsService) Set(ctx context.Context, guildID string, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
+func (s *SettingsService) Set(
+	ctx context.Context,
+	guildID string,
+	params ...db.SettingsSetParam,
+) (*db.SettingsModel, error) {
 	result, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Update(params...).Exec(ctx)
@@ -74,7 +82,11 @@ func (s *SettingsService) Set(ctx context.Context, guildID string, params ...db.
 
 // Reset resets specific settings fields to their defaults.
 // fields is a list of field names to reset. Pass "all" to reset everything.
-func (s *SettingsService) Reset(ctx context.Context, guildID string, fields []string) (*db.SettingsModel, error) {
+func (s *SettingsService) Reset(
+	ctx context.Context,
+	guildID string,
+	fields []string,
+) (*db.SettingsModel, error) {
 	allParams := map[string][]db.SettingsSetParam{
 		"channel": {
 			db.Settings.ChannelID.SetOptional(nil),

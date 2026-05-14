@@ -16,7 +16,9 @@ type StartAfterFirstGuessModule struct {
 	settings  *services.SettingsService
 }
 
-func GetStartAfterFirstGuessModule(container *di.Container) *StartAfterFirstGuessModule {
+func GetStartAfterFirstGuessModule(
+	container *di.Container,
+) *StartAfterFirstGuessModule {
 	return &StartAfterFirstGuessModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -28,7 +30,11 @@ func (m *StartAfterFirstGuessModule) set(ctx *discordgoplus.Ctx) {
 
 	enabled := ctx.Options["enabled"].BoolValue()
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.StartAfterFirstGuess.Set(enabled)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.StartAfterFirstGuess.Set(enabled),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

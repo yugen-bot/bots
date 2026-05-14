@@ -44,14 +44,21 @@ func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
 
 	setting := ctx.Options["setting"].StringValue()
 
-	if _, err := m.settings.Reset(context.Background(), ctx.Interaction.GuildID, []string{setting}); err != nil {
+	if _, err := m.settings.Reset(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		[]string{setting},
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	idx := slices.IndexFunc(settingsResetChoices, func(c *discordgo.ApplicationCommandOptionChoice) bool {
-		return c.Value == setting
-	})
+	idx := slices.IndexFunc(
+		settingsResetChoices,
+		func(c *discordgo.ApplicationCommandOptionChoice) bool {
+			return c.Value == setting
+		},
+	)
 
 	name := setting
 	if idx >= 0 {
@@ -59,7 +66,10 @@ func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("**%s** has been reset to its default value.", name),
+		Content: fmt.Sprintf(
+			"**%s** has been reset to its default value.",
+			name,
+		),
 	}, true)
 }
 

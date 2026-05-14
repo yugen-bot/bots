@@ -26,7 +26,12 @@ func CreatePointsService(container *di.Container) *PointsService {
 
 // GetPlayer finds or creates a PlayerStats record.
 // If setInGuild is provided and true, marks the player as inGuild=true.
-func (s *PointsService) GetPlayer(ctx context.Context, guildID string, userID string, setInGuild ...bool) (*db.PlayerStatsModel, error) {
+func (s *PointsService) GetPlayer(
+	ctx context.Context,
+	guildID string,
+	userID string,
+	setInGuild ...bool,
+) (*db.PlayerStatsModel, error) {
 	shouldSetInGuild := true
 	if len(setInGuild) > 0 {
 		shouldSetInGuild = setInGuild[0]
@@ -66,7 +71,11 @@ func (s *PointsService) GetPlayer(ctx context.Context, guildID string, userID st
 }
 
 // RemovePlayerFromGuild sets inGuild=false for the player.
-func (s *PointsService) RemovePlayerFromGuild(ctx context.Context, guildID string, userID string) error {
+func (s *PointsService) RemovePlayerFromGuild(
+	ctx context.Context,
+	guildID string,
+	userID string,
+) error {
 	player, err := s.GetPlayer(ctx, guildID, userID)
 	if err != nil {
 		return fmt.Errorf("points: remove player from guild: %w", err)
@@ -85,7 +94,11 @@ func (s *PointsService) RemovePlayerFromGuild(ctx context.Context, guildID strin
 }
 
 // ResetLeaderboard deletes all PlayerStats for a guild. If userID is non-nil, only that user.
-func (s *PointsService) ResetLeaderboard(ctx context.Context, guildID string, userID *string) error {
+func (s *PointsService) ResetLeaderboard(
+	ctx context.Context,
+	guildID string,
+	userID *string,
+) error {
 	var err error
 	if userID != nil {
 		_, err = s.database.PlayerStats.FindMany(
@@ -112,7 +125,12 @@ func (s *PointsService) ResetLeaderboard(ctx context.Context, guildID string, us
 // GetLeaderboard returns paginated player stats sorted by the given type.
 // leaderboardType: "points", "wins", or "participated". Page is 1-indexed.
 // Returns players, total count, error.
-func (s *PointsService) GetLeaderboard(ctx context.Context, guildID string, leaderboardType string, page int) ([]db.PlayerStatsModel, int, error) {
+func (s *PointsService) GetLeaderboard(
+	ctx context.Context,
+	guildID string,
+	leaderboardType string,
+	page int,
+) ([]db.PlayerStatsModel, int, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
 	var items []db.PlayerStatsModel
@@ -135,7 +153,12 @@ func (s *PointsService) GetLeaderboard(ctx context.Context, guildID string, lead
 	return items, total, nil
 }
 
-func (s *PointsService) getLeaderboardItems(ctx context.Context, guildID string, leaderboardType string, page int) ([]db.PlayerStatsModel, error) {
+func (s *PointsService) getLeaderboardItems(
+	ctx context.Context,
+	guildID string,
+	leaderboardType string,
+	page int,
+) ([]db.PlayerStatsModel, error) {
 	var orderBy db.PlayerStatsOrderByParam
 	switch leaderboardType {
 	case "wins":
@@ -156,7 +179,10 @@ func (s *PointsService) getLeaderboardItems(ctx context.Context, guildID string,
 	return items, nil
 }
 
-func (s *PointsService) getLeaderboardTotal(ctx context.Context, guildID string) (int, error) {
+func (s *PointsService) getLeaderboardTotal(
+	ctx context.Context,
+	guildID string,
+) (int, error) {
 	var res []struct {
 		Count string `json:"count"`
 	}
@@ -182,7 +208,12 @@ func (s *PointsService) getLeaderboardTotal(ctx context.Context, guildID string)
 // ApplyPoints applies points to all players who participated in the game.
 // winnerID is the Discord user ID of the winner.
 // For each unique user in guesses: sum their points + 2 participation bonus. Increment participated, wins (if winner), points.
-func (s *PointsService) ApplyPoints(ctx context.Context, game *db.GameModel, guesses []db.GuessModel, winnerID string) error {
+func (s *PointsService) ApplyPoints(
+	ctx context.Context,
+	game *db.GameModel,
+	guesses []db.GuessModel,
+	winnerID string,
+) error {
 	// Group guesses by userID, preserving insertion order for participation bonus
 	seen := map[string]int{}
 	order := []string{}
@@ -200,15 +231,31 @@ func (s *PointsService) ApplyPoints(ctx context.Context, game *db.GameModel, gue
 		totalPoints := seen[userID] + 2
 		isWinner := userID == winnerID
 
-		if err := s.applyPointsToPlayer(ctx, game.GuildID, userID, totalPoints, isWinner); err != nil {
-			utils.Logger.Warnf("points: apply: failed for user %s: %v", userID, err)
+		if err := s.applyPointsToPlayer(
+			ctx,
+			game.GuildID,
+			userID,
+			totalPoints,
+			isWinner,
+		); err != nil {
+			utils.Logger.Warnf(
+				"points: apply: failed for user %s: %v",
+				userID,
+				err,
+			)
 		}
 	}
 
 	return nil
 }
 
-func (s *PointsService) applyPointsToPlayer(ctx context.Context, guildID string, userID string, points int, isWinner bool) error {
+func (s *PointsService) applyPointsToPlayer(
+	ctx context.Context,
+	guildID string,
+	userID string,
+	points int,
+	isWinner bool,
+) error {
 	player, err := s.GetPlayer(ctx, guildID, userID)
 	if err != nil {
 		return fmt.Errorf("points: apply to player: get player: %w", err)

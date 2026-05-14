@@ -29,13 +29,20 @@ func (m *SetCooldownModule) set(ctx *discordgoplus.Ctx) {
 
 	seconds := int(ctx.Options["cooldown"].IntValue())
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.Cooldown.Set(seconds)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.Cooldown.Set(seconds),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Cooldown between guesses has been set to **%d** seconds!", seconds),
+		Content: fmt.Sprintf(
+			"Cooldown between guesses has been set to **%d** seconds!",
+			seconds,
+		),
 	}, true)
 }
 

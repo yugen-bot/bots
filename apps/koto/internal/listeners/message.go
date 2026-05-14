@@ -47,13 +47,27 @@ func AddMessageListeners(container *di.Container) {
 		}
 
 		if !wordsSvc.Exists(word) {
-			bot.MessageReactionAdd(event.ChannelID, event.ID, "❌") //nolint:errcheck
+			bot.MessageReactionAdd(
+				event.ChannelID,
+				event.ID,
+				"❌",
+			)
 			return
 		}
 
 		go func() {
-			if err := gameSvc.Guess(ctx, event.GuildID, word, event.Message, settings); err != nil {
-				utils.Logger.Warnf("message: guess failed for guild %s: %v", event.GuildID, err)
+			if err := gameSvc.Guess(
+				ctx,
+				event.GuildID,
+				word,
+				event.Message,
+				settings,
+			); err != nil {
+				utils.Logger.Warnf(
+					"message: guess failed for guild %s: %v",
+					event.GuildID,
+					err,
+				)
 			}
 		}()
 	})

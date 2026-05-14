@@ -26,7 +26,10 @@ func (m *AdminRecreateModule) recreate(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Words are embedded at compile time. Currently loaded: **%d** game words.", m.words.Amount),
+		Content: fmt.Sprintf(
+			"Words are embedded at compile time. Currently loaded: **%d** game words.",
+			m.words.Amount,
+		),
 	}, true)
 }
 

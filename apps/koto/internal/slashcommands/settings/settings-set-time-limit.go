@@ -29,13 +29,20 @@ func (m *SetTimeLimitModule) set(ctx *discordgoplus.Ctx) {
 
 	minutes := int(ctx.Options["time-limit"].IntValue())
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.TimeLimit.Set(minutes)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.TimeLimit.Set(minutes),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Koto games will have a time limit of **%d** minutes!", minutes),
+		Content: fmt.Sprintf(
+			"Koto games will have a time limit of **%d** minutes!",
+			minutes,
+		),
 	}, true)
 }
 

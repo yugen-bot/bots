@@ -20,7 +20,9 @@ type ResetLeaderboardModule struct {
 	settings  *services.SettingsService
 }
 
-func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
+func GetResetLeaderboardModule(
+	container *di.Container,
+) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
 		points:    container.Get(localStatic.DiPoints).(*services.PointsService),
@@ -67,13 +69,16 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 	fields := discordgoplus.ParseModalData(ctx.ModalData)
 	confirm := fields["confirm"]
 	if confirm != "CONFIRM" {
-		ctx.Session.InteractionRespond(ctx.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Reset cancelled — you must type exactly `CONFIRM`.",
-				Flags:   discordgo.MessageFlagsEphemeral,
+		ctx.InteractionRespond(
+			ctx.Interaction,
+			&discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Reset cancelled — you must type exactly `CONFIRM`.",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
 			},
-		})
+		)
 		return
 	}
 
@@ -86,19 +91,30 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 		userID = &id
 	}
 
-	ctx.Session.InteractionRespond(ctx.Interaction, &discordgo.InteractionResponse{ //nolint:errcheck
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Flags: discordgo.MessageFlagsEphemeral,
+	ctx.InteractionRespond(
+		ctx.Interaction,
+		&discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Flags: discordgo.MessageFlagsEphemeral,
+			},
 		},
-	})
+	)
 
-	if err := m.points.ResetLeaderboard(context.Background(), ctx.Interaction.GuildID, userID); err != nil {
+	if err := m.points.ResetLeaderboard(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		userID,
+	); err != nil {
 		utils.Logger.Warnf("reset leaderboard failed: %v", err)
-		ctx.Session.FollowupMessageCreate(ctx.Interaction, true, &discordgo.WebhookParams{ //nolint:errcheck
-			Content: "Failed to reset leaderboard.",
-			Flags:   discordgo.MessageFlagsEphemeral,
-		})
+		ctx.FollowupMessageCreate(
+			ctx.Interaction,
+			true,
+			&discordgo.WebhookParams{
+				Content: "Failed to reset leaderboard.",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		)
 		return
 	}
 
@@ -107,10 +123,14 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 		msg = fmt.Sprintf("Leaderboard for <@%s> has been reset!", *userID)
 	}
 
-	ctx.Session.FollowupMessageCreate(ctx.Interaction, true, &discordgo.WebhookParams{ //nolint:errcheck
-		Content: msg,
-		Flags:   discordgo.MessageFlagsEphemeral,
-	})
+	ctx.FollowupMessageCreate(
+		ctx.Interaction,
+		true,
+		&discordgo.WebhookParams{
+			Content: msg,
+			Flags:   discordgo.MessageFlagsEphemeral,
+		},
+	)
 }
 
 func (m *ResetLeaderboardModule) Commands() []*discordgoplus.Command {

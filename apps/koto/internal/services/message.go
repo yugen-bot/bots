@@ -39,7 +39,12 @@ func CreateMessageService(container *di.Container) *MessageService {
 
 // Create sends or recreates the game embed message.
 // isNew=true pings the role (if configured), false skips ping unless not pingOnlyNew.
-func (m *MessageService) Create(ctx context.Context, game *db.GameModel, guesses []db.GuessModel, isNew bool) error {
+func (m *MessageService) Create(
+	ctx context.Context,
+	game *db.GameModel,
+	guesses []db.GuessModel,
+	isNew bool,
+) error {
 	settings, err := m.settings.GetByGuildID(ctx, game.GuildID)
 	if err != nil || settings == nil {
 		return err
@@ -53,7 +58,7 @@ func (m *MessageService) Create(ctx context.Context, game *db.GameModel, guesses
 	// Delete previous message if exists
 	if lastMsgID, ok := game.LastMessageID(); ok && lastMsgID != "" {
 		go func() {
-			m.bot.ChannelMessageDelete(channelID, lastMsgID) //nolint:errcheck
+			m.bot.ChannelMessageDelete(channelID, lastMsgID)
 		}()
 	}
 
@@ -74,16 +79,23 @@ func (m *MessageService) Create(ctx context.Context, game *db.GameModel, guesses
 		allowedRoles = []string{pingRoleID}
 	}
 
-	sentMsg, err := m.bot.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-		Content: content,
-		Embeds:  []*discordgo.MessageEmbed{embed},
-		AllowedMentions: &discordgo.MessageAllowedMentions{
-			Users: []string{},
-			Roles: allowedRoles,
+	sentMsg, err := m.bot.ChannelMessageSendComplex(
+		channelID,
+		&discordgo.MessageSend{
+			Content: content,
+			Embeds:  []*discordgo.MessageEmbed{embed},
+			AllowedMentions: &discordgo.MessageAllowedMentions{
+				Users: []string{},
+				Roles: allowedRoles,
+			},
 		},
-	})
+	)
 	if err != nil {
-		utils.Logger.Warnf("message: create: send failed for guild %s: %v", game.GuildID, err)
+		utils.Logger.Warnf(
+			"message: create: send failed for guild %s: %v",
+			game.GuildID,
+			err,
+		)
 		return nil
 	}
 
@@ -97,7 +109,10 @@ func (m *MessageService) Create(ctx context.Context, game *db.GameModel, guesses
 	return err
 }
 
-func (m *MessageService) buildEmbed(game *db.GameModel, guesses []db.GuessModel) (*discordgo.MessageEmbed, error) {
+func (m *MessageService) buildEmbed(
+	game *db.GameModel,
+	guesses []db.GuessModel,
+) (*discordgo.MessageEmbed, error) {
 	meta, err := localUtils.ParseGameMeta(json.RawMessage(game.Meta))
 	if err != nil {
 		return nil, fmt.Errorf("message: build embed: parse meta: %w", err)
@@ -131,7 +146,10 @@ func (m *MessageService) buildEmbed(game *db.GameModel, guesses []db.GuessModel)
 	}, nil
 }
 
-func (m *MessageService) buildRows(guesses []db.GuessModel, status db.GameStatus) string {
+func (m *MessageService) buildRows(
+	guesses []db.GuessModel,
+	status db.GameStatus,
+) string {
 	type rowData struct {
 		meta      localUtils.GuessMetaSlice
 		userID    string
@@ -156,7 +174,10 @@ func (m *MessageService) buildRows(guesses []db.GuessModel, status db.GameStatus
 		for i := localStatic.MaxGuesses - len(rows); i > 0; i-- {
 			blank := make(localUtils.GuessMetaSlice, localStatic.WordLength)
 			for j := 0; j < localStatic.WordLength; j++ {
-				blank[j] = localUtils.GuessMeta{Type: localUtils.GameTypeDefault, Letter: "blank"}
+				blank[j] = localUtils.GuessMeta{
+					Type:   localUtils.GameTypeDefault,
+					Letter: "blank",
+				}
 			}
 			rows = append(rows, rowData{
 				meta:      blank,
@@ -186,7 +207,7 @@ func (m *MessageService) buildRows(guesses []db.GuessModel, status db.GameStatus
 			if status == db.GameStatusCompleted && !receivedBonus[row.userID] {
 				bonus = " (+2)"
 			}
-			sb.WriteString(fmt.Sprintf(" <@%s> **+%d%s**", row.userID, row.points, bonus))
+			fmt.Fprintf(&sb, " <@%s> **+%d%s**", row.userID, row.points, bonus)
 		}
 		sb.WriteString("\n")
 		receivedBonus[row.userID] = true
@@ -223,7 +244,11 @@ func (m *MessageService) buildKeyboard(meta *localUtils.GameMeta) string {
 	return sb.String()
 }
 
-func (m *MessageService) buildGameInfo(game *db.GameModel, _ *localUtils.GameMeta, guessCount int) string {
+func (m *MessageService) buildGameInfo(
+	game *db.GameModel,
+	_ *localUtils.GameMeta,
+	guessCount int,
+) string {
 	footer := "Don't know how to play? Use the /tutorial commands for detailed instructions."
 
 	envSuffix := ""
@@ -234,20 +259,45 @@ func (m *MessageService) buildGameInfo(game *db.GameModel, _ *localUtils.GameMet
 	switch game.Status {
 	case db.GameStatusCompleted:
 		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", game.EndingAt.Unix())
-		return fmt.Sprintf("\nGood job! Everyone who participated gets **+2** points!\n%s\n\n%s%s", nextKoto, footer, envSuffix)
+		return fmt.Sprintf(
+			"\nGood job! Everyone who participated gets **+2** points!\n%s\n\n%s%s",
+			nextKoto,
+			footer,
+			envSuffix,
+		)
 	case db.GameStatusFailed:
 		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", game.EndingAt.Unix())
-		return fmt.Sprintf("\nOut of guesses, The correct word was **%s**!\n%s\n\n%s%s", strings.ToUpper(game.Word), nextKoto, footer, envSuffix)
+		return fmt.Sprintf(
+			"\nOut of guesses, The correct word was **%s**!\n%s\n\n%s%s",
+			strings.ToUpper(game.Word),
+			nextKoto,
+			footer,
+			envSuffix,
+		)
 	case db.GameStatusOutOfTime:
-		return fmt.Sprintf("\nTime's up! The correct word was **%s**!\n\n%s%s", strings.ToUpper(game.Word), footer, envSuffix)
+		return fmt.Sprintf(
+			"\nTime's up! The correct word was **%s**!\n\n%s%s",
+			strings.ToUpper(game.Word),
+			footer,
+			envSuffix,
+		)
 	default:
 		remaining := localStatic.MaxGuesses - guessCount
 		var timerLine string
 		if game.EndingAt.Year() == 3000 {
 			timerLine = "Timer will start after first guess"
 		} else {
-			timerLine = fmt.Sprintf("Time runs out <t:%d:R>", game.EndingAt.Unix())
+			timerLine = fmt.Sprintf(
+				"Time runs out <t:%d:R>",
+				game.EndingAt.Unix(),
+			)
 		}
-		return fmt.Sprintf("\n%d guesses remaining\n%s\n\n%s%s", remaining, timerLine, footer, envSuffix)
+		return fmt.Sprintf(
+			"\n%d guesses remaining\n%s\n\n%s%s",
+			remaining,
+			timerLine,
+			footer,
+			envSuffix,
+		)
 	}
 }

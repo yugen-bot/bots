@@ -30,7 +30,7 @@ func (m *AdminEmojisModule) emojis(ctx *discordgoplus.Ctx) {
 
 	var sb strings.Builder
 	for _, color := range colors {
-		sb.WriteString(fmt.Sprintf("**%s:**\n", color))
+		fmt.Fprintf(&sb, "**%s:**\n", color)
 		for _, letter := range letters {
 			emoji := localUtils.GetEmoji(color, letter)
 			sb.WriteString(emoji)
@@ -38,7 +38,11 @@ func (m *AdminEmojisModule) emojis(ctx *discordgoplus.Ctx) {
 		sb.WriteString("\n")
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: sb.String()}, true)
+	discordgoplus.FollowUp(
+		ctx,
+		&discordgo.WebhookParams{Content: sb.String()},
+		true,
+	)
 }
 
 func (m *AdminEmojisModule) Commands() []*discordgoplus.Command {

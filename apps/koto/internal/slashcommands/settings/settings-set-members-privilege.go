@@ -16,7 +16,9 @@ type SetMembersPrivilegeModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSetMembersPrivilegeModule(container *di.Container) *SetMembersPrivilegeModule {
+func GetSetMembersPrivilegeModule(
+	container *di.Container,
+) *SetMembersPrivilegeModule {
 	return &SetMembersPrivilegeModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -28,7 +30,11 @@ func (m *SetMembersPrivilegeModule) set(ctx *discordgoplus.Ctx) {
 
 	enabled := ctx.Options["enabled"].BoolValue()
 
-	if _, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.MembersCanStart.Set(enabled)); err != nil {
+	if _, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.MembersCanStart.Set(enabled),
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

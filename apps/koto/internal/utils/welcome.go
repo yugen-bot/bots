@@ -12,7 +12,11 @@ func SendWelcomeMessage(bot *discordgoplus.Bot, guildID string) {
 	if err != nil {
 		guild, err = bot.Guild(guildID)
 		if err != nil {
-			sharedUtils.Logger.Warnf("welcome: could not find guild %s: %v", guildID, err)
+			sharedUtils.Logger.Warnf(
+				"welcome: could not find guild %s: %v",
+				guildID,
+				err,
+			)
 			return
 		}
 	}
@@ -31,7 +35,11 @@ func SendWelcomeMessage(bot *discordgoplus.Bot, guildID string) {
 			continue
 		}
 
-		footer := sharedUtils.CreateEmbedFooter(bot, &sharedUtils.CreateEmbedFooterParams{IsVote: false}, "")
+		footer := sharedUtils.CreateEmbedFooter(
+			bot,
+			&sharedUtils.CreateEmbedFooterParams{IsVote: false},
+			"",
+		)
 		embed := &discordgo.MessageEmbed{
 			Title:       "👋 Hello! I'm Koto!",
 			Description: "Thanks for adding me! Use `/settings set-channel` to configure me.",

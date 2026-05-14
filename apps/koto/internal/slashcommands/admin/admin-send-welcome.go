@@ -13,7 +13,9 @@ type AdminSendWelcomeModule struct {
 	bot       *discordgoplus.Bot
 }
 
-func GetAdminSendWelcomeModule(container *di.Container) *AdminSendWelcomeModule {
+func GetAdminSendWelcomeModule(
+	container *di.Container,
+) *AdminSendWelcomeModule {
 	return &AdminSendWelcomeModule{
 		container: container,
 		bot:       container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
@@ -25,7 +27,11 @@ func (m *AdminSendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
 
 	go localUtils.SendWelcomeMessage(m.bot, ctx.Interaction.GuildID)
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Welcome message sent!"}, true)
+	discordgoplus.FollowUp(
+		ctx,
+		&discordgo.WebhookParams{Content: "Welcome message sent!"},
+		true,
+	)
 }
 
 func (m *AdminSendWelcomeModule) Commands() []*discordgoplus.Command {

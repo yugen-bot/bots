@@ -35,7 +35,10 @@ func (m *AdminGetWordModule) getWord(ctx *discordgoplus.Ctx) {
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Koto has **%d** game words loaded.", m.words.Amount),
+		Content: fmt.Sprintf(
+			"Koto has **%d** game words loaded.",
+			m.words.Amount,
+		),
 	}, true)
 }
 

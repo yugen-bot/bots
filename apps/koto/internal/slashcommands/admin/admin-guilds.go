@@ -46,7 +46,11 @@ func (m *AdminGuildsModule) listPage(ctx *discordgoplus.Ctx) {
 	m.showList(ctx, page, true)
 }
 
-func (m *AdminGuildsModule) showList(ctx *discordgoplus.Ctx, page int, isComponent bool) {
+func (m *AdminGuildsModule) showList(
+	ctx *discordgoplus.Ctx,
+	page int,
+	isComponent bool,
+) {
 	if !isComponent {
 		discordgoplus.Defer(ctx, true)
 	}
@@ -56,9 +60,20 @@ func (m *AdminGuildsModule) showList(ctx *discordgoplus.Ctx, page int, isCompone
 	if total == 0 {
 		content := "There is no guild data available."
 		if isComponent {
-			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(
+				ctx,
+				&discordgo.InteractionResponseData{
+					Content:    content,
+					Embeds:     []*discordgo.MessageEmbed{},
+					Components: []discordgo.MessageComponent{},
+				},
+			)
 		} else {
-			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(
+				ctx,
+				&discordgo.WebhookParams{Content: content},
+				true,
+			)
 		}
 		return
 	}
@@ -66,9 +81,20 @@ func (m *AdminGuildsModule) showList(ctx *discordgoplus.Ctx, page int, isCompone
 	if len(guilds) == 0 {
 		content := fmt.Sprintf("No guilds found for page %d", page)
 		if isComponent {
-			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(
+				ctx,
+				&discordgo.InteractionResponseData{
+					Content:    content,
+					Embeds:     []*discordgo.MessageEmbed{},
+					Components: []discordgo.MessageComponent{},
+				},
+			)
 		} else {
-			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(
+				ctx,
+				&discordgo.WebhookParams{Content: content},
+				true,
+			)
 		}
 		return
 	}
@@ -77,7 +103,12 @@ func (m *AdminGuildsModule) showList(ctx *discordgoplus.Ctx, page int, isCompone
 
 	lines := make([]string, len(guilds))
 	for i, g := range guilds {
-		lines[i] = fmt.Sprintf("%d. %s: **%d**", (page-1)*10+(i+1), g.Name, g.MemberCount)
+		lines[i] = fmt.Sprintf(
+			"%d. %s: **%d**",
+			(page-1)*10+(i+1),
+			g.Name,
+			g.MemberCount,
+		)
 	}
 
 	embed := &discordgo.MessageEmbed{
@@ -109,7 +140,10 @@ func (m *AdminGuildsModule) showList(ctx *discordgoplus.Ctx, page int, isCompone
 
 	components := []discordgo.MessageComponent{}
 	if len(buttons) > 0 {
-		components = append(components, discordgo.ActionsRow{Components: buttons})
+		components = append(
+			components,
+			discordgo.ActionsRow{Components: buttons},
+		)
 	}
 
 	if isComponent {
