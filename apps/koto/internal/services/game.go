@@ -228,11 +228,13 @@ func (s *GameService) Guess(
 				cooldown.RepeatResult.Unix(),
 			)
 		}
-		s.bot.ChannelMessageSendReply(
+		_, sendErr := s.bot.ChannelMessageSendReply(
 			message.ChannelID,
 			fmt.Sprintf("You're on a cooldown, %s", suffix),
 			message.Reference(),
 		)
+		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+
 		return nil
 	}
 
@@ -275,7 +277,10 @@ func (s *GameService) Guess(
 	}
 
 	// Update game meta + status + possibly start timer
-	updatedMetaJSON, _ := json.Marshal(updatedGameMeta)
+	updatedMetaJSON, err := json.Marshal(updatedGameMeta)
+	if err != nil {
+		return fmt.Errorf("game: guess: marshal game meta: %w", err)
+	}
 	updateParams := []db.GameSetParam{
 		db.Game.Status.Set(newStatus),
 		db.Game.Meta.Set(updatedMetaJSON),
@@ -353,11 +358,12 @@ func (s *GameService) Guess(
 					Unix(),
 				afterPart,
 			)
-			s.bot.ChannelMessageSendReply(
+			_, sendErr := s.bot.ChannelMessageSendReply(
 				message.ChannelID,
 				msg,
 				message.Reference(),
 			)
+			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 		}()
 	}
 
@@ -379,14 +385,35 @@ func (s *GameService) Guess(
 	// Handle terminal status
 	if newStatus != db.GameStatusInProgress {
 		// Delete guesses for privacy
-		s.database.Guess.FindMany(
+		if _, delErr := s.database.Guess.FindMany(
 			db.Guess.GameID.Equals(updatedGame.ID),
-		).Delete().Exec(context.Background())
+		).Delete().Exec(context.Background()); delErr != nil {
+			utils.Logger.Warnw(
+				"game: guess: delete guesses failed",
+				"gameID", updatedGame.ID,
+				"error", delErr,
+			)
+		}
 
 		// Auto-start if configured
 		if settings.AutoStart {
 			time.Sleep(500 * time.Millisecond)
-			go s.Start(context.Background(), guildID, false, false, "")
+
+			go func() {
+				if _, startErr := s.Start(
+					context.Background(),
+					guildID,
+					false,
+					false,
+					"",
+				); startErr != nil {
+					utils.Logger.Warnw(
+						"game: guess: auto-start failed",
+						"guildID", guildID,
+						"error", startErr,
+					)
+				}
+			}()
 		}
 	}
 
@@ -417,9 +444,15 @@ func (s *GameService) EndGame(
 	}
 
 	// Delete guesses for privacy
-	s.database.Guess.FindMany(
+	if _, delErr := s.database.Guess.FindMany(
 		db.Guess.GameID.Equals(game.ID),
-	).Delete().Exec(ctx)
+	).Delete().Exec(ctx); delErr != nil {
+		utils.Logger.Warnw(
+			"game: end: delete guesses failed",
+			"gameID", game.ID,
+			"error", delErr,
+		)
+	}
 
 	return nil
 }
