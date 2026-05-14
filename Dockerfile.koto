@@ -1,0 +1,27 @@
+FROM golang:1.25 AS build
+
+WORKDIR /opt/app
+
+COPY apps/koto/go.mod apps/koto/go.sum ./apps/koto/
+COPY shared/go.mod shared/go.sum ./shared/
+
+RUN cd apps/koto && \
+	go mod download && \
+	cd ../../shared && \
+	go mod download
+
+COPY ./ ./
+
+RUN make build-koto
+
+
+# Production
+FROM scratch
+
+WORKDIR /opt/app
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+# We transport the binary to our deployable image
+COPY --from=build /opt/app/apps/koto/dist/koto /opt/app/
+
+CMD ["/opt/app/koto"]

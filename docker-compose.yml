@@ -43,6 +43,17 @@ services:
       - .:/opt/app
     ports:
       - "$HOSHI_API_LISTEN_PORT:$API_LISTEN_PORT"
+  koto:
+    build: .
+    user: "1000:1000"
+    command: "make koto"
+    env_file:
+      - .env
+      - ./apps/koto/.env
+    volumes:
+      - .:/opt/app
+    ports:
+      - "$KOTO_API_LISTEN_PORT:$API_LISTEN_PORT"
   db:
     image: postgres:12.2-alpine
     volumes:

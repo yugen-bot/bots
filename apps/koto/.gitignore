@@ -1,0 +1,4 @@
+dist/
+tmp/
+prisma/db/
+.env
