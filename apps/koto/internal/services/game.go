@@ -564,11 +564,10 @@ func (s *GameService) checkCooldown(
 	}
 
 	// guesses are ordered desc by createdAt from the query
+	lastGuess := &guesses[0]
+
 	var lastGuessByUser *db.GuessModel
-	var lastGuess *db.GuessModel
-	if len(guesses) > 0 {
-		lastGuess = &guesses[0]
-	}
+
 	for i := range guesses {
 		if guesses[i].UserID == userID {
 			lastGuessByUser = &guesses[i]

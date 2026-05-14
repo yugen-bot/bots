@@ -51,27 +51,23 @@ func InitSchedule(container *di.Container) {
 
 			// Auto-start if configured
 			settings, sErr := settingsSvc.GetByGuildID(ctx, game.GuildID)
-			if sErr == nil && settings != nil && settings.AutoStart {
-				time.Sleep(500 * time.Millisecond)
-				started, startErr := gameSvc.Start(
-					ctx,
+			if sErr != nil || settings == nil || !settings.AutoStart {
+				continue
+			}
+
+			time.Sleep(500 * time.Millisecond)
+
+			started, startErr := gameSvc.Start(ctx, game.GuildID, false, false, "")
+			if startErr != nil {
+				utils.Logger.Warnf(
+					"schedule: auto-start after end for %s: %v",
 					game.GuildID,
-					false,
-					false,
-					"",
+					startErr,
 				)
+			}
 
-				if startErr != nil {
-					utils.Logger.Warnf(
-						"schedule: auto-start after end for %s: %v",
-						game.GuildID,
-						startErr,
-					)
-				}
-
-				if started {
-					startedGames++
-				}
+			if started {
+				startedGames++
 			}
 		}
 
