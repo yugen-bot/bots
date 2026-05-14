@@ -11,6 +11,7 @@ import (
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
 	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
 )
 
 type StarboardAddModule struct {
@@ -60,6 +61,7 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 		sourceChannelID,
 	)
 	if err != nil {
+		utils.Logger.Warnf("error getting starboard", "error", err)
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
