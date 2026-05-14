@@ -23,7 +23,7 @@ func CreateVoteHandler(
 	return func(userID string, source string) error {
 		user, err := bot.User(userID)
 		if err != nil {
-			utils.Logger.Error(err)
+			utils.Logger.Errorw("vote: get user failed", "error", err, "userID", userID)
 			return err
 		}
 
@@ -50,7 +50,7 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 			userID,
 		)
 		if err != nil {
-			utils.Logger.Error(err)
+			utils.Logger.Errorw("vote: get player saves failed", "error", err, "userID", userID)
 			return ""
 		}
 

@@ -61,7 +61,10 @@ func (m *ResetLeaderboardModule) resetLeaderboard(ctx *discordgoplus.Ctx) {
 		},
 	})
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("reset-leaderboard: modal respond failed",
+			"error", err,
+			"guildID", ctx.Interaction.GuildID,
+		)
 	}
 }
 
@@ -106,7 +109,10 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 		ctx.Interaction.GuildID,
 		userID,
 	); err != nil {
-		utils.Logger.Warnf("reset leaderboard failed: %v", err)
+		utils.Logger.Warnw("reset leaderboard failed",
+			"error", err,
+			"guildID", ctx.Interaction.GuildID,
+		)
 		ctx.FollowupMessageCreate(
 			ctx.Interaction,
 			true,

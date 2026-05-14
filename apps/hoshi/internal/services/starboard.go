@@ -36,7 +36,7 @@ func (s *StarboardService) CheckReaction(
 ) {
 	settings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: check reaction: get settings failed", "error", err, "guildID", guildID)
 		return
 	}
 
@@ -58,8 +58,10 @@ func (s *StarboardService) CheckReaction(
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Errorw(
 			"starboard: check reaction: get log by message id failed",
-			"error",
-			err,
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
 		)
 		return
 	}
@@ -111,13 +113,13 @@ func (s *StarboardService) CheckReaction(
 		"",
 	)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: check reaction: get message reactions failed", "error", err, "guildID", guildID, "channelID", channelID, "messageID", messageID)
 		return
 	}
 
 	msg, err := s.bot.ChannelMessage(channelID, messageID)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: check reaction: get channel message failed", "error", err, "guildID", guildID, "channelID", channelID, "messageID", messageID)
 		return
 	}
 
@@ -142,8 +144,10 @@ func (s *StarboardService) CheckReaction(
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		utils.Logger.Errorw(
 			"starboard: check reaction: get log by original id failed",
-			"error",
-			err,
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
 		)
 		return
 	}
@@ -363,7 +367,7 @@ func (s *StarboardService) createStarboard(
 		},
 	)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: create starboard: send message failed", "error", err, "guildID", msg.GuildID, "channelID", msg.ChannelID, "messageID", msg.ID, "targetChannelID", targetChannelID)
 		return
 	}
 
@@ -376,8 +380,11 @@ func (s *StarboardService) createStarboard(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: create log entry failed",
-			"error",
-			fmt.Errorf("starboard: create log: %w", err),
+			"error", fmt.Errorf("starboard: create log: %w", err),
+			"guildID", msg.GuildID,
+			"channelID", msg.ChannelID,
+			"messageID", msg.ID,
+			"targetChannelID", targetChannelID,
 		)
 	}
 
@@ -407,7 +414,7 @@ func (s *StarboardService) updateStarboard(
 		Embeds:  &[]*discordgo.MessageEmbed{embed},
 	})
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: update starboard: edit message failed", "error", err, "guildID", msg.GuildID, "channelID", log.ChannelID, "messageID", log.MessageID)
 	}
 }
 
@@ -417,7 +424,7 @@ func (s *StarboardService) deleteStarboard(
 ) {
 	err := s.bot.ChannelMessageDelete(log.ChannelID, log.MessageID)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("starboard: delete starboard: delete message failed", "error", err, "guildID", log.GuildID, "channelID", log.ChannelID, "messageID", log.MessageID)
 		return
 	}
 
@@ -427,8 +434,10 @@ func (s *StarboardService) deleteStarboard(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: delete log entry failed",
-			"error",
-			fmt.Errorf("starboard: delete log: %w", err),
+			"error", fmt.Errorf("starboard: delete log: %w", err),
+			"guildID", log.GuildID,
+			"channelID", log.ChannelID,
+			"messageID", log.MessageID,
 		)
 	}
 }

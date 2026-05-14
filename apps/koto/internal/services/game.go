@@ -77,7 +77,11 @@ func (s *GameService) Start(
 			currentGame.ID,
 			db.GameStatusFailed,
 		); endErr != nil {
-			utils.Logger.Warnf("game: start: end current failed: %v", endErr)
+			utils.Logger.Warnw("game: start: end current failed",
+				"error", endErr,
+				"guildID", guildID,
+				"gameID", currentGame.ID,
+			)
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
@@ -149,7 +153,11 @@ func (s *GameService) Start(
 	}
 
 	if err := s.message.Create(ctx, game, []db.GuessModel{}, true); err != nil {
-		utils.Logger.Warnf("game: start: create message failed: %v", err)
+		utils.Logger.Warnw("game: start: create message failed",
+			"error", err,
+			"guildID", guildID,
+			"gameID", game.ID,
+		)
 	}
 
 	return true, nil
@@ -177,7 +185,12 @@ func (s *GameService) Guess(
 		guildID,
 		message.Author.ID,
 	); pErr != nil {
-		utils.Logger.Warnf("game: guess: get player failed: %v", pErr)
+		utils.Logger.Warnw("game: guess: get player failed",
+			"error", pErr,
+			"guildID", guildID,
+			"gameID", game.ID,
+			"userID", message.Author.ID,
+		)
 	}
 
 	// Fetch guesses
@@ -327,9 +340,10 @@ func (s *GameService) Guess(
 				allGuesses,
 				message.Author.ID,
 			); applyErr != nil {
-				utils.Logger.Warnf(
-					"game: guess: apply points failed: %v",
-					applyErr,
+				utils.Logger.Warnw("game: guess: apply points failed",
+					"error", applyErr,
+					"guildID", guildID,
+					"gameID", game.ID,
 				)
 			}
 		}()
@@ -375,9 +389,10 @@ func (s *GameService) Guess(
 			allGuesses,
 			false,
 		); msgErr != nil {
-			utils.Logger.Warnf(
-				"game: guess: recreate message failed: %v",
-				msgErr,
+			utils.Logger.Warnw("game: guess: recreate message failed",
+				"error", msgErr,
+				"guildID", guildID,
+				"gameID", game.ID,
 			)
 		}
 	}()
@@ -390,8 +405,9 @@ func (s *GameService) Guess(
 		).Delete().Exec(context.Background()); delErr != nil {
 			utils.Logger.Warnw(
 				"game: guess: delete guesses failed",
-				"gameID", updatedGame.ID,
 				"error", delErr,
+				"guildID", guildID,
+				"gameID", updatedGame.ID,
 			)
 		}
 
@@ -440,7 +456,11 @@ func (s *GameService) EndGame(
 	).Exec(ctx)
 
 	if msgErr := s.message.Create(ctx, game, guesses, false); msgErr != nil {
-		utils.Logger.Warnf("game: end: create message failed: %v", msgErr)
+		utils.Logger.Warnw("game: end: create message failed",
+			"error", msgErr,
+			"guildID", game.GuildID,
+			"gameID", game.ID,
+		)
 	}
 
 	// Delete guesses for privacy
@@ -449,8 +469,9 @@ func (s *GameService) EndGame(
 	).Delete().Exec(ctx); delErr != nil {
 		utils.Logger.Warnw(
 			"game: end: delete guesses failed",
-			"gameID", game.ID,
 			"error", delErr,
+			"guildID", game.GuildID,
+			"gameID", game.ID,
 		)
 	}
 

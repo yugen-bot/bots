@@ -50,7 +50,7 @@ func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 
 	guild, err := m.bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("reset-leaderboard: get guild failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		m.err(ctx)
 		return
 	}
@@ -104,7 +104,7 @@ func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 		},
 	}, true)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("reset-leaderboard: respond failed", "error", err, "guildID", ctx.Interaction.GuildID)
 	}
 }
 

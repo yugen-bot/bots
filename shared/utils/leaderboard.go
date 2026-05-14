@@ -113,7 +113,7 @@ func ShowLeaderboard(
 
 	items, total, err := getItems(ctx, page)
 	if err != nil {
-		Logger.Error(err)
+		Logger.Errorw("leaderboard: get items failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		doError(ctx, source)
 
 		return
@@ -164,7 +164,7 @@ func doLeaderboardResponse(
 
 	guild, err := bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {
-		Logger.Error(err)
+		Logger.Errorw("leaderboard: get guild failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		doError(ctx, source)
 
 		return
@@ -222,7 +222,7 @@ func doLeaderboardResponse(
 			Components: components,
 		})
 		if err != nil {
-			Logger.Error(err)
+			Logger.Errorw("leaderboard: update response failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		}
 
 		return
@@ -234,7 +234,7 @@ func doLeaderboardResponse(
 		Components: components,
 	})
 	if err != nil {
-		Logger.Error(err)
+		Logger.Errorw("leaderboard: follow up response failed", "error", err, "guildID", ctx.Interaction.GuildID)
 	}
 }
 

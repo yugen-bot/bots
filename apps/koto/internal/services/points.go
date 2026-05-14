@@ -238,10 +238,11 @@ func (s *PointsService) ApplyPoints(
 			totalPoints,
 			isWinner,
 		); err != nil {
-			utils.Logger.Warnf(
-				"points: apply: failed for user %s: %v",
-				userID,
-				err,
+			utils.Logger.Warnw("points: apply: failed for user",
+				"error", err,
+				"guildID", game.GuildID,
+				"gameID", game.ID,
+				"userID", userID,
 			)
 		}
 	}
