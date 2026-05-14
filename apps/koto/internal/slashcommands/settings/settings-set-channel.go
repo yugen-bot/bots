@@ -48,7 +48,7 @@ func (m *SetChannelModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetChannelModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-channel",
+			Name:        "channel",
 			Description: "Set the channel where Koto listens for guesses",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{

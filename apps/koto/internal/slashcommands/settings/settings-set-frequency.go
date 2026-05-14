@@ -27,7 +27,7 @@ func GetSetFrequencyModule(container *di.Container) *SetFrequencyModule {
 func (m *SetFrequencyModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	minutes := int(ctx.Options["frequency"].IntValue())
+	minutes := int(ctx.Options["minutes"].IntValue())
 
 	if _, err := m.settings.Set(
 		context.Background(),
@@ -49,13 +49,13 @@ func (m *SetFrequencyModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetFrequencyModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-frequency",
+			Name:        "frequency",
 			Description: "Set how many minutes between games",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "frequency",
+					Name:        "minutes",
 					Description: "How many minutes between games (1-1440).",
 					Required:    true,
 					MinValue:    func() *float64 { v := float64(1); return &v }(),

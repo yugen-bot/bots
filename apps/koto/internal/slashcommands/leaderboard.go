@@ -197,8 +197,11 @@ func (m *LeaderboardModule) Commands() []*discordgoplus.Command {
 					Required:    false,
 					Choices: []*discordgo.ApplicationCommandOptionChoice{
 						{Name: "Points", Value: "points"},
-						{Name: "Wins", Value: "wins"},
-						{Name: "Participated", Value: "participated"},
+						{Name: "Guessed words", Value: "wins"},
+						{
+							Name:  "Guessed games participations",
+							Value: "participated",
+						},
 					},
 				},
 				{

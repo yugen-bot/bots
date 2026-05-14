@@ -26,7 +26,7 @@ func GetSetAutoStartModule(container *di.Container) *SetAutoStartModule {
 func (m *SetAutoStartModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	enabled := ctx.Options["enabled"].BoolValue()
+	enabled := ctx.Options["value"].BoolValue()
 
 	if _, err := m.settings.Set(
 		context.Background(),
@@ -51,13 +51,13 @@ func (m *SetAutoStartModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetAutoStartModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-auto-start",
+			Name:        "auto-start",
 			Description: "Set whether Koto automatically starts a new game after one ends",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,
-					Name:        "enabled",
+					Name:        "value",
 					Description: "Whether to automatically start a new game after one ends.",
 					Required:    true,
 				},

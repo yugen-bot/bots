@@ -27,7 +27,7 @@ func GetSetCooldownModule(container *di.Container) *SetCooldownModule {
 func (m *SetCooldownModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	seconds := int(ctx.Options["cooldown"].IntValue())
+	seconds := int(ctx.Options["seconds"].IntValue())
 
 	if _, err := m.settings.Set(
 		context.Background(),
@@ -49,13 +49,13 @@ func (m *SetCooldownModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetCooldownModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-cooldown",
+			Name:        "cooldown",
 			Description: "Set the cooldown between guesses in seconds",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "cooldown",
+					Name:        "seconds",
 					Description: "Cooldown between guesses in seconds.",
 					Required:    true,
 					MinValue:    func() *float64 { v := float64(0); return &v }(),

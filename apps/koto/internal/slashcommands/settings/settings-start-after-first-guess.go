@@ -28,7 +28,7 @@ func GetStartAfterFirstGuessModule(
 func (m *StartAfterFirstGuessModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	enabled := ctx.Options["enabled"].BoolValue()
+	enabled := ctx.Options["value"].BoolValue()
 
 	if _, err := m.settings.Set(
 		context.Background(),
@@ -53,13 +53,13 @@ func (m *StartAfterFirstGuessModule) set(ctx *discordgoplus.Ctx) {
 func (m *StartAfterFirstGuessModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-start-after-first-guess",
+			Name:        "start-after-first-guess",
 			Description: "Set whether the game timer starts after the first guess",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,
-					Name:        "enabled",
+					Name:        "value",
 					Description: "Whether the game timer starts after the first guess.",
 					Required:    true,
 				},

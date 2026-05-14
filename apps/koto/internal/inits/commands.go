@@ -24,6 +24,7 @@ func InitCommands(container *di.Container) (err error) {
 		sharedSlashcommands.GetSupportModule(container),
 		sharedSlashcommands.GetInviteModule(container),
 		sharedSlashcommands.GetHelpModule(container),
+		sharedSlashcommands.GetTutorialModule(container),
 
 		// internal
 		settingsCmd.GetSettingsModule(container),
