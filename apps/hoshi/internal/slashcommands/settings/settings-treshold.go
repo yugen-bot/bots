@@ -18,7 +18,9 @@ type SettingsTresholdModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSettingsTresholdModule(container *di.Container) *SettingsTresholdModule {
+func GetSettingsTresholdModule(
+	container *di.Container,
+) *SettingsTresholdModule {
 	return &SettingsTresholdModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -36,7 +38,11 @@ func (m *SettingsTresholdModule) set(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.Treshold.Set(n))
+	_, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.Treshold.Set(n),
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
@@ -52,8 +58,10 @@ func (m *SettingsTresholdModule) Commands() []*discordgoplus.Command {
 		{
 			Name:        "treshold",
 			Description: "Set starboard threshold",
-			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     discordgoplus.HandlerFunc(m.set),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			},
+			Handler: discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,

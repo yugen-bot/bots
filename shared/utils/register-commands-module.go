@@ -21,11 +21,12 @@ type ModalsModule interface {
 }
 
 func getStructName(m interface{}) string {
-	if t := reflect.TypeOf(m); t.Kind() == reflect.Ptr {
+	t := reflect.TypeOf(m)
+	if t.Kind() == reflect.Ptr {
 		return t.Elem().Name()
-	} else {
-		return t.Name()
 	}
+
+	return t.Name()
 }
 
 func RegisterCommandModules(bot *discordgoplus.Bot, modules []CommandsModule) {
@@ -36,11 +37,11 @@ func RegisterCommandModules(bot *discordgoplus.Bot, modules []CommandsModule) {
 
 		for _, command := range commands {
 			if command.SubCommands.Count() > 0 {
-				commandsLen = commandsLen + command.SubCommands.Count()
+				commandsLen += command.SubCommands.Count()
 				continue
 			}
 
-			commandsLen = commandsLen + 1
+			commandsLen++
 		}
 
 		if commandsLen == 1 {

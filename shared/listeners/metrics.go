@@ -30,7 +30,7 @@ func reloadChannels(bot *discordgoplus.Bot) {
 
 	channelsLen := 0
 	for _, guild := range guilds {
-		channelsLen = channelsLen + len(guild.Channels)
+		channelsLen += len(guild.Channels)
 	}
 
 	metrics.TotalChannels.Set(float64(channelsLen))
@@ -43,11 +43,11 @@ func reloadInteractions(bot *discordgoplus.Bot) {
 
 	for _, command := range bot.Router.Commands {
 		if command.SubCommands != nil {
-			interactionsLen = interactionsLen + len(command.SubCommands.Commands)
+			interactionsLen += len(command.SubCommands.Commands)
 			continue
 		}
 
-		interactionsLen = interactionsLen + 1
+		interactionsLen++
 	}
 
 	metrics.TotalInteractions.Set(float64(interactionsLen))
@@ -64,9 +64,12 @@ func AddMetricsListeners(container *di.Container) {
 	cron := container.Get(static.DiCron).(*cron.Cron)
 
 	setLatency(bot)
-	cron.AddFunc("@every 1m", func() {
+
+	if _, err := cron.AddFunc("@every 1m", func() {
 		go setLatency(bot)
-	})
+	}); err != nil {
+		panic(err)
+	}
 
 	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
 		metrics.DiscordConnected.Set(1)
@@ -74,43 +77,59 @@ func AddMetricsListeners(container *di.Container) {
 		go reloadGuages(bot)
 	})
 
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Disconnect) {
-		metrics.DiscordConnected.Set(0)
-	})
+	bot.AddHandler(
+		func(session *discordgo.Session, event *discordgo.Disconnect) {
+			metrics.DiscordConnected.Set(0)
+		},
+	)
 
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.GuildCreate) {
-		go reloadGuilds(bot)
-	})
+	bot.AddHandler(
+		func(session *discordgo.Session, event *discordgo.GuildCreate) {
+			go reloadGuilds(bot)
+		},
+	)
 
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.GuildDelete) {
-		go reloadGuilds(bot)
-	})
+	bot.AddHandler(
+		func(session *discordgo.Session, event *discordgo.GuildDelete) {
+			go reloadGuilds(bot)
+		},
+	)
 
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.ChannelCreate) {
-		go reloadChannels(bot)
-	})
+	bot.AddHandler(
+		func(session *discordgo.Session, event *discordgo.ChannelCreate) {
+			go reloadChannels(bot)
+		},
+	)
 
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.ChannelDelete) {
-		go reloadChannels(bot)
-	})
+	bot.AddHandler(
+		func(session *discordgo.Session, event *discordgo.ChannelDelete) {
+			go reloadChannels(bot)
+		},
+	)
 
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.InteractionCreate) {
-		if event.Type != discordgo.InteractionApplicationCommand {
-			return
-		}
+	bot.AddHandler(
+		func(session *discordgo.Session, event *discordgo.InteractionCreate) {
+			if event.Type != discordgo.InteractionApplicationCommand {
+				return
+			}
 
-		data := event.ApplicationCommandData()
-		name := discordgoplus.GetInteractionName(&data)
+			data := event.ApplicationCommandData()
+			name := discordgoplus.GetInteractionName(&data)
 
-		metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).Inc()
-	})
+			metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).
+				Inc()
+		},
+	)
 
-	bot.AddHandler(func(bot *discordgo.Session, event *discordgo.InteractionCreate) {
-		if event.Type != discordgo.InteractionMessageComponent {
-			return
-		}
+	bot.AddHandler(
+		func(bot *discordgo.Session, event *discordgo.InteractionCreate) {
+			if event.Type != discordgo.InteractionMessageComponent {
+				return
+			}
 
-		data := event.MessageComponentData()
-		metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", data.CustomID).Inc()
-	})
+			data := event.MessageComponentData()
+			metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", data.CustomID).
+				Inc()
+		},
+	)
 }

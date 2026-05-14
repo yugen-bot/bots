@@ -29,7 +29,10 @@ func CreateSavesService(container *di.Container) *SavesService {
 	}
 }
 
-func (service *SavesService) GetPlayerSavesByUserID(ctx context.Context, userID string) (*db.PlayerSavesModel, error) {
+func (service *SavesService) GetPlayerSavesByUserID(
+	ctx context.Context,
+	userID string,
+) (*db.PlayerSavesModel, error) {
 	saves, err := service.database.PlayerSaves.FindFirst(
 		db.PlayerSaves.UserID.Equals(userID),
 	).Exec(ctx)
@@ -51,7 +54,11 @@ func (service *SavesService) GetPlayerSavesByUserID(ctx context.Context, userID 
 	return saves, nil
 }
 
-func (service *SavesService) GetSaves(ctx context.Context, settings *db.SettingsModel, userID string) (*GetSavesResult, error) {
+func (service *SavesService) GetSaves(
+	ctx context.Context,
+	settings *db.SettingsModel,
+	userID string,
+) (*GetSavesResult, error) {
 	player, err := service.GetPlayerSavesByUserID(ctx, userID)
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		return nil, fmt.Errorf("saves: get saves: %w", err)
@@ -65,7 +72,11 @@ func (service *SavesService) GetSaves(ctx context.Context, settings *db.Settings
 	return result, nil
 }
 
-func (service *SavesService) DeductSaveFromPlayer(ctx context.Context, userID string, amount float64) (float64, float64, error) {
+func (service *SavesService) DeductSaveFromPlayer(
+	ctx context.Context,
+	userID string,
+	amount float64,
+) (float64, float64, error) {
 	player, err := service.GetPlayerSavesByUserID(ctx, userID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: deduct save from player: %w", err)
@@ -77,26 +88,38 @@ func (service *SavesService) DeductSaveFromPlayer(ctx context.Context, userID st
 		newSaves = 0
 	}
 
-	player, err = service.database.PlayerSaves.FindUnique(db.PlayerSaves.ID.Equals(player.ID)).Update(
-		db.PlayerSaves.Saves.Set(newSaves),
-	).Exec(ctx)
+	player, err = service.database.PlayerSaves.FindUnique(db.PlayerSaves.ID.Equals(player.ID)).
+		Update(
+			db.PlayerSaves.Saves.Set(newSaves),
+		).
+		Exec(ctx)
 	if err != nil {
-		return 0, 0, fmt.Errorf("saves: deduct save from player: update: %w", err)
+		return 0, 0, fmt.Errorf(
+			"saves: deduct save from player: update: %w",
+			err,
+		)
 	}
 
 	return player.Saves, player.MaxSaves, nil
 }
 
-func (service *SavesService) DeductSaveFromGuild(ctx context.Context, guildID string, settings *db.SettingsModel, amount float64) (float64, float64, error) {
+func (service *SavesService) DeductSaveFromGuild(
+	ctx context.Context,
+	guildID string,
+	settings *db.SettingsModel,
+	amount float64,
+) (float64, float64, error) {
 	newSaves := settings.Saves - amount
 
 	if newSaves < 0 {
 		newSaves = 0
 	}
 
-	settings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).Update(
-		db.Settings.Saves.Set(newSaves),
-	).Exec(ctx)
+	settings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).
+		Update(
+			db.Settings.Saves.Set(newSaves),
+		).
+		Exec(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: deduct save from guild: %w", err)
 	}
@@ -104,7 +127,11 @@ func (service *SavesService) DeductSaveFromGuild(ctx context.Context, guildID st
 	return settings.Saves, settings.MaxSaves, nil
 }
 
-func (service *SavesService) AddSaveToPlayer(ctx context.Context, userID string, amount float64) (float64, float64, error) {
+func (service *SavesService) AddSaveToPlayer(
+	ctx context.Context,
+	userID string,
+	amount float64,
+) (float64, float64, error) {
 	player, err := service.GetPlayerSavesByUserID(ctx, userID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to player: %w", err)
@@ -120,9 +147,11 @@ func (service *SavesService) AddSaveToPlayer(ctx context.Context, userID string,
 		newSaves = player.MaxSaves
 	}
 
-	player, err = service.database.PlayerSaves.FindUnique(db.PlayerSaves.ID.Equals(player.ID)).Update(
-		db.PlayerSaves.Saves.Set(newSaves),
-	).Exec(ctx)
+	player, err = service.database.PlayerSaves.FindUnique(db.PlayerSaves.ID.Equals(player.ID)).
+		Update(
+			db.PlayerSaves.Saves.Set(newSaves),
+		).
+		Exec(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to player: update: %w", err)
 	}
@@ -130,16 +159,23 @@ func (service *SavesService) AddSaveToPlayer(ctx context.Context, userID string,
 	return player.Saves, player.MaxSaves, nil
 }
 
-func (service *SavesService) AddSaveToGuild(ctx context.Context, guildID string, settings *db.SettingsModel, amount float64) (float64, float64, error) {
+func (service *SavesService) AddSaveToGuild(
+	ctx context.Context,
+	guildID string,
+	settings *db.SettingsModel,
+	amount float64,
+) (float64, float64, error) {
 	newSaves := settings.Saves + amount
 
 	if newSaves > settings.MaxSaves {
 		newSaves = settings.MaxSaves
 	}
 
-	settings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).Update(
-		db.Settings.Saves.Set(newSaves),
-	).Exec(ctx)
+	settings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).
+		Update(
+			db.Settings.Saves.Set(newSaves),
+		).
+		Exec(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to guild: %w", err)
 	}

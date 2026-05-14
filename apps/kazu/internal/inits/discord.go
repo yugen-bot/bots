@@ -31,7 +31,11 @@ func InitDiscordBot(container *di.Container) error {
 	bot.State.MaxMessageCount = 100
 
 	bot.AddHandler(func(bot *discordgo.Session, event *discordgo.Ready) {
-		utils.Logger.Infof("Logged in as: %v#%v", bot.State.User.Username, bot.State.User.Discriminator)
+		utils.Logger.Infof(
+			"Logged in as: %v#%v",
+			bot.State.User.Username,
+			bot.State.User.Discriminator,
+		)
 		bot.UpdateGameStatus(0, fmt.Sprintf("%s 🧮", bot.State.User.Username))
 	})
 

@@ -5,12 +5,16 @@ import (
 	"jurien.dev/yugen/shared/config"
 )
 
-func SyncCommands(bot *discordgoplus.Bot, cfg *config.Config, amount int) (err error) {
+func SyncCommands(
+	bot *discordgoplus.Bot,
+	cfg *config.Config,
+	amount int,
+) (err error) {
 	if cfg.SyncCommands {
 		Logger.Infof("Syncing commands of %d modules", amount)
 
 		var developmentGuildId string
-		if cfg.Env != "production" {
+		if cfg.Env != productionEnv {
 			developmentGuildId = cfg.DiscordDevelopmentGuild
 		}
 

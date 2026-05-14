@@ -24,7 +24,10 @@ func CreateNotifyService(container *di.Container) *NotifyService {
 	}
 }
 
-func (s *NotifyService) SendNotification(ctx context.Context, content string) (int, int, int, error) {
+func (s *NotifyService) SendNotification(
+	ctx context.Context,
+	content string,
+) (int, int, int, error) {
 	settings, err := s.database.Settings.FindMany().Exec(ctx)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("notify: find settings: %w", err)
@@ -53,7 +56,8 @@ func (s *NotifyService) SendNotification(ctx context.Context, content string) (i
 
 		_, sendErr := s.bot.ChannelMessageSend(channelID, content)
 		if sendErr != nil {
-			utils.Logger.With("guildID", setting.GuildID, "channelID", channelID).Warn("Failed to send notification")
+			utils.Logger.With("guildID", setting.GuildID, "channelID", channelID).
+				Warn("Failed to send notification")
 			continue
 		}
 

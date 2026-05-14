@@ -18,7 +18,9 @@ type SettingsCooldownModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSettingsCooldownModule(container *di.Container) *SettingsCooldownModule {
+func GetSettingsCooldownModule(
+	container *di.Container,
+) *SettingsCooldownModule {
 	return &SettingsCooldownModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -26,12 +28,16 @@ func GetSettingsCooldownModule(container *di.Container) *SettingsCooldownModule 
 }
 
 func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
-	utils.Logger.With("Options", ctx.Options, "GuildID", ctx.Interaction.GuildID).Debug("Cooldown command used")
+	utils.Logger.With("Options", ctx.Options, "GuildID", ctx.Interaction.GuildID).
+		Debug("Cooldown command used")
 	discordgoplus.Defer(ctx, true)
 
 	seconds := ctx.Options["seconds"].IntValue()
 
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
@@ -52,7 +58,11 @@ func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 		secondsText = "second"
 	}
 
-	content := fmt.Sprintf("Members will now be able to provide a word every %d %s.", seconds, secondsText)
+	content := fmt.Sprintf(
+		"Members will now be able to provide a word every %d %s.",
+		seconds,
+		secondsText,
+	)
 	if seconds == 0 {
 		content = "Cooldown has been removed!"
 	}

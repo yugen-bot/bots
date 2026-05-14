@@ -27,7 +27,8 @@ func checkBase(ctx *discordgoplus.Ctx) (bool, error) {
 		return false, errors.New("member not accessible")
 	}
 
-	if len(ownerIDs) > 0 && slices.Contains(ownerIDs, ctx.Interaction.Member.User.ID) {
+	if len(ownerIDs) > 0 &&
+		slices.Contains(ownerIDs, ctx.Interaction.Member.User.ID) {
 		return true, nil
 	}
 

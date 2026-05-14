@@ -42,21 +42,30 @@ func (m *ServerModule) err(ctx *discordgoplus.Ctx) {
 func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		utils.Logger.Error(err)
 		m.err(ctx)
 		return
 	}
 
-	game, gameExists, err := m.game.GetCurrentGame(context.Background(), ctx.Interaction.GuildID)
+	game, gameExists, err := m.game.GetCurrentGame(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		utils.Logger.Error(err)
 		m.err(ctx)
 		return
 	}
 
-	history, historyExists, err := m.game.GetLastHistory(context.Background(), game)
+	history, historyExists, err := m.game.GetLastHistory(
+		context.Background(),
+		game,
+	)
 	if err != nil {
 		utils.Logger.Error(err)
 		m.err(ctx)
@@ -92,7 +101,10 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 	highscoreDateText := ""
 	highscoreDate, ok := settings.HighscoreDate()
 	if ok {
-		highscoreDateText = " - " + hammertime.Format(highscoreDate, hammertime.Span)
+		highscoreDateText = " - " + hammertime.Format(
+			highscoreDate,
+			hammertime.Span,
+		)
 	}
 
 	lastWordText := "-"

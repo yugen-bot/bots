@@ -34,19 +34,28 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	player, err := m.saves.GetPlayerSavesByUserID(context.Background(), ctx.Interaction.Member.User.ID)
+	player, err := m.saves.GetPlayerSavesByUserID(
+		context.Background(),
+		ctx.Interaction.Member.User.ID,
+	)
 	if err != nil {
 		return
 	}
 
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		return
 	}
 
 	if player.Saves < 1 {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Content: fmt.Sprintf("You currently don't have atleast 1 save to donate, you currently have **%d** saves!", int(player.Saves)),
+			Content: fmt.Sprintf(
+				"You currently don't have atleast 1 save to donate, you currently have **%d** saves!",
+				int(player.Saves),
+			),
 		}, true)
 		return
 	}
@@ -62,8 +71,17 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	go m.saves.DeductSaveFromPlayer(context.Background(), ctx.Interaction.Member.User.ID, 1)
-	saves, maxSaves, err := m.saves.AddSaveToGuild(context.Background(), settings.GuildID, settings, 0.2)
+	go m.saves.DeductSaveFromPlayer(
+		context.Background(),
+		ctx.Interaction.Member.User.ID,
+		1,
+	)
+	saves, maxSaves, err := m.saves.AddSaveToGuild(
+		context.Background(),
+		settings.GuildID,
+		settings,
+		0.2,
+	)
 	if err != nil {
 		return
 	}

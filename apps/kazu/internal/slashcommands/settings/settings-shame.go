@@ -28,7 +28,10 @@ func (m *SettingsShameModule) setRole(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	role := ctx.Options["role"].RoleValue(ctx.Session, ctx.Interaction.GuildID)
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
@@ -45,7 +48,10 @@ func (m *SettingsShameModule) setRole(ctx *discordgoplus.Ctx) {
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("I will apply <@&%s> to the person that breaks the count chain.", role.ID),
+		Content: fmt.Sprintf(
+			"I will apply <@&%s> to the person that breaks the count chain.",
+			role.ID,
+		),
 	}, true)
 }
 
@@ -53,7 +59,10 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	remove := ctx.Options["remove"].BoolValue()
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
@@ -75,7 +84,10 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *discordgoplus.Ctx) {
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("I will **%s** the shame role  after a highscore is reached.", valueText),
+		Content: fmt.Sprintf(
+			"I will **%s** the shame role  after a highscore is reached.",
+			valueText,
+		),
 	}, true)
 }
 

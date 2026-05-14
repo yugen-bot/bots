@@ -22,8 +22,13 @@ func RunHTTP(ctx context.Context, container *di.Container) error {
 	})
 
 	app.Use(fiberzap.New(fiberzap.Config{
-		Logger:   utils.Logger.Desugar(),
-		SkipURIs: []string{"/api", "/api/monitor", "/api/health", "/api/metrics"},
+		Logger: utils.Logger.Desugar(),
+		SkipURIs: []string{
+			"/api",
+			"/api/monitor",
+			"/api/health",
+			"/api/metrics",
+		},
 	}))
 
 	router := app.Group("/api")
@@ -40,7 +45,10 @@ func RunHTTP(ctx context.Context, container *di.Container) error {
 
 	select {
 	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(),
+			10*time.Second,
+		)
 		defer cancel()
 		utils.Logger.Info("Shutting down HTTP server...")
 

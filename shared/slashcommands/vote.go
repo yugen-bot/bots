@@ -58,8 +58,13 @@ func (m *VoteModule) Run(ctx *discordgoplus.Ctx) {
 	embed := &discordgo.MessageEmbed{
 		Color: embedColor,
 		Title: "Vote information",
-		Description: fmt.Sprintf(`Like what %s is doing and want to support it's growth?
-Please use any of the links below to vote for %s!%s`, name, name, voteReward),
+		Description: fmt.Sprintf(
+			`Like what %s is doing and want to support it's growth?
+Please use any of the links below to vote for %s!%s`,
+			name,
+			name,
+			voteReward,
+		),
 		Footer: footer,
 	}
 

@@ -53,7 +53,12 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 		sourceLabel = fmt.Sprintf("\nSource: <#%s>", id)
 	}
 
-	existing, err := m.starboard.GetStarboardBySourceIDAndEmoji(context.Background(), ctx.Interaction.GuildID, key, sourceChannelID)
+	existing, err := m.starboard.GetStarboardBySourceIDAndEmoji(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		key,
+		sourceChannelID,
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
@@ -65,7 +70,13 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	_, err = m.starboard.AddStarboard(context.Background(), ctx.Interaction.GuildID, key, sourceChannelID, destination.ID)
+	_, err = m.starboard.AddStarboard(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		key,
+		sourceChannelID,
+		destination.ID,
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
@@ -77,8 +88,12 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("A starboard has been added;\nDestination: <#%s>\nEmoji: %s%s",
-			destination.ID, emojiDisplay, sourceLabel),
+		Content: fmt.Sprintf(
+			"A starboard has been added;\nDestination: <#%s>\nEmoji: %s%s",
+			destination.ID,
+			emojiDisplay,
+			sourceLabel,
+		),
 	}, true)
 }
 

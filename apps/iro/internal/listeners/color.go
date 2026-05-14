@@ -49,15 +49,24 @@ func AddColorListeners(container *di.Container) {
 	bot.AddHandler(colorListener.MessageReactionHandler)
 }
 
-func (listener *ColorListener) MessageCreateHandler(bot *discordgo.Session, event *discordgo.MessageCreate) {
+func (listener *ColorListener) MessageCreateHandler(
+	bot *discordgo.Session,
+	event *discordgo.MessageCreate,
+) {
 	listener.process(bot, event.Message, false)
 }
 
-func (listener *ColorListener) MessageUpdateHandler(bot *discordgo.Session, event *discordgo.MessageUpdate) {
+func (listener *ColorListener) MessageUpdateHandler(
+	bot *discordgo.Session,
+	event *discordgo.MessageUpdate,
+) {
 	listener.process(bot, event.Message, true)
 }
 
-func (listener *ColorListener) MessageReactionHandler(bot *discordgo.Session, event *discordgo.MessageReactionAdd) {
+func (listener *ColorListener) MessageReactionHandler(
+	bot *discordgo.Session,
+	event *discordgo.MessageReactionAdd,
+) {
 	self := listener.bot.State.User
 
 	if event.UserID == self.ID {
@@ -91,7 +100,11 @@ func (listener *ColorListener) MessageReactionHandler(bot *discordgo.Session, ev
 
 	if len(matches) > 0 {
 		precision := (1 - matches[0].AvgDiff/255) * 100
-		colorName = fmt.Sprintf("**%s** *(%0.1f%%)*", matches[0].Name, precision)
+		colorName = fmt.Sprintf(
+			"**%s** *(%0.1f%%)*",
+			matches[0].Name,
+			precision,
+		)
 	}
 
 	// Build and send embed
@@ -111,8 +124,14 @@ func (listener *ColorListener) MessageReactionHandler(bot *discordgo.Session, ev
 				Inline: true,
 			},
 			{
-				Name:  "RGBA",
-				Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", clr.R, clr.G, clr.B, clr.A),
+				Name: "RGBA",
+				Value: fmt.Sprintf(
+					"`%03d, %03d, %03d, %03d`",
+					clr.R,
+					clr.G,
+					clr.B,
+					clr.A,
+				),
 			},
 			{
 				Name:  "CMYK",
@@ -127,18 +146,24 @@ func (listener *ColorListener) MessageReactionHandler(bot *discordgo.Session, ev
 			Text: "Activated by " + user.String(),
 		},
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: fmt.Sprintf("https://singlecolorimage.com/get/%s/64x64", hexClr),
+			URL: fmt.Sprintf(
+				"https://singlecolorimage.com/get/%s/64x64",
+				hexClr,
+			),
 		},
 	}
 
-	_, err = bot.ChannelMessageSendComplex(event.ChannelID, &discordgo.MessageSend{
-		Embed: emb,
-		Reference: &discordgo.MessageReference{
-			MessageID: event.MessageID,
-			ChannelID: event.ChannelID,
-			GuildID:   event.GuildID,
+	_, err = bot.ChannelMessageSendComplex(
+		event.ChannelID,
+		&discordgo.MessageSend{
+			Embed: emb,
+			Reference: &discordgo.MessageReference{
+				MessageID: event.MessageID,
+				ChannelID: event.ChannelID,
+				GuildID:   event.GuildID,
+			},
 		},
-	})
+	)
 	if err != nil {
 		utils.Logger.Info("Could not send embed message", err)
 	}
@@ -147,7 +172,11 @@ func (listener *ColorListener) MessageReactionHandler(bot *discordgo.Session, ev
 	listener.emojiCache.Remove(cacheKey)
 }
 
-func (listener *ColorListener) process(bot *discordgo.Session, message *discordgo.Message, removeReactions bool) {
+func (listener *ColorListener) process(
+	bot *discordgo.Session,
+	message *discordgo.Message,
+	removeReactions bool,
+) {
 	if len(message.Content) < 6 {
 		return
 	}
@@ -188,7 +217,11 @@ func (listener *ColorListener) process(bot *discordgo.Session, message *discordg
 	}
 }
 
-func (listener *ColorListener) createReaction(bot *discordgo.Session, message *discordgo.Message, hexClr string) {
+func (listener *ColorListener) createReaction(
+	bot *discordgo.Session,
+	message *discordgo.Message,
+	hexClr string,
+) {
 	// Remove trailing '#' from color code,
 	// when existent
 	hexClr = strings.TrimPrefix(hexClr, "#")

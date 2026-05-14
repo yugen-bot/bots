@@ -49,13 +49,21 @@ func (m *StarboardListModule) listPage(ctx *discordgoplus.Ctx) {
 	m.showList(ctx, page, true)
 }
 
-func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isComponent bool) {
+func (m *StarboardListModule) showList(
+	ctx *discordgoplus.Ctx,
+	page int,
+	isComponent bool,
+) {
 	if !isComponent {
 		discordgoplus.Defer(ctx, true)
 	}
 
 	bot := m.container.Get(static.DiBot).(*discordgoplus.Bot)
-	items, total, err := m.starboard.GetStarboards(context.Background(), ctx.Interaction.GuildID, page)
+	items, total, err := m.starboard.GetStarboards(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		page,
+	)
 	if err != nil {
 		if isComponent {
 			discordgoplus.MessageComponentError(ctx)
@@ -68,7 +76,14 @@ func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isCompo
 	if total == 0 {
 		content := "No starboards have been configured yet."
 		if isComponent {
-			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(
+				ctx,
+				&discordgo.InteractionResponseData{
+					Content:    content,
+					Embeds:     []*discordgo.MessageEmbed{},
+					Components: []discordgo.MessageComponent{},
+				},
+			)
 		} else {
 			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
 		}
@@ -78,7 +93,14 @@ func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isCompo
 	if len(items) == 0 {
 		content := fmt.Sprintf("No starboards found for page %d", page)
 		if isComponent {
-			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{Content: content, Embeds: []*discordgo.MessageEmbed{}, Components: []discordgo.MessageComponent{}})
+			discordgoplus.Update(
+				ctx,
+				&discordgo.InteractionResponseData{
+					Content:    content,
+					Embeds:     []*discordgo.MessageEmbed{},
+					Components: []discordgo.MessageComponent{},
+				},
+			)
 		} else {
 			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
 		}
@@ -115,8 +137,16 @@ func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isCompo
 		Title: fmt.Sprintf("Starboards for %s", ctx.Interaction.GuildID),
 		Fields: []*discordgo.MessageEmbedField{
 			{Name: "ID", Value: strings.Join(ids, "\n"), Inline: true},
-			{Name: "Emoji | Source", Value: strings.Join(emojiSources, "\n"), Inline: true},
-			{Name: "Destination", Value: strings.Join(destinations, "\n"), Inline: true},
+			{
+				Name:   "Emoji | Source",
+				Value:  strings.Join(emojiSources, "\n"),
+				Inline: true,
+			},
+			{
+				Name:   "Destination",
+				Value:  strings.Join(destinations, "\n"),
+				Inline: true,
+			},
 		},
 	}
 
@@ -144,7 +174,10 @@ func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isCompo
 
 	components := []discordgo.MessageComponent{}
 	if len(buttons) > 0 {
-		components = append(components, discordgo.ActionsRow{Components: buttons})
+		components = append(
+			components,
+			discordgo.ActionsRow{Components: buttons},
+		)
 	}
 
 	if isComponent {

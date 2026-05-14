@@ -12,7 +12,11 @@ type CreateEmbedFooterParams struct {
 	IsVote bool
 }
 
-func CreateEmbedFooter(bot *discordgoplus.Bot, params *CreateEmbedFooterParams, ownerID string) *discordgo.MessageEmbedFooter {
+func CreateEmbedFooter(
+	bot *discordgoplus.Bot,
+	params *CreateEmbedFooterParams,
+	ownerID string,
+) *discordgo.MessageEmbedFooter {
 	botAuthor, err := bot.User(ownerID)
 	if err != nil {
 		return nil

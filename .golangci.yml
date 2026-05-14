@@ -141,6 +141,28 @@ linters:
       - text: "error returned from external package is unwrapped: sig: func.*lifecycle.*Connect"
         linters:
           - wrapcheck
+      # wrapcheck: fiber HTTP handler returns — fiber handles these as response errors
+      - text: "error returned from external package is unwrapped: sig: func.*fiber"
+        linters:
+          - wrapcheck
+      # wrapcheck: fiber BodyParser — caller checks the wrapped error
+      - text: "error returned from external package is unwrapped: sig: func.*BodyParser"
+        linters:
+          - wrapcheck
+      # gosec G101: env var name constants (e.g. EnvTopGGToken = "TOP_GG_TOKEN") are not credentials
+      - text: "G101"
+        path: "shared/static/env\\.go"
+        linters:
+          - gosec
+      # revive: UPPER_SNAKE_CASE constants are intentional for Discord command ID constants
+      - text: "var-naming: const"
+        linters:
+          - revive
+      # contextcheck: shutdown uses context.Background intentionally — caller ctx is already cancelled
+      - text: "Non-inherited new context"
+        path: "shared/inits/api\\.go"
+        linters:
+          - contextcheck
       # godot: comments don't require trailing periods in this codebase
       - text: "Comment should end"
         linters:

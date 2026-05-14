@@ -16,7 +16,9 @@ type SettingsUnignoreModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSettingsUnignoreModule(container *di.Container) *SettingsUnignoreModule {
+func GetSettingsUnignoreModule(
+	container *di.Container,
+) *SettingsUnignoreModule {
 	return &SettingsUnignoreModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),

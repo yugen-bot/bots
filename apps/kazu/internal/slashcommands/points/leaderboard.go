@@ -25,8 +25,15 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 	}
 }
 
-func (m *LeaderboardModule) getItems(ctx *discordgoplus.Ctx, page int) ([]any, int, error) {
-	items, total, err := m.points.GetLeaderboardByGuildID(context.Background(), ctx.Interaction.GuildID, page)
+func (m *LeaderboardModule) getItems(
+	ctx *discordgoplus.Ctx,
+	page int,
+) ([]any, int, error) {
+	items, total, err := m.points.GetLeaderboardByGuildID(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		page,
+	)
 	return utils.UnpackArray(items), total, err
 }
 
@@ -58,5 +65,7 @@ func (m *LeaderboardModule) Commands() []*discordgoplus.Command {
 }
 
 func (m *LeaderboardModule) MessageComponents() []*discordgoplus.MessageComponent {
-	return utils.GetLeaderboardMessageComponents(discordgoplus.HandlerFunc(m.messageComponent))
+	return utils.GetLeaderboardMessageComponents(
+		discordgoplus.HandlerFunc(m.messageComponent),
+	)
 }

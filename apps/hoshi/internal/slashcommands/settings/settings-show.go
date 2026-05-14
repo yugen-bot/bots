@@ -30,7 +30,10 @@ func GetSettingsShowModule(container *di.Container) *SettingsShowModule {
 func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildID(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildID(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
@@ -63,7 +66,11 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		Description: "These are the settings currently configured for Hoshi",
 		Footer:      footer,
 		Fields: []*discordgo.MessageEmbedField{
-			{Name: "Treshold", Value: fmt.Sprintf("%d", settings.Treshold), Inline: true},
+			{
+				Name:   "Treshold",
+				Value:  fmt.Sprintf("%d", settings.Treshold),
+				Inline: true,
+			},
 			{Name: "Author starring", Value: func() string {
 				if settings.Self {
 					return "Allowed"

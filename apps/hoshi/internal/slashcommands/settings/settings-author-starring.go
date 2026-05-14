@@ -17,7 +17,9 @@ type SettingsAuthorStarringModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSettingsAuthorStarringModule(container *di.Container) *SettingsAuthorStarringModule {
+func GetSettingsAuthorStarringModule(
+	container *di.Container,
+) *SettingsAuthorStarringModule {
 	return &SettingsAuthorStarringModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -29,7 +31,11 @@ func (m *SettingsAuthorStarringModule) set(ctx *discordgoplus.Ctx) {
 
 	allowed := ctx.Options["allowed"].BoolValue()
 
-	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.Self.Set(allowed))
+	_, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.Self.Set(allowed),
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
@@ -50,8 +56,10 @@ func (m *SettingsAuthorStarringModule) Commands() []*discordgoplus.Command {
 		{
 			Name:        "author-starring",
 			Description: "Set whether message author starring counts",
-			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     discordgoplus.HandlerFunc(m.set),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			},
+			Handler: discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,
