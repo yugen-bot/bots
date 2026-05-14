@@ -33,14 +33,19 @@ func (service *SavesService) GetPlayerSavesByUserID(ctx context.Context, userID 
 	saves, err := service.database.PlayerSaves.FindFirst(
 		db.PlayerSaves.UserID.Equals(userID),
 	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return nil, fmt.Errorf("saves: get player saves: %w", err)
+	}
 
-	if saves == nil {
-		saves, err = service.database.PlayerSaves.CreateOne(
-			db.PlayerSaves.UserID.Set(userID),
-		).Exec(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("saves: create player saves: %w", err)
-		}
+	if saves != nil {
+		return saves, nil
+	}
+
+	saves, err = service.database.PlayerSaves.CreateOne(
+		db.PlayerSaves.UserID.Set(userID),
+	).Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("saves: create player saves: %w", err)
 	}
 
 	return saves, nil

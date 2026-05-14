@@ -88,7 +88,6 @@ func (service *GameService) Start(
 	}
 
 	if exists && !recreate {
-		started = false
 		return game, started, err
 	}
 
@@ -242,6 +241,7 @@ func (service *GameService) AddWord(
 
 	lastLetter := history.Word[len(history.Word)-1]
 	isCorrectLetter := word[0] == lastLetter
+
 	wordExists, err := service.dictionary.Check(ctx, word)
 	if err != nil {
 		utils.Logger.Error(err)
@@ -249,12 +249,12 @@ func (service *GameService) AddWord(
 	}
 
 	if !isCorrectLetter || !wordExists {
+		// Build failure reason
 		failReason := fmt.Sprintf(
 			`Sorry, I couldn't find "**%s**" in the [English dictionary](https://en.wiktionary.org/wiki/%s), try again!`,
 			word,
 			word,
 		)
-
 		if !isCorrectLetter {
 			failReason = fmt.Sprintf(
 				"The word %s does not start with the letter **%s**",
@@ -263,18 +263,13 @@ func (service *GameService) AddWord(
 			)
 		}
 
-		if err != nil {
-			utils.Logger.Error(err)
-			return
-		}
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌"))
 
 		saves, err := service.saves.GetSaves(ctx, settings, message.Author.ID)
 		if err != nil {
 			utils.Logger.Error(err)
 			return
 		}
-
-		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌"))
 
 		if saves.player >= 1 {
 			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromPlayer(
@@ -349,7 +344,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			highScoreText = "\n**A new highscore has been set! 🎉**"
 		}
 
+		// Deduct points from the player who broke the chain
 		pointsRemoved := int(count / 10)
+
 		go func() {
 			utils.LogIfErr(utils.Logger, "remove-game-points", service.points.RemoveGamePoints(
 				ctx,
@@ -363,13 +360,12 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			pointsRemoved = 1
 		}
 
-		pointsRemovedText := ""
 		pointText := "Points have"
 		if pointsRemoved == 1 {
 			pointText = "Point has"
 		}
 
-		pointsRemovedText = fmt.Sprintf(
+		pointsRemovedText := fmt.Sprintf(
 			"\n\n**%d %s been removed from your account.**",
 			pointsRemoved,
 			pointText,
@@ -442,9 +438,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
+	// Record points and history
 	go func() {
 		utils.LogIfErr(utils.Logger, "add-game-points", service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1))
 	}()
+
 	_, err = service.database.History.CreateOne(
 		db.History.UserID.Set(message.Author.ID),
 		db.History.Game.Link(db.Game.ID.Equals(game.ID)),
@@ -456,18 +454,14 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
+	// Check streak and react
 	count, err := service.getCount(ctx, game.ID)
 	if err != nil {
 		utils.Logger.Error(err)
 		return
 	}
 
-	isHighscore, isGameHighscored, err := service.checkStreak(
-		ctx,
-		settings,
-		game,
-		count,
-	)
+	isHighscore, isGameHighscored, err := service.checkStreak(ctx, settings, game, count)
 
 	if isGameHighscored {
 		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉"))
@@ -477,9 +471,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	if isHighscore {
 		emoji = "☑️"
 	}
+
 	utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji))
 	service.checkSpecialReactions(message, word)
-
 	service.setNumber(message, count)
 
 	if utils.IsPalindrome(word) {
@@ -628,25 +622,26 @@ func (service *GameService) checkStreak(
 	game *db.GameModel,
 	count int,
 ) (isHighscore bool, isGameHighscored bool, err error) {
-	isHighscore = false
-	isGameHighscored = false
-
-	if count > settings.Highscore {
-		isHighscore = true
-		go service.settings.SetHighscoreByGuildID(ctx, settings.GuildID, count)
-
-		if !game.IsHighscored {
-			isGameHighscored = true
-
-			go service.database.Game.FindUnique(
-				db.Game.ID.Equals(game.ID),
-			).Update(
-				db.Game.IsHighscored.Set(true),
-			).Exec(ctx)
-		}
+	if count <= settings.Highscore {
+		return false, false, nil
 	}
 
-	return isHighscore, isGameHighscored, err
+	isHighscore = true
+	go service.settings.SetHighscoreByGuildID(ctx, settings.GuildID, count)
+
+	if game.IsHighscored {
+		return isHighscore, false, nil
+	}
+
+	isGameHighscored = true
+
+	go service.database.Game.FindUnique(
+		db.Game.ID.Equals(game.ID),
+	).Update(
+		db.Game.IsHighscored.Set(true),
+	).Exec(ctx) //nolint:errcheck
+
+	return isHighscore, isGameHighscored, nil
 }
 
 func (service *GameService) checkUsedInPastHundred(
