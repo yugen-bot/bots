@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -12,32 +13,43 @@ import (
 
 type AdminGetWordModule struct {
 	container *di.Container
-	words     *services.WordsService
+	game      *services.GameService
 }
 
 func GetAdminGetWordModule(container *di.Container) *AdminGetWordModule {
 	return &AdminGetWordModule{
 		container: container,
-		words:     container.Get(localStatic.DiWords).(*services.WordsService),
+		game:      container.Get(localStatic.DiGame).(*services.GameService),
 	}
 }
 
 func (m *AdminGetWordModule) getWord(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	if opt, ok := ctx.Options["word"]; ok {
-		word := opt.StringValue()
-		exists := m.words.Exists(word)
+	guildID := ctx.Options["guild"].StringValue()
+
+	game, err := m.game.GetCurrentGame(context.Background(), guildID)
+	if err != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Content: fmt.Sprintf("Word `%s` exists: **%v**", word, exists),
+			Content: fmt.Sprintf(
+				"Failed to fetch game for guild `%s`.",
+				guildID,
+			),
+		}, true)
+		return
+	}
+
+	if game == nil {
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+			Content: "Guild currently has no game running.",
 		}, true)
 		return
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content: fmt.Sprintf(
-			"Koto has **%d** game words loaded.",
-			m.words.Amount,
+			"The answer for the current game is: **%s**",
+			game.Word,
 		),
 	}, true)
 }
@@ -46,14 +58,14 @@ func (m *AdminGetWordModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
 			Name:        "get-word",
-			Description: "Check if a word exists or show total word count",
+			Description: "Get the current game's answer for a guild",
 			Handler:     discordgoplus.HandlerFunc(m.getWord),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "word",
-					Description: "The word to check.",
-					Required:    false,
+					Name:        "guild",
+					Description: "The guildId to target.",
+					Required:    true,
 				},
 			},
 		},

@@ -20,18 +20,44 @@ func AddGuildListeners(container *di.Container) {
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildCreate) {
 		ctx := context.Background()
-		if _, err := settingsSvc.GetByGuildID(ctx, event.ID, true); err != nil {
+
+		settings, err := settingsSvc.GetByGuildID(
+			ctx,
+			event.ID,
+			false,
+		)
+		if err != nil {
+			utils.Logger.Warnf(
+				"guild create: failed to retrieve settings for %s: %v",
+				event.ID,
+				err,
+			)
+		}
+
+		if settings != nil {
+			return
+		}
+
+		utils.Logger.Infof("Joined guild: %s", event.Name)
+
+		if _, err := settingsSvc.GetByGuildID(
+			ctx,
+			event.ID,
+			true,
+		); err != nil {
 			utils.Logger.Warnf(
 				"guild create: seed settings failed for %s: %v",
 				event.ID,
 				err,
 			)
 		}
+
 		go localUtils.SendWelcomeMessage(bot, event.ID)
 	})
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildDelete) {
 		utils.Logger.Infof("Left guild: %s", event.ID)
+
 		if err := settingsSvc.Delete(
 			context.Background(),
 			event.ID,

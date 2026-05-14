@@ -28,7 +28,7 @@ func GetSetInformCooldownModule(
 func (m *SetInformCooldownModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	enabled := ctx.Options["enabled"].BoolValue()
+	enabled := ctx.Options["value"].BoolValue()
 
 	if _, err := m.settings.Set(
 		context.Background(),
@@ -53,13 +53,13 @@ func (m *SetInformCooldownModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetInformCooldownModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-inform-cooldown",
+			Name:        "inform-cooldown",
 			Description: "Set whether to inform users of their cooldown after a guess",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,
-					Name:        "enabled",
+					Name:        "value",
 					Description: "Whether to inform users of their cooldown after a guess.",
 					Required:    true,
 				},

@@ -62,7 +62,7 @@ func (m *MessageService) Create(
 		}()
 	}
 
-	embed, err := m.buildEmbed(game, guesses)
+	embed, err := m.buildEmbed(game, guesses, settings)
 	if err != nil {
 		return fmt.Errorf("message: create: build embed: %w", err)
 	}
@@ -112,6 +112,7 @@ func (m *MessageService) Create(
 func (m *MessageService) buildEmbed(
 	game *db.GameModel,
 	guesses []db.GuessModel,
+	settings *db.SettingsModel,
 ) (*discordgo.MessageEmbed, error) {
 	meta, err := localUtils.ParseGameMeta(json.RawMessage(game.Meta))
 	if err != nil {
@@ -120,7 +121,7 @@ func (m *MessageService) buildEmbed(
 
 	rows := m.buildRows(guesses, game.Status)
 	keyboard := m.buildKeyboard(meta)
-	info := m.buildGameInfo(game, meta, len(guesses))
+	info := m.buildGameInfo(game, meta, len(guesses), settings)
 
 	color := localStatic.EmbedColorInProgress
 	switch game.Status {
@@ -248,6 +249,7 @@ func (m *MessageService) buildGameInfo(
 	game *db.GameModel,
 	_ *localUtils.GameMeta,
 	guessCount int,
+	settings *db.SettingsModel,
 ) string {
 	footer := "Don't know how to play? Use the /tutorial commands for detailed instructions."
 
@@ -275,9 +277,14 @@ func (m *MessageService) buildGameInfo(
 			envSuffix,
 		)
 	case db.GameStatusOutOfTime:
+		nextAt := game.CreatedAt.Add(
+			time.Duration(settings.Frequency) * time.Minute,
+		)
+		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", nextAt.Unix())
 		return fmt.Sprintf(
-			"\nTime's up! The correct word was **%s**!\n\n%s%s",
+			"\nTime's up! The correct word was **%s**!\n%s\n\n%s%s",
 			strings.ToUpper(game.Word),
+			nextKoto,
 			footer,
 			envSuffix,
 		)

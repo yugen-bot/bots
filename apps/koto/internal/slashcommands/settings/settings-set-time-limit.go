@@ -27,7 +27,7 @@ func GetSetTimeLimitModule(container *di.Container) *SetTimeLimitModule {
 func (m *SetTimeLimitModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	minutes := int(ctx.Options["time-limit"].IntValue())
+	minutes := int(ctx.Options["minutes"].IntValue())
 
 	if _, err := m.settings.Set(
 		context.Background(),
@@ -49,13 +49,13 @@ func (m *SetTimeLimitModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetTimeLimitModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-time-limit",
+			Name:        "time-limit",
 			Description: "Set the time limit per game in minutes",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "time-limit",
+					Name:        "minutes",
 					Description: "Time limit per game in minutes.",
 					Required:    true,
 					MinValue:    func() *float64 { v := float64(1); return &v }(),

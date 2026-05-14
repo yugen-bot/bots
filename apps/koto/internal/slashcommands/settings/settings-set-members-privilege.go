@@ -28,7 +28,7 @@ func GetSetMembersPrivilegeModule(
 func (m *SetMembersPrivilegeModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	enabled := ctx.Options["enabled"].BoolValue()
+	enabled := ctx.Options["value"].BoolValue()
 
 	if _, err := m.settings.Set(
 		context.Background(),
@@ -53,13 +53,13 @@ func (m *SetMembersPrivilegeModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetMembersPrivilegeModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-members-privilege",
+			Name:        "members-privilege",
 			Description: "Set whether members can start games",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,
-					Name:        "enabled",
+					Name:        "value",
 					Description: "Whether members can start games using /game start.",
 					Required:    true,
 				},

@@ -48,6 +48,7 @@ func InitSchedule(container *di.Container) {
 				utils.Logger.Warnf("schedule: end game %d: %v", game.ID, endErr)
 				continue
 			}
+
 			// Auto-start if configured
 			settings, sErr := settingsSvc.GetByGuildID(ctx, game.GuildID)
 			if sErr == nil && settings != nil && settings.AutoStart {
@@ -59,6 +60,7 @@ func InitSchedule(container *di.Container) {
 					false,
 					"",
 				)
+
 				if startErr != nil {
 					utils.Logger.Warnf(
 						"schedule: auto-start after end for %s: %v",
@@ -66,6 +68,7 @@ func InitSchedule(container *di.Container) {
 						startErr,
 					)
 				}
+
 				if started {
 					startedGames++
 				}
@@ -92,6 +95,7 @@ func InitSchedule(container *di.Container) {
 			}
 
 			checkedGuilds++
+
 			if started := checkAndStartGame(
 				ctx,
 				database,
@@ -130,6 +134,7 @@ func checkAndStartGame(
 	).OrderBy(
 		db.Game.CreatedAt.Order(db.SortOrderDesc),
 	).Take(1).Exec(ctx)
+
 	if err != nil || len(lastGames) == 0 {
 		// No previous game → start immediately
 		started, startErr := gameSvc.Start(
@@ -139,6 +144,7 @@ func checkAndStartGame(
 			false,
 			"",
 		)
+
 		if startErr != nil {
 			utils.Logger.Warnf(
 				"schedule: initial start for %s: %v",
@@ -147,6 +153,7 @@ func checkAndStartGame(
 			)
 			return false
 		}
+
 		return started
 	}
 
@@ -154,6 +161,7 @@ func checkAndStartGame(
 
 	// Determine base time for frequency check
 	baseTime := lastGame.CreatedAt
+
 	if setting.StartAfterFirstGuess {
 		firstGuesses, gErr := database.Guess.FindMany(
 			db.Guess.GameID.Equals(lastGame.ID),

@@ -14,14 +14,14 @@ import (
 
 var settingsResetChoices = []*discordgo.ApplicationCommandOptionChoice{
 	{Name: "Channel", Value: "channel"},
-	{Name: "Role", Value: "role"},
-	{Name: "Frequency", Value: "frequency"},
+	{Name: "Ping role", Value: "role"},
+	{Name: "Game frequency", Value: "frequency"},
 	{Name: "Time limit", Value: "time-limit"},
-	{Name: "Cooldown", Value: "cooldown"},
+	{Name: "Answer cooldown", Value: "cooldown"},
 	{Name: "Back-to-back cooldown", Value: "back-to-back-cooldown"},
 	{Name: "Inform cooldown", Value: "inform-cooldown"},
 	{Name: "Auto start", Value: "auto-start"},
-	{Name: "Members privilege", Value: "members-privilege"},
+	{Name: "Member privilege", Value: "members-privilege"},
 	{Name: "Start after first guess", Value: "start-after-first-guess"},
 	{Name: "Bot updates channel", Value: "bot-updates-channel"},
 	{Name: "All settings", Value: "all"},

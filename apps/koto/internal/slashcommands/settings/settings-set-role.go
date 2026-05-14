@@ -30,7 +30,7 @@ func (m *SetRoleModule) set(ctx *discordgoplus.Ctx) {
 	role := ctx.Options["role"].RoleValue(ctx.Session, ctx.Interaction.GuildID)
 
 	params := []db.SettingsSetParam{db.Settings.PingRoleID.Set(role.ID)}
-	if opt, ok := ctx.Options["ping-only-new"]; ok {
+	if opt, ok := ctx.Options["only-new"]; ok {
 		params = append(params, db.Settings.PingOnlyNew.Set(opt.BoolValue()))
 	}
 
@@ -50,7 +50,7 @@ func (m *SetRoleModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetRoleModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-role",
+			Name:        "ping-role",
 			Description: "Set the role to ping when a new game starts",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
@@ -62,7 +62,7 @@ func (m *SetRoleModule) Commands() []*discordgoplus.Command {
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,
-					Name:        "ping-only-new",
+					Name:        "only-new",
 					Description: "Only ping on new games (not recreates). Default: true.",
 					Required:    false,
 				},

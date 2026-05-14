@@ -28,12 +28,12 @@ func GetSetBackToBackCooldownModule(
 func (m *SetBackToBackCooldownModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	enable := ctx.Options["enable"].BoolValue()
+	enable := ctx.Options["enabled"].BoolValue()
 
 	params := []db.SettingsSetParam{
 		db.Settings.EnableBackToBackCooldown.Set(enable),
 	}
-	if opt, ok := ctx.Options["duration"]; ok {
+	if opt, ok := ctx.Options["seconds"]; ok {
 		params = append(
 			params,
 			db.Settings.BackToBackCooldown.Set(int(opt.IntValue())),
@@ -62,19 +62,19 @@ func (m *SetBackToBackCooldownModule) set(ctx *discordgoplus.Ctx) {
 func (m *SetBackToBackCooldownModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-back-to-back-cooldown",
+			Name:        "back-to-back-cooldown",
 			Description: "Enable or disable back-to-back guess cooldown",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionBoolean,
-					Name:        "enable",
+					Name:        "enabled",
 					Description: "Enable or disable the back-to-back cooldown.",
 					Required:    true,
 				},
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
-					Name:        "duration",
+					Name:        "seconds",
 					Description: "Duration of the back-to-back cooldown in seconds.",
 					Required:    false,
 					MinValue:    func() *float64 { v := float64(0); return &v }(),

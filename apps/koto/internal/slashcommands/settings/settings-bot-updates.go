@@ -49,7 +49,7 @@ func (m *BotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 func (m *BotUpdatesModule) Commands() []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
-			Name:        "set-bot-updates",
+			Name:        "bot-updates",
 			Description: "Set the channel for bot update notifications",
 			Handler:     discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
