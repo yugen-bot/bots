@@ -48,12 +48,20 @@ func AddGuildListeners(container *di.Container) {
 		}
 
 		if _, err := settingsSvc.GetByGuildID(ctx, event.ID); err != nil {
-			utils.Logger.With("guildID", event.ID).Warn("Failed to seed settings on guild create")
+			utils.Logger.With("guildID", event.ID).
+				Warn("Failed to seed settings on guild create")
 		}
 	})
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildDelete) {
 		utils.Logger.Infof("Left guild: %s", event.ID)
-		settingsSvc.Delete(context.Background(), event.ID)
+
+		if err := settingsSvc.Delete(context.Background(), event.ID); err != nil {
+			utils.Logger.Warnw(
+				"guild: delete settings failed",
+				"guildID", event.ID,
+				"error", err,
+			)
+		}
 	})
 }

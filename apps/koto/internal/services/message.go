@@ -58,7 +58,11 @@ func (m *MessageService) Create(
 	// Delete previous message if exists
 	if lastMsgID, ok := game.LastMessageID(); ok && lastMsgID != "" {
 		go func() {
-			m.bot.ChannelMessageDelete(channelID, lastMsgID)
+			utils.LogIfErr(
+				utils.Logger,
+				"channel-message-delete",
+				m.bot.ChannelMessageDelete(channelID, lastMsgID),
+			)
 		}()
 	}
 
@@ -91,12 +95,7 @@ func (m *MessageService) Create(
 		},
 	)
 	if err != nil {
-		utils.Logger.Warnf(
-			"message: create: send failed for guild %s: %v",
-			game.GuildID,
-			err,
-		)
-		return nil
+		return fmt.Errorf("message: create: send: %w", err)
 	}
 
 	// Update game with new message ID

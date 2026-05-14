@@ -22,7 +22,7 @@ func InitSchedule(container *di.Container) {
 	gameSvc := container.Get(localStatic.DiGame).(*services.GameService)
 	settingsSvc := container.Get(sharedStatic.DiSettings).(*services.SettingsService)
 
-	c.AddFunc("* * * * *", func() { //nolint:errcheck
+	if _, err := c.AddFunc("* * * * *", func() {
 		ctx := context.Background()
 
 		outOfTimeCount := 0
@@ -57,7 +57,13 @@ func InitSchedule(container *di.Container) {
 
 			time.Sleep(500 * time.Millisecond)
 
-			started, startErr := gameSvc.Start(ctx, game.GuildID, false, false, "")
+			started, startErr := gameSvc.Start(
+				ctx,
+				game.GuildID,
+				false,
+				false,
+				"",
+			)
 			if startErr != nil {
 				utils.Logger.Warnf(
 					"schedule: auto-start after end for %s: %v",
@@ -108,7 +114,9 @@ func InitSchedule(container *di.Container) {
 			checkedGuilds,
 			startedGames,
 		)
-	})
+	}); err != nil {
+		panic(err)
+	}
 }
 
 func checkAndStartGame(
