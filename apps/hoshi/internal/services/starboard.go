@@ -40,13 +40,14 @@ func (s *StarboardService) CheckReaction(
 		return
 	}
 
+	// Resolve parent channel when reacting inside a thread
 	sourceChannelID := channelID
+
 	ch, err := s.bot.Channel(channelID)
-	if err == nil && ch != nil {
-		if ch.Type == discordgo.ChannelTypeGuildPublicThread ||
-			ch.Type == discordgo.ChannelTypeGuildPrivateThread {
-			sourceChannelID = ch.ParentID
-		}
+	if err == nil && ch != nil &&
+		(ch.Type == discordgo.ChannelTypeGuildPublicThread ||
+			ch.Type == discordgo.ChannelTypeGuildPrivateThread) {
+		sourceChannelID = ch.ParentID
 	}
 
 	if slices.Contains(settings.IgnoredChannelIds, sourceChannelID) {
