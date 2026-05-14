@@ -83,7 +83,6 @@ func (service *GameService) Start(ctx context.Context, guildID string, gameType 
 	}
 
 	if exists && !recreate {
-		started = false
 		return game, started, err
 	}
 
@@ -245,24 +244,19 @@ func (service *GameService) AddNumber(ctx context.Context, guildID string, numbe
 	isSameUser := message.Author.ID == history.UserID && service.cfg.Env != "development"
 
 	if !isNextNumber || isSameUser {
+		// Build failure reason
 		failReason := fmt.Sprintf("<@%s> counted twice in a row!", message.Author.ID)
-
 		if !isNextNumber {
 			failReason = fmt.Sprintf("%d is not the next number!", number)
 		}
 
-		if err != nil {
-			utils.Logger.Error(err)
-			return
-		}
+		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌"))
 
 		saves, err := service.saves.GetSaves(ctx, settings, message.Author.ID)
 		if err != nil {
 			utils.Logger.Error(err)
 			return
 		}
-
-		utils.LogIfErr(utils.Logger, "message-reaction-add", service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌"))
 
 		if saves.player >= 1 {
 			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromPlayer(ctx, message.Author.ID, 1)
@@ -322,7 +316,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			highScoreText = "\n**A new highscore has been set! 🎉**"
 		}
 
+		// Deduct points from the player who broke the chain
 		pointsRemoved := int(history.Number / 10)
+
 		go func() {
 			utils.LogIfErr(utils.Logger, "remove-game-points", service.points.RemoveGamePoints(ctx, guildID, message.Author.ID, pointsRemoved))
 		}()
@@ -331,13 +327,12 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			pointsRemoved = 1
 		}
 
-		pointsRemovedText := ""
 		pointText := "Points have"
 		if pointsRemoved == 1 {
 			pointText = "Point has"
 		}
 
-		pointsRemovedText = fmt.Sprintf("\n\n**%d %s been removed from your account.**", pointsRemoved, pointText)
+		pointsRemovedText := fmt.Sprintf("\n\n**%d %s been removed from your account.**", pointsRemoved, pointText)
 
 		go func() {
 			_, sendErr := service.bot.ChannelMessageSendReply(
@@ -387,9 +382,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
+	// Record points and history
 	go func() {
 		utils.LogIfErr(utils.Logger, "add-game-points", service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1))
 	}()
+
 	_, err = service.database.History.CreateOne(
 		db.History.UserID.Set(message.Author.ID),
 		db.History.Game.Link(db.Game.ID.Equals(game.ID)),
@@ -401,6 +398,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
+	// Check streak and react
 	isHighscore, isGameHighscored, err := service.checkStreak(ctx, settings, game, number)
 
 	if isGameHighscored {
@@ -513,25 +511,26 @@ func (service *GameService) GetLastHistory(ctx context.Context, game *db.GameMod
 }
 
 func (service *GameService) checkStreak(ctx context.Context, settings *db.SettingsModel, game *db.GameModel, number int) (isHighscore bool, isGameHighscored bool, err error) {
-	isHighscore = false
-	isGameHighscored = false
-
-	if number > settings.Highscore {
-		isHighscore = true
-		go service.settings.SetHighscoreByGuildID(ctx, settings.GuildID, number)
-
-		if !game.IsHighscored {
-			isGameHighscored = true
-
-			go service.database.Game.FindUnique(
-				db.Game.ID.Equals(game.ID),
-			).Update(
-				db.Game.IsHighscored.Set(true),
-			).Exec(ctx)
-		}
+	if number <= settings.Highscore {
+		return false, false, nil
 	}
 
-	return isHighscore, isGameHighscored, err
+	isHighscore = true
+	go service.settings.SetHighscoreByGuildID(ctx, settings.GuildID, number)
+
+	if game.IsHighscored {
+		return isHighscore, false, nil
+	}
+
+	isGameHighscored = true
+
+	go service.database.Game.FindUnique(
+		db.Game.ID.Equals(game.ID),
+	).Update(
+		db.Game.IsHighscored.Set(true),
+	).Exec(ctx) //nolint:errcheck
+
+	return isHighscore, isGameHighscored, nil
 }
 
 func (service *GameService) checkCooldown(ctx context.Context, userID string, gameID int, settingsCooldown int) (cooldown time.Time, err error) {
