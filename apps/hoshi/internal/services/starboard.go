@@ -36,7 +36,13 @@ func (s *StarboardService) CheckReaction(
 ) {
 	settings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
-		utils.Logger.Errorw("starboard: check reaction: get settings failed", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"starboard: check reaction: get settings failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return
 	}
 
@@ -113,13 +119,33 @@ func (s *StarboardService) CheckReaction(
 		"",
 	)
 	if err != nil {
-		utils.Logger.Errorw("starboard: check reaction: get message reactions failed", "error", err, "guildID", guildID, "channelID", channelID, "messageID", messageID)
+		utils.Logger.Errorw(
+			"starboard: check reaction: get message reactions failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+			"channelID",
+			channelID,
+			"messageID",
+			messageID,
+		)
 		return
 	}
 
 	msg, err := s.bot.ChannelMessage(channelID, messageID)
 	if err != nil {
-		utils.Logger.Errorw("starboard: check reaction: get channel message failed", "error", err, "guildID", guildID, "channelID", channelID, "messageID", messageID)
+		utils.Logger.Errorw(
+			"starboard: check reaction: get channel message failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+			"channelID",
+			channelID,
+			"messageID",
+			messageID,
+		)
 		return
 	}
 
@@ -166,10 +192,8 @@ func (s *StarboardService) CheckReaction(
 		return
 	}
 
-	displayEmoji := reactionEmoji
-
 	if log != nil {
-		s.updateStarboard(count, embed, msg, displayEmoji, log)
+		s.updateStarboard(count, embed, msg, emojiName, emojiID, log)
 		return
 	}
 
@@ -179,7 +203,8 @@ func (s *StarboardService) CheckReaction(
 		embed,
 		msg,
 		config.TargetChannelID,
-		displayEmoji,
+		emojiName,
+		emojiID,
 	)
 }
 
@@ -229,7 +254,7 @@ func (s *StarboardService) GetStarboardBySourceIDAndEmoji(
 	}
 
 	result, err := s.database.Starboards.FindFirst(params...).Exec(ctx)
-	if err != nil {
+	if err != nil && err != db.ErrNotFound {
 		return nil, fmt.Errorf("starboard: get by source and emoji: %w", err)
 	}
 	return result, nil
@@ -345,11 +370,22 @@ func (s *StarboardService) createEmbed(
 
 func (s *StarboardService) createContentString(
 	count int,
-	emoji string,
+	emojiName, emojiID string,
 	msg *discordgo.Message,
 ) string {
+	display := emojiName
+	if emojiID != "" {
+		display = fmt.Sprintf("<:%s:%s>", emojiName, emojiID)
+	}
 	return fmt.Sprintf("**%d %s** at https://discord.com/channels/%s/%s/%s",
-		count, emoji, msg.GuildID, msg.ChannelID, msg.ID)
+		count, display, msg.GuildID, msg.ChannelID, msg.ID)
+}
+
+func emojiAPIFormat(emojiName, emojiID string) string {
+	if emojiID != "" {
+		return fmt.Sprintf("%s:%s", emojiName, emojiID)
+	}
+	return emojiName
 }
 
 func (s *StarboardService) createStarboard(
@@ -357,17 +393,31 @@ func (s *StarboardService) createStarboard(
 	count int,
 	embed *discordgo.MessageEmbed,
 	msg *discordgo.Message,
-	targetChannelID, emoji string,
+	targetChannelID,
+	emojiName,
+	emojiID string,
 ) {
 	sent, err := s.bot.ChannelMessageSendComplex(
 		targetChannelID,
 		&discordgo.MessageSend{
-			Content: s.createContentString(count, emoji, msg),
+			Content: s.createContentString(count, emojiName, emojiID, msg),
 			Embeds:  []*discordgo.MessageEmbed{embed},
 		},
 	)
 	if err != nil {
-		utils.Logger.Errorw("starboard: create starboard: send message failed", "error", err, "guildID", msg.GuildID, "channelID", msg.ChannelID, "messageID", msg.ID, "targetChannelID", targetChannelID)
+		utils.Logger.Errorw(
+			"starboard: create starboard: send message failed",
+			"error",
+			err,
+			"guildID",
+			msg.GuildID,
+			"channelID",
+			msg.ChannelID,
+			"messageID",
+			msg.ID,
+			"targetChannelID",
+			targetChannelID,
+		)
 		return
 	}
 
@@ -391,7 +441,7 @@ func (s *StarboardService) createStarboard(
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		s.bot.MessageReactionAdd(targetChannelID, sent.ID, emoji),
+		s.bot.MessageReactionAdd(targetChannelID, sent.ID, emojiAPIFormat(emojiName, emojiID)),
 	)
 	utils.LogIfErr(
 		utils.Logger,
@@ -404,17 +454,28 @@ func (s *StarboardService) updateStarboard(
 	count int,
 	embed *discordgo.MessageEmbed,
 	msg *discordgo.Message,
-	emoji string,
+	emojiName, emojiID string,
 	log *db.LogModel,
 ) {
+	content := s.createContentString(count, emojiName, emojiID, msg)
 	_, err := s.bot.ChannelMessageEditComplex(&discordgo.MessageEdit{
 		Channel: log.ChannelID,
 		ID:      log.MessageID,
-		Content: func() *string { c := s.createContentString(count, emoji, msg); return &c }(),
+		Content: &content,
 		Embeds:  &[]*discordgo.MessageEmbed{embed},
 	})
 	if err != nil {
-		utils.Logger.Errorw("starboard: update starboard: edit message failed", "error", err, "guildID", msg.GuildID, "channelID", log.ChannelID, "messageID", log.MessageID)
+		utils.Logger.Errorw(
+			"starboard: update starboard: edit message failed",
+			"error",
+			err,
+			"guildID",
+			msg.GuildID,
+			"channelID",
+			log.ChannelID,
+			"messageID",
+			log.MessageID,
+		)
 	}
 }
 
@@ -424,7 +485,17 @@ func (s *StarboardService) deleteStarboard(
 ) {
 	err := s.bot.ChannelMessageDelete(log.ChannelID, log.MessageID)
 	if err != nil {
-		utils.Logger.Errorw("starboard: delete starboard: delete message failed", "error", err, "guildID", log.GuildID, "channelID", log.ChannelID, "messageID", log.MessageID)
+		utils.Logger.Errorw(
+			"starboard: delete starboard: delete message failed",
+			"error",
+			err,
+			"guildID",
+			log.GuildID,
+			"channelID",
+			log.ChannelID,
+			"messageID",
+			log.MessageID,
+		)
 		return
 	}
 
