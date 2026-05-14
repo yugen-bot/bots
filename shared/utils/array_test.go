@@ -14,6 +14,7 @@ func TestUnpackArray(t *testing.T) {
 		if len(out) != len(in) {
 			t.Fatalf("len = %d, want %d", len(out), len(in))
 		}
+
 		for i, v := range in {
 			if out[i] != v {
 				t.Errorf("out[%d] = %v, want %v", i, out[i], v)
@@ -28,6 +29,7 @@ func TestUnpackArray(t *testing.T) {
 		if len(out) != len(in) {
 			t.Fatalf("len = %d, want %d", len(out), len(in))
 		}
+
 		for i, v := range in {
 			if out[i] != v {
 				t.Errorf("out[%d] = %v, want %v", i, out[i], v)
@@ -37,6 +39,7 @@ func TestUnpackArray(t *testing.T) {
 
 	t.Run("empty slice", func(t *testing.T) {
 		in := []float64{}
+
 		out := UnpackArray(in)
 		if len(out) != 0 {
 			t.Errorf("want empty slice, got len %d", len(out))

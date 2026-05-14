@@ -32,6 +32,7 @@ func RunHTTP(ctx context.Context, container *di.Container) error {
 
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	addr := fmt.Sprintf("%s:%s", cfg.APIHost, cfg.APIPort)
+
 	utils.Logger.Info("Initializing api...")
 
 	errCh := make(chan error, 1)
@@ -42,11 +43,13 @@ func RunHTTP(ctx context.Context, container *di.Container) error {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		utils.Logger.Info("Shutting down HTTP server...")
+
 		return app.ShutdownWithContext(shutdownCtx)
 	case err := <-errCh:
 		if err != nil {
 			return fmt.Errorf("api: listen: %w", err)
 		}
+
 		return nil
 	}
 }

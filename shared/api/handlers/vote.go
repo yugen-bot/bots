@@ -42,24 +42,16 @@ func (handler *VoteHandler) AddRoutes(app *fiber.App, router fiber.Router) {
 }
 
 func (handler *VoteHandler) authMiddleware(c *fiber.Ctx) error {
-	headers := c.GetReqHeaders()
-
-	authHeader := headers["Authorization"]
-	if len(authHeader) == 0 {
-		return c.SendStatus(403)
-	}
-
-	authHeaderValue := authHeader[0]
-	if len(authHeaderValue) == 0 {
+	authHeader := c.GetReqHeaders()["Authorization"]
+	if len(authHeader) == 0 || len(authHeader[0]) == 0 {
 		return c.SendStatus(403)
 	}
 
 	cfg := handler.container.Get(static.DiConfig).(*config.Config)
-	if authHeaderValue != cfg.WebhookAuthorizationToken {
+	if authHeader[0] != cfg.WebhookAuthorizationToken {
 		return c.SendStatus(403)
 	}
 
-	// Continue to the next middleware or route handling function
 	return c.Next()
 }
 

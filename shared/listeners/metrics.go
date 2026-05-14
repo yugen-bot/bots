@@ -18,12 +18,14 @@ func setLatency(bot *discordgoplus.Bot) {
 
 func reloadGuilds(bot *discordgoplus.Bot) {
 	time.Sleep(time.Second)
+
 	guilds := bot.State.Guilds
 	metrics.TotalGuilds.Set(float64(len(guilds)))
 }
 
 func reloadChannels(bot *discordgoplus.Bot) {
 	time.Sleep(time.Second)
+
 	guilds := bot.State.Guilds
 
 	channelsLen := 0
@@ -36,7 +38,9 @@ func reloadChannels(bot *discordgoplus.Bot) {
 
 func reloadInteractions(bot *discordgoplus.Bot) {
 	time.Sleep(time.Second)
+
 	interactionsLen := 0
+
 	for _, command := range bot.Router.Commands {
 		if command.SubCommands != nil {
 			interactionsLen = interactionsLen + len(command.SubCommands.Commands)
@@ -66,6 +70,7 @@ func AddMetricsListeners(container *di.Container) {
 
 	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
 		metrics.DiscordConnected.Set(1)
+
 		go reloadGuages(bot)
 	})
 

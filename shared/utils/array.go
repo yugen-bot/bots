@@ -6,5 +6,6 @@ func UnpackArray[T any](in []T) []any {
 	for i, v := range in {
 		out[i] = v
 	}
+
 	return out
 }

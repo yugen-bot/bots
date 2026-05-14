@@ -27,18 +27,7 @@ func checkBase(ctx *discordgoplus.Ctx) (bool, error) {
 		return false, errors.New("member not accessible")
 	}
 
-	interaction := ctx.Interaction
-
-	if interaction == nil {
-		return true, nil
-	}
-
-	member := interaction.Member
-	if member == nil {
-		return false, nil
-	}
-
-	if len(ownerIDs) > 0 && slices.Contains(ownerIDs, interaction.Member.User.ID) {
+	if len(ownerIDs) > 0 && slices.Contains(ownerIDs, ctx.Interaction.Member.User.ID) {
 		return true, nil
 	}
 
@@ -71,6 +60,7 @@ func checkModerator(ctx *discordgoplus.Ctx) (bool, error) {
 	}
 
 	perms := ctx.Interaction.Member.Permissions
+
 	return perms&discordgo.PermissionBanMembers != 0, nil
 }
 
@@ -91,6 +81,7 @@ func checkResponse(ctx *discordgoplus.Ctx, pass bool, err error) {
 		if err != nil {
 			utils.Logger.Error(err)
 		}
+
 		return
 	}
 

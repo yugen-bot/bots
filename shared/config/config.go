@@ -37,14 +37,14 @@ type Config struct {
 	VoteChannelID string `env:"DISCORD_VOTE_REPORT_CHANNEL_ID"`
 
 	// Top.GG
-	TopGGSync      bool   `env:"TOP_GG_SYNC"      envDefault:"false"`
-	TopGGToken     string `env:"TOP_GG_TOKEN"`
-	TopGGVoteLink  string `env:"TOP_GG_VOTE_LINK"`
+	TopGGSync     bool   `env:"TOP_GG_SYNC"      envDefault:"false"`
+	TopGGToken    string `env:"TOP_GG_TOKEN"`
+	TopGGVoteLink string `env:"TOP_GG_VOTE_LINK"`
 
 	// DiscordBotList
-	DiscordBotListSync      bool   `env:"DISCORDBOTLIST_SYNC"      envDefault:"false"`
-	DiscordBotListToken     string `env:"DISCORDBOTLIST_TOKEN"`
-	DiscordBotListVoteLink  string `env:"DISCORDBOTLIST_VOTE_LINK"`
+	DiscordBotListSync     bool   `env:"DISCORDBOTLIST_SYNC"      envDefault:"false"`
+	DiscordBotListToken    string `env:"DISCORDBOTLIST_TOKEN"`
+	DiscordBotListVoteLink string `env:"DISCORDBOTLIST_VOTE_LINK"`
 
 	// Webhook auth
 	WebhookAuthorizationToken string `env:"WEBHOOK_AUTHORIZATION_TOKEN"`
@@ -73,5 +73,6 @@ func Load() (Config, error) {
 	if c.OwnerID == "" && len(c.OwnerIDs) > 0 {
 		c.OwnerID = c.OwnerIDs[0]
 	}
+
 	return c, nil
 }
