@@ -21,12 +21,15 @@ type WordsService struct {
 func CreateWordsService() *WordsService {
 	utils.Logger.Info("Creating Words Service")
 
-	var words []string
-	var exists []string
+	var (
+		words  []string
+		exists []string
+	)
 
 	if err := json.Unmarshal(assets.WordsJSON, &words); err != nil {
 		utils.Logger.Fatalw("words: unmarshal words", "error", err)
 	}
+
 	if err := json.Unmarshal(assets.ExistsJSON, &exists); err != nil {
 		utils.Logger.Fatalw("words: unmarshal exists", "error", err)
 	}
@@ -39,16 +42,19 @@ func CreateWordsService() *WordsService {
 		len(words),
 		len(exists),
 	)
+
 	return svc
 }
 
 func (s *WordsService) buildMaps(words []string, exists []string) {
 	// Build wordsByLetter: group words by first letter
 	s.wordsByLetter = make(map[byte][]string)
+
 	for _, w := range words {
 		if len(w) == 0 {
 			continue
 		}
+
 		letter := strings.ToLower(w)[0]
 		s.wordsByLetter[letter] = append(s.wordsByLetter[letter], w)
 	}
@@ -62,6 +68,7 @@ func (s *WordsService) buildMaps(words []string, exists []string) {
 
 	// Build cumulative weights (weight = word count per letter)
 	s.cumulativeLetterWeights = make([]float64, len(s.letters))
+
 	var cumulative float64
 	for i, letter := range s.letters {
 		cumulative += float64(len(s.wordsByLetter[letter]))
@@ -70,10 +77,12 @@ func (s *WordsService) buildMaps(words []string, exists []string) {
 
 	// Build existsByLetter: includes both words and exists lists
 	s.existsByLetter = make(map[byte][]string)
+
 	for _, w := range append(words, exists...) {
 		if len(w) == 0 {
 			continue
 		}
+
 		letter := strings.ToLower(w)[0]
 		s.existsByLetter[letter] = append(s.existsByLetter[letter], w)
 	}
@@ -83,6 +92,7 @@ func (s *WordsService) buildMaps(words []string, exists []string) {
 // hard=true uses existsByLetter (larger list), hard=false uses wordsByLetter (game words only).
 func (s *WordsService) GetRandom(ignored []string, hard bool) string {
 	letter := s.randomLetter()
+
 	var wordList []string
 	if hard {
 		wordList = s.existsByLetter[letter]
@@ -109,8 +119,10 @@ func (s *WordsService) Exists(word string) bool {
 	if len(word) == 0 {
 		return false
 	}
+
 	letter := strings.ToLower(word)[0]
 	words := s.existsByLetter[letter]
+
 	return slices.Contains(words, strings.ToLower(word))
 }
 
@@ -118,6 +130,7 @@ func (s *WordsService) randomLetter() byte {
 	if len(s.cumulativeLetterWeights) == 0 {
 		return 'a'
 	}
+
 	max := s.cumulativeLetterWeights[len(s.cumulativeLetterWeights)-1]
 	r := rand.Float64() * max
 
@@ -128,9 +141,11 @@ func (s *WordsService) randomLetter() byte {
 			if a < b {
 				return -1
 			}
+
 			if a > b {
 				return 1
 			}
+
 			return 0
 		},
 	)
@@ -138,5 +153,6 @@ func (s *WordsService) randomLetter() byte {
 	if idx >= len(s.letters) {
 		idx = len(s.letters) - 1
 	}
+
 	return s.letters[idx]
 }

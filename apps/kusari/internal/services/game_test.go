@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
@@ -41,6 +42,7 @@ func TestFirstLetterRegex(t *testing.T) {
 		t.Run(tc.input, func(t *testing.T) {
 			// Only test the first character as the service does: string(word[0])
 			first := string(tc.input)
+
 			got := firstLetterRegex.MatchString(first)
 			if got != tc.want {
 				t.Errorf(
@@ -70,6 +72,7 @@ func TestLastLetterRegex(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
 			last := tc.input
+
 			got := lastLetterRegex.MatchString(last)
 			if got != tc.want {
 				t.Errorf(
@@ -166,9 +169,10 @@ func TestParseWord(t *testing.T) {
 			gotWord, gotErr := svc.ParseWord(msg)
 
 			// Assert
-			if gotErr != tc.wantErr {
+			if !errors.Is(gotErr, tc.wantErr) {
 				t.Errorf("want error %v, got %v", tc.wantErr, gotErr)
 			}
+
 			if gotWord != tc.wantWord {
 				t.Errorf("want word %q, got %q", tc.wantWord, gotWord)
 			}
@@ -193,6 +197,7 @@ func TestGetRandomLetter(t *testing.T) {
 		if letter == "" {
 			t.Fatal("getRandomLetter returned empty string")
 		}
+
 		if !validLetters[letter] {
 			t.Errorf("getRandomLetter returned unexpected letter %q", letter)
 		}

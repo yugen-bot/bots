@@ -18,6 +18,7 @@ type SettingsService struct {
 
 func CreateSettingsService(container *di.Container) *SettingsService {
 	utils.Logger.Info("Creating Settings Service")
+
 	return &SettingsService{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
@@ -62,6 +63,7 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 	if err != nil {
 		return fmt.Errorf("settings: delete: %w", err)
 	}
+
 	return nil
 }
 
@@ -77,6 +79,7 @@ func (s *SettingsService) Set(
 	if err != nil {
 		return nil, fmt.Errorf("settings: set: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -128,6 +131,7 @@ func (s *SettingsService) Reset(
 	isAll := len(fields) == 1 && fields[0] == "all"
 
 	var params []db.SettingsSetParam
+
 	if isAll {
 		for _, p := range allParams {
 			params = append(params, p...)

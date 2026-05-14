@@ -36,6 +36,7 @@ func (m *AdminGetWordModule) getWord(ctx *discordgoplus.Ctx) {
 				guildID,
 			),
 		}, true)
+
 		return
 	}
 
@@ -43,6 +44,7 @@ func (m *AdminGetWordModule) getWord(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Guild currently has no game running.",
 		}, true)
+
 		return
 	}
 

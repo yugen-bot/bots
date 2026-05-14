@@ -23,7 +23,13 @@ func CreateVoteHandler(
 	return func(userID string, source string) error {
 		user, err := bot.User(userID)
 		if err != nil {
-			utils.Logger.Errorw("vote handler: get user failed", "error", err, "userID", userID)
+			utils.Logger.Errorw(
+				"vote handler: get user failed",
+				"error",
+				err,
+				"userID",
+				userID,
+			)
 			return err
 		}
 
@@ -33,11 +39,14 @@ func CreateVoteHandler(
 		).Infof("Processing vote for %s from %s", userID, source)
 
 		amount := 0.25
+
 		weekday := time.Now().Weekday()
 		if weekday == time.Saturday || weekday == time.Sunday {
 			amount = 0.5
 		}
+
 		_, _, err = saves.AddSaveToPlayer(context.Background(), user.ID, amount)
+
 		return err
 	}
 }
@@ -45,12 +54,19 @@ func CreateVoteHandler(
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	voteReward := func(userID string) string {
 		saves := container.Get(localStatic.DiSaves).(*services.SavesService)
+
 		player, err := saves.GetPlayerSavesByUserID(
 			context.Background(),
 			userID,
 		)
 		if err != nil {
-			utils.Logger.Errorw("vote reward: get player saves failed", "error", err, "userID", userID)
+			utils.Logger.Errorw(
+				"vote reward: get player saves failed",
+				"error",
+				err,
+				"userID",
+				userID,
+			)
 			return ""
 		}
 
@@ -60,6 +76,7 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 		}
 
 		voteTime := lastVoteTime.Add(time.Hour * 12)
+
 		voteTimeText := "**right now**!"
 		if voteTime.After(time.Now()) {
 			voteTimeText = fmt.Sprintf(
@@ -69,10 +86,12 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 		}
 
 		amount := "0.25"
+
 		weekday := time.Now().Weekday()
 		if weekday == time.Saturday || weekday == time.Sunday {
 			amount = "0.5"
 		}
+
 		return fmt.Sprintf(`
 You will receive **%s** saves for **each vote**
 

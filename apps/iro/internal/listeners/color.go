@@ -33,6 +33,7 @@ type ColorListener struct {
 
 func GetColorListener(container *di.Container) *ColorListener {
 	utils.Logger.Info("Creating Color Listener")
+
 	return &ColorListener{
 		bot:        container.Get(static.DiBot).(*discordgoplus.Bot),
 		cfg:        container.Get(static.DiConfig).(*config.Config),
@@ -111,7 +112,7 @@ func (listener *ColorListener) MessageReactionHandler(
 	emb := &discordgo.MessageEmbed{
 		Color:       intClr,
 		Title:       "#" + hexClr,
-		Description: fmt.Sprintf("%s", colorName),
+		Description: colorName,
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Hex",
@@ -206,7 +207,10 @@ func (listener *ColorListener) process(
 	}
 
 	if removeReactions {
-		if err := bot.MessageReactionsRemoveAll(message.ChannelID, message.ID); err != nil {
+		if err := bot.MessageReactionsRemoveAll(
+			message.ChannelID,
+			message.ID,
+		); err != nil {
 			utils.Logger.Info("Could not remove previous color reactions", err)
 		}
 	}
@@ -249,6 +253,7 @@ func (listener *ColorListener) createReaction(
 
 	// Upload guild emote
 	clientId := listener.cfg.DiscordAppID
+
 	emoji, err := bot.ApplicationEmojiCreate(clientId, &discordgo.EmojiParams{
 		Name:  "hex" + hexClr,
 		Image: dataUri,

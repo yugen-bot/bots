@@ -31,6 +31,7 @@ func (m *GameResetModule) reset(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	guildID := ctx.Interaction.GuildID
+
 	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || settings == nil {
 		localUtils.ReplyNoSettings(ctx)
@@ -55,6 +56,7 @@ func (m *GameResetModule) reset(ctx *discordgoplus.Ctx) {
 			&discordgo.WebhookParams{Content: "Failed to reset the game."},
 			true,
 		)
+
 		return
 	}
 

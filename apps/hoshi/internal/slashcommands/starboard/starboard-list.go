@@ -33,11 +33,13 @@ func (m *StarboardListModule) list(ctx *discordgoplus.Ctx) {
 	if opt, ok := ctx.Options["page"]; ok {
 		page = int(opt.IntValue())
 	}
+
 	m.showList(ctx, page, false)
 }
 
 func (m *StarboardListModule) listPage(ctx *discordgoplus.Ctx) {
 	page := 1
+
 	if p, ok := ctx.MessageComponentOptions["page"]; ok {
 		page64, err := strconv.ParseInt(p, 10, 64)
 		if err != nil {
@@ -46,6 +48,7 @@ func (m *StarboardListModule) listPage(ctx *discordgoplus.Ctx) {
 			page = int(page64)
 		}
 	}
+
 	m.showList(ctx, page, true)
 }
 
@@ -59,6 +62,7 @@ func (m *StarboardListModule) showList(
 	}
 
 	bot := m.container.Get(static.DiBot).(*discordgoplus.Bot)
+
 	items, total, err := m.starboard.GetStarboards(
 		context.Background(),
 		ctx.Interaction.GuildID,
@@ -70,6 +74,7 @@ func (m *StarboardListModule) showList(
 		} else {
 			discordgoplus.InteractionError(ctx, true)
 		}
+
 		return
 	}
 
@@ -85,8 +90,13 @@ func (m *StarboardListModule) showList(
 				},
 			)
 		} else {
-			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(
+				ctx,
+				&discordgo.WebhookParams{Content: content},
+				true,
+			)
 		}
+
 		return
 	}
 
@@ -102,8 +112,13 @@ func (m *StarboardListModule) showList(
 				},
 			)
 		} else {
-			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: content}, true)
+			discordgoplus.FollowUp(
+				ctx,
+				&discordgo.WebhookParams{Content: content},
+				true,
+			)
 		}
+
 		return
 	}
 
@@ -118,6 +133,7 @@ func (m *StarboardListModule) showList(
 		ids[i] = fmt.Sprintf("%d", c.ID)
 
 		_, _, display, unicode := localUtils.ResolveEmoji(c.SourceEmoji, bot)
+
 		emojiDisplay := c.SourceEmoji
 		if !unicode {
 			emojiDisplay = display
@@ -164,6 +180,7 @@ func (m *StarboardListModule) showList(
 			Label:    "◀️",
 		})
 	}
+
 	if page < maxPage {
 		buttons = append(buttons, discordgo.Button{
 			CustomID: fmt.Sprintf("STARBOARD_LIST/%d", page+1),

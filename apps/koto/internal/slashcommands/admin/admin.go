@@ -22,6 +22,7 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	sendWelcome := GetAdminSendWelcomeModule(container)
 
 	var subCommands []*discordgoplus.Command
+
 	subCommands = append(subCommands, emojis.Commands()...)
 	subCommands = append(subCommands, guilds.Commands()...)
 	subCommands = append(subCommands, getWord.Commands()...)

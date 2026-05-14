@@ -20,6 +20,7 @@ func GetStarboardModule(container *di.Container) *StarboardModule {
 	remove := GetStarboardRemoveModule(container)
 
 	var subCommands []*discordgoplus.Command
+
 	subCommands = append(subCommands, list.Commands()...)
 	subCommands = append(subCommands, add.Commands()...)
 	subCommands = append(subCommands, remove.Commands()...)

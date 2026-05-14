@@ -22,7 +22,13 @@ func sendLogMessage(
 
 	guild, err := bot.Guild(event.GuildID)
 	if err != nil {
-		utils.Logger.Errorw("log: get guild failed", "error", err, "guildID", event.GuildID)
+		utils.Logger.Errorw(
+			"log: get guild failed",
+			"error",
+			err,
+			"guildID",
+			event.GuildID,
+		)
 		return
 	}
 

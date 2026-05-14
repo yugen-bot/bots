@@ -30,6 +30,7 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	botUpdates := GetBotUpdatesModule(container)
 
 	var subCommands []*discordgoplus.Command
+
 	subCommands = append(subCommands, show.Commands()...)
 	subCommands = append(subCommands, setChannel.Commands()...)
 	subCommands = append(subCommands, setRole.Commands()...)

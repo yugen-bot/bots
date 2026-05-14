@@ -50,5 +50,6 @@ func SendWelcomeMessage(
 			},
 		},
 	})
+
 	return err
 }

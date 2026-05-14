@@ -113,7 +113,13 @@ func ShowLeaderboard(
 
 	items, total, err := getItems(ctx, page)
 	if err != nil {
-		Logger.Errorw("leaderboard: get items failed", "error", err, "guildID", ctx.Interaction.GuildID)
+		Logger.Errorw(
+			"leaderboard: get items failed",
+			"error",
+			err,
+			"guildID",
+			ctx.Interaction.GuildID,
+		)
 		doError(ctx, source)
 
 		return
@@ -125,6 +131,7 @@ func ShowLeaderboard(
 			source,
 			"There is no leaderboard available yet for this server.",
 		)
+
 		return
 	}
 
@@ -134,6 +141,7 @@ func ShowLeaderboard(
 			source,
 			fmt.Sprintf("No players found for page %d", page),
 		)
+
 		return
 	}
 
@@ -164,7 +172,13 @@ func doLeaderboardResponse(
 
 	guild, err := bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {
-		Logger.Errorw("leaderboard: get guild failed", "error", err, "guildID", ctx.Interaction.GuildID)
+		Logger.Errorw(
+			"leaderboard: get guild failed",
+			"error",
+			err,
+			"guildID",
+			ctx.Interaction.GuildID,
+		)
 		doError(ctx, source)
 
 		return
@@ -222,7 +236,13 @@ func doLeaderboardResponse(
 			Components: components,
 		})
 		if err != nil {
-			Logger.Errorw("leaderboard: update response failed", "error", err, "guildID", ctx.Interaction.GuildID)
+			Logger.Errorw(
+				"leaderboard: update response failed",
+				"error",
+				err,
+				"guildID",
+				ctx.Interaction.GuildID,
+			)
 		}
 
 		return
@@ -234,7 +254,13 @@ func doLeaderboardResponse(
 		Components: components,
 	})
 	if err != nil {
-		Logger.Errorw("leaderboard: follow up response failed", "error", err, "guildID", ctx.Interaction.GuildID)
+		Logger.Errorw(
+			"leaderboard: follow up response failed",
+			"error",
+			err,
+			"guildID",
+			ctx.Interaction.GuildID,
+		)
 	}
 }
 

@@ -19,6 +19,7 @@ type PointsService struct {
 
 func CreatePointsService(container *di.Container) *PointsService {
 	utils.Logger.Info("Creating Points Service")
+
 	return &PointsService{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 	}
@@ -159,23 +160,30 @@ func (service *PointsService) GetLeaderboardByGuildID(
 ) ([]db.PlayerStatsModel, int, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
-	var items []db.PlayerStatsModel
-	var total int
+	var (
+		items []db.PlayerStatsModel
+		total int
+	)
 
 	g.Go(func() error {
 		var err error
+
 		items, err = service.getLeaderboardItemsByGuildID(gctx, guildID, page)
+
 		return err
 	})
 	g.Go(func() error {
 		var err error
+
 		total, err = service.getLeaderboardTotalByGuildID(gctx, guildID)
+
 		return err
 	})
 
 	if err := g.Wait(); err != nil {
 		return nil, 0, fmt.Errorf("points: get leaderboard: %w", err)
 	}
+
 	return items, total, nil
 }
 
@@ -193,6 +201,7 @@ func (service *PointsService) getLeaderboardItemsByGuildID(
 	if err != nil {
 		return nil, fmt.Errorf("points: get leaderboard items: %w", err)
 	}
+
 	return items, nil
 }
 
@@ -219,5 +228,6 @@ func (service *PointsService) getLeaderboardTotalByGuildID(
 	if err != nil {
 		return 0, fmt.Errorf("points: parse leaderboard total: %w", err)
 	}
+
 	return count, nil
 }

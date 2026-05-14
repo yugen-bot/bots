@@ -29,6 +29,7 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 
 			utils.Logger.Info("Shutting down bot...")
 			bot.Close()
+
 			return nil
 		},
 	})
@@ -40,8 +41,10 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 		},
 		Close: func(obj any) error {
 			c := obj.(*cron.Cron)
+
 			utils.Logger.Info("Stopping cron jobs...")
 			c.Stop()
+
 			return nil
 		},
 	})

@@ -39,6 +39,7 @@ func (m *AdminSendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
 				guildID,
 			),
 		}, true)
+
 		return
 	}
 
@@ -46,6 +47,7 @@ func (m *AdminSendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Koto does not have permission to send messages in that channel.",
 		}, true)
+
 		return
 	}
 
@@ -66,6 +68,7 @@ func (m *AdminSendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Failed to send welcome message.",
 		}, true)
+
 		return
 	}
 

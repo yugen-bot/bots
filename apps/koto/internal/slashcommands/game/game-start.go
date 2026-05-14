@@ -30,6 +30,7 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	guildID := ctx.Interaction.GuildID
+
 	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || settings == nil {
 		localUtils.ReplyNoSettings(ctx)
@@ -49,6 +50,7 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Only moderators can start games unless members privilege is enabled.",
 		}, true)
+
 		return
 	}
 
@@ -66,6 +68,7 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 			},
 			true,
 		)
+
 		return
 	}
 

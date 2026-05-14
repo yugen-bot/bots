@@ -10,6 +10,7 @@ import (
 // letter should be a single lowercase letter or "blank".
 func GetEmoji(color string, letter string) string {
 	colorTyped := localStatic.EmojiColor(color)
+
 	colorMap, ok := localStatic.EmojiTable[colorTyped]
 	if !ok {
 		return ""

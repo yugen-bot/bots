@@ -18,6 +18,7 @@ type NotifyService struct {
 
 func CreateNotifyService(container *di.Container) *NotifyService {
 	utils.Logger.Info("Creating Notify Service")
+
 	return &NotifyService{
 		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
 		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
@@ -48,6 +49,7 @@ func (s *NotifyService) SendNotification(
 		if sendErr != nil {
 			utils.Logger.With("guildID", setting.GuildID, "channelID", channelID).
 				Warn("Failed to send notification")
+
 			continue
 		}
 

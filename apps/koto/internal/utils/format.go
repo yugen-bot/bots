@@ -4,6 +4,7 @@ import "fmt"
 
 func FormatMinutes(minutes int) string {
 	hours := minutes / 60
+
 	mins := minutes % 60
 	switch {
 	case hours > 0 && mins > 0:
@@ -23,5 +24,6 @@ func PluralS(n int) string {
 	if n == 1 {
 		return ""
 	}
+
 	return "s"
 }

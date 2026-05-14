@@ -37,7 +37,12 @@ func (m *SettingsUnignoreModule) unignore(ctx *discordgoplus.Ctx) {
 		label = fmt.Sprintf("<#%s>", ch.ID)
 	}
 
-	if err := m.settings.IgnoreChannel(context.Background(), ctx.Interaction.GuildID, channelID, false); err != nil {
+	if err := m.settings.IgnoreChannel(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		channelID,
+		false,
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

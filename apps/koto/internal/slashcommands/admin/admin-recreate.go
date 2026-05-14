@@ -46,6 +46,7 @@ func (m *AdminRecreateModule) recreate(ctx *discordgoplus.Ctx) {
 					word,
 				),
 			}, true)
+
 			return
 		}
 	}
@@ -55,6 +56,7 @@ func (m *AdminRecreateModule) recreate(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Could not find settings for the specified guild.",
 		}, true)
+
 		return
 	}
 
@@ -63,6 +65,7 @@ func (m *AdminRecreateModule) recreate(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Guild has no channel configured.",
 		}, true)
+
 		return
 	}
 

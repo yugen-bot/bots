@@ -26,6 +26,7 @@ func GetAdminNotifyModule(container *di.Container) *AdminNotifyModule {
 
 func (m *AdminNotifyModule) notify(ctx *discordgoplus.Ctx) {
 	required := true
+
 	err := discordgoplus.ModalRespond(ctx, &discordgo.InteractionResponseData{
 		CustomID: "ADMIN_NOTIFY_SEND",
 		Title:    "Send notification to all guilds",
@@ -51,7 +52,7 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 	fields := discordgoplus.ParseModalData(ctx.ModalData)
 	content := fields["message"]
 
-	ctx.Session.InteractionRespond(
+	ctx.InteractionRespond(
 		ctx.Interaction,
 		&discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
@@ -67,7 +68,7 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 	)
 	if err != nil {
 		utils.Logger.Error(err)
-		ctx.Session.FollowupMessageCreate(
+		ctx.FollowupMessageCreate(
 			ctx.Interaction,
 			true,
 			&discordgo.WebhookParams{
@@ -75,10 +76,11 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 				Flags:   discordgo.MessageFlagsEphemeral,
 			},
 		)
+
 		return
 	}
 
-	ctx.Session.FollowupMessageCreate(
+	ctx.FollowupMessageCreate(
 		ctx.Interaction,
 		true,
 		&discordgo.WebhookParams{

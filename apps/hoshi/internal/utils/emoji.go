@@ -15,6 +15,7 @@ func ResolveEmoji(
 	match := customEmojiRegex.FindStringSubmatch(input)
 	if len(match) > 1 {
 		emojiID := match[1]
+
 		for _, guild := range bot.State.Guilds {
 			for _, e := range guild.Emojis {
 				if e.ID == emojiID {
@@ -22,6 +23,7 @@ func ResolveEmoji(
 				}
 			}
 		}
+
 		return
 	}
 

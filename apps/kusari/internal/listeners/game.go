@@ -22,6 +22,7 @@ type GameListener struct {
 
 func GetGameListener(container *di.Container) *GameListener {
 	utils.Logger.Info("Creating Color Listener")
+
 	return &GameListener{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(static.DiSettings).(*services.SettingsService),
@@ -132,7 +133,13 @@ func (listener *GameListener) getSettings(
 		guildID,
 	)
 	if err != nil {
-		utils.Logger.Errorw("game listener: get settings failed", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"game listener: get settings failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return
 	}
 

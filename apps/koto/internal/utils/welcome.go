@@ -17,6 +17,7 @@ func SendWelcomeMessage(bot *discordgoplus.Bot, guildID string) {
 				guildID,
 				err,
 			)
+
 			return
 		}
 	}
@@ -48,6 +49,7 @@ func SendWelcomeMessage(bot *discordgoplus.Bot, guildID string) {
 		}
 
 		_, _ = bot.ChannelMessageSendEmbed(channel.ID, embed)
+
 		return
 	}
 }

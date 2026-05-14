@@ -111,8 +111,19 @@ func (handler *VoteHandler) handleVote(userID string, source string) {
 		return
 	}
 
-	if err := voteRewardHandler.(func(userID string, source string) error)(userID, source); err != nil {
-		utils.Logger.Errorw("vote: reward handler failed", "error", err, "userID", userID, "source", source)
+	if err := voteRewardHandler.(func(userID string, source string) error)(
+		userID,
+		source,
+	); err != nil {
+		utils.Logger.Errorw(
+			"vote: reward handler failed",
+			"error",
+			err,
+			"userID",
+			userID,
+			"source",
+			source,
+		)
 	}
 }
 

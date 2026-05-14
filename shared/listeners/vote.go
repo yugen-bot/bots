@@ -21,7 +21,12 @@ func doRequest(url string, token string, body []byte, source string) error {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		"POST",
+		url,
+		bytes.NewBuffer(body),
+	)
 	if err != nil {
 		return fmt.Errorf("vote: doRequest: new request: %w", err)
 	}
@@ -90,7 +95,11 @@ func postStats(bot *discordgoplus.Bot, cfg *config.Config) {
 
 	if syncDiscordBotList && len(discordBotListToken) > 0 {
 		go func() {
-			if err := postDiscordBotList(discordBotListToken, clientID, servers); err != nil {
+			if err := postDiscordBotList(
+				discordBotListToken,
+				clientID,
+				servers,
+			); err != nil {
 				utils.Logger.Errorw(
 					"vote: post discordbotlist failed",
 					"error",

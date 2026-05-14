@@ -20,6 +20,7 @@ func GetGameModule(container *di.Container) *GameModule {
 	reset := GetGameResetModule(container)
 
 	var subCommands []*discordgoplus.Command
+
 	subCommands = append(subCommands, start.Commands()...)
 	subCommands = append(subCommands, reset.Commands()...)
 

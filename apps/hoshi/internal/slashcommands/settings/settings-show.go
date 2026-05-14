@@ -45,11 +45,13 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	}
 
 	ignoredText := "-"
+
 	if len(settings.IgnoredChannelIds) > 0 {
 		mentions := make([]string, len(settings.IgnoredChannelIds))
 		for i, id := range settings.IgnoredChannelIds {
 			mentions[i] = fmt.Sprintf("<#%s>", id)
 		}
+
 		ignoredText = strings.Join(mentions, "\n")
 	}
 
@@ -75,6 +77,7 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 				if settings.Self {
 					return "Allowed"
 				}
+
 				return "Disallowed"
 			}(), Inline: true},
 			{Name: "Bot updates channel", Value: botUpdatesText, Inline: true},

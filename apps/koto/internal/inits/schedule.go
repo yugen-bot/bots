@@ -148,13 +148,13 @@ func checkAndStartGame(
 			false,
 			"",
 		)
-
 		if startErr != nil {
 			utils.Logger.Warnf(
 				"schedule: initial start for %s: %v",
 				setting.GuildID,
 				startErr,
 			)
+
 			return false
 		}
 
@@ -190,7 +190,9 @@ func checkAndStartGame(
 			setting.GuildID,
 			startErr,
 		)
+
 		return false
 	}
+
 	return started
 }

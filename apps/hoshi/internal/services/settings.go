@@ -18,6 +18,7 @@ type SettingsService struct {
 
 func CreateSettingsService(container *di.Container) *SettingsService {
 	utils.Logger.Info("Creating Settings Service")
+
 	return &SettingsService{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
@@ -60,6 +61,7 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 	if err != nil {
 		return fmt.Errorf("settings: delete: %w", err)
 	}
+
 	return nil
 }
 
@@ -74,6 +76,7 @@ func (s *SettingsService) Set(
 	if err != nil {
 		return nil, fmt.Errorf("settings: set: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -89,6 +92,7 @@ func (s *SettingsService) IgnoreChannel(
 
 	ids := settings.IgnoredChannelIds
 	idx := -1
+
 	for i, id := range ids {
 		if id == channelID {
 			idx = i
@@ -106,5 +110,6 @@ func (s *SettingsService) IgnoreChannel(
 	if err != nil {
 		return fmt.Errorf("settings: ignore channel: %w", err)
 	}
+
 	return nil
 }

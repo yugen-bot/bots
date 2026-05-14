@@ -30,6 +30,7 @@ func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
+
 	settings, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,

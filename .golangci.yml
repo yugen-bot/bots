@@ -39,7 +39,7 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - tparallel
-    - wsl
+    - wsl_v5
   exclusions:
     generated: lax
     presets:
@@ -60,7 +60,7 @@ linters:
           - wrapcheck
           - funlen
           - gocognit
-          - wsl
+          - wsl_v5
       # Allow ignoring Close/Sync error returns in defers
       - text: "Error return value of .*(Close|Sync)\\b"
         linters:
@@ -199,10 +199,6 @@ linters:
     funlen:
       lines: 100
       statements: 60
-    wsl:
-      allow-trailing-comment: true
-      force-err-cuddling: false
-      allow-separated-leading-comment: true
     revive:
       rules:
         - name: exported

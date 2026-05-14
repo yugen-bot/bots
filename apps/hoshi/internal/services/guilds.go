@@ -17,6 +17,7 @@ type GuildsService struct {
 
 func CreateGuildsService(container *di.Container) *GuildsService {
 	utils.Logger.Info("Creating Guilds Service")
+
 	return &GuildsService{
 		bot: container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
 	}
@@ -31,6 +32,7 @@ func (s *GuildsService) GetData(page int) ([]*discordgo.Guild, int) {
 	})
 
 	total := len(guilds)
+
 	start := (page - 1) * 10
 	if start >= total {
 		return nil, total

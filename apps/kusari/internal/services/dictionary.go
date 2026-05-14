@@ -47,6 +47,7 @@ func (service *DictionaryService) Check(
 	}
 
 	utils.Logger.Debug(wiktionaryURL)
+
 	req, err := http.NewRequestWithContext(ctx, "GET", wiktionaryURL, nil)
 	if err != nil {
 		return false, fmt.Errorf("dictionary: new request: %w", err)
@@ -71,6 +72,7 @@ func (service *DictionaryService) Check(
 	utils.Logger.Debug(resp.Body)
 
 	var respBody []any
+
 	err = json.NewDecoder(resp.Body).Decode(&respBody)
 	if err != nil {
 		return false, fmt.Errorf("dictionary: decode response: %w", err)
@@ -84,7 +86,9 @@ func (service *DictionaryService) Check(
 	if err != nil {
 		return false, fmt.Errorf("dictionary: marshal words: %w", err)
 	}
+
 	var words []string
+
 	err = json.Unmarshal(dataWords, &words)
 	if err != nil {
 		return false, fmt.Errorf("dictionary: unmarshal words: %w", err)

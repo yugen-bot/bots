@@ -30,8 +30,10 @@ func InitDI() (container di.Container, err error) {
 		},
 		Close: func(obj any) error {
 			database := obj.(*db.PrismaClient)
+
 			utils.Logger.Info("Shutting down database connection...")
 			database.Disconnect()
+
 			return nil
 		},
 	})

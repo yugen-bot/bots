@@ -24,6 +24,7 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	unignore := GetSettingsUnignoreModule(container)
 
 	var subCommands []*discordgoplus.Command
+
 	subCommands = append(subCommands, show.Commands()...)
 	subCommands = append(subCommands, reset.Commands()...)
 	subCommands = append(subCommands, treshold.Commands()...)
