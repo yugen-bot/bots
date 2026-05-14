@@ -8,7 +8,10 @@ import (
 
 var customEmojiRegex = regexp.MustCompile(`<a?:\w+:(\d+)>`)
 
-func ResolveEmoji(input string, bot *discordgoplus.Bot) (found bool, key string, display string, unicode bool) {
+func ResolveEmoji(
+	input string,
+	bot *discordgoplus.Bot,
+) (found bool, key string, display string, unicode bool) {
 	match := customEmojiRegex.FindStringSubmatch(input)
 	if len(match) > 1 {
 		emojiID := match[1]

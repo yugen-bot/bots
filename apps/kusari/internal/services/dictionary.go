@@ -24,7 +24,10 @@ func CreateDictionaryService(cfg *config.Config) *DictionaryService {
 	return &DictionaryService{cfg: cfg}
 }
 
-func (service *DictionaryService) Check(ctx context.Context, word string) (bool, error) {
+func (service *DictionaryService) Check(
+	ctx context.Context,
+	word string,
+) (bool, error) {
 	word = strings.ToLower(word)
 
 	replacer := strings.NewReplacer(
@@ -49,8 +52,14 @@ func (service *DictionaryService) Check(ctx context.Context, word string) (bool,
 		return false, fmt.Errorf("dictionary: new request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "YugenKusari/1.0 (https://github.com/jurienhamaker/yugen;info@jurien.dev) Go-http-client/1.1")
-	req.SetBasicAuth(service.cfg.WiktionaryUsername, service.cfg.WiktionaryPassword)
+	req.Header.Set(
+		"User-Agent",
+		"YugenKusari/1.0 (https://github.com/jurienhamaker/yugen;info@jurien.dev) Go-http-client/1.1",
+	)
+	req.SetBasicAuth(
+		service.cfg.WiktionaryUsername,
+		service.cfg.WiktionaryPassword,
+	)
 
 	resp, err := client.Do(req)
 	if err != nil {

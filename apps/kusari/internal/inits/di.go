@@ -50,7 +50,10 @@ func InitDI() (container di.Container, err error) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiHelpText,
 		Build: func(ctn di.Container) (any, error) {
-			return fmt.Sprintf("%s\n\nWant to know how to play the game? Use `/tutorial`!", localUtils.NoSettingsDescription), nil
+			return fmt.Sprintf(
+				"%s\n\nWant to know how to play the game? Use `/tutorial`!",
+				localUtils.NoSettingsDescription,
+			), nil
 		},
 	})
 

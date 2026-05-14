@@ -37,10 +37,13 @@ func (m *DonateModule) donate(ctx *discordgoplus.Ctx) {
 	embed := &discordgo.MessageEmbed{
 		Color: embedColor,
 		Title: "Donate information",
-		Description: fmt.Sprintf(`Thanks you for checking out the donate link, clicking on the button below will lead you to my ko-fi.
+		Description: fmt.Sprintf(
+			`Thanks you for checking out the donate link, clicking on the button below will lead you to my ko-fi.
 **All money raised will go towards costs of running %s!**
 
-Thanks for playing!`, appName),
+Thanks for playing!`,
+			appName,
+		),
 		Footer: footer,
 	}
 

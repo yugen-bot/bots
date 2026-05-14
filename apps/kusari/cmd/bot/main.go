@@ -22,7 +22,12 @@ func main() {
 	utils.CreateLogger("kusari")
 	defer utils.Logger.Sync()
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 	defer stop()
 
 	container, err := inits.InitDI()

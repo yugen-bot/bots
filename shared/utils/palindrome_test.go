@@ -25,7 +25,12 @@ func TestIsPalindrome(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := IsPalindrome(tc.input)
 			if got != tc.want {
-				t.Errorf("IsPalindrome(%q) = %v, want %v", tc.input, got, tc.want)
+				t.Errorf(
+					"IsPalindrome(%q) = %v, want %v",
+					tc.input,
+					got,
+					tc.want,
+				)
 			}
 		})
 	}

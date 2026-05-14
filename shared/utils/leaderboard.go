@@ -24,7 +24,9 @@ type (
 	LeaderboardFormatFunc func(ctx *discordgoplus.Ctx, item any) string
 )
 
-func GetLeaderboardCommands(handler discordgoplus.HandlerFunc) []*discordgoplus.Command {
+func GetLeaderboardCommands(
+	handler discordgoplus.HandlerFunc,
+) []*discordgoplus.Command {
 	return []*discordgoplus.Command{
 		{
 			Name:        "leaderboard",
@@ -42,7 +44,9 @@ func GetLeaderboardCommands(handler discordgoplus.HandlerFunc) []*discordgoplus.
 	}
 }
 
-func GetLeaderboardMessageComponents(handler discordgoplus.HandlerFunc) []*discordgoplus.MessageComponent {
+func GetLeaderboardMessageComponents(
+	handler discordgoplus.HandlerFunc,
+) []*discordgoplus.MessageComponent {
 	return []*discordgoplus.MessageComponent{
 		{
 			CustomID: "LEADERBOARD/:page",
@@ -51,7 +55,12 @@ func GetLeaderboardMessageComponents(handler discordgoplus.HandlerFunc) []*disco
 	}
 }
 
-func LeaderboardCommandHandler(ctx *discordgoplus.Ctx, container *di.Container, getItems LeaderboardDataFunc, formatter LeaderboardFormatFunc) {
+func LeaderboardCommandHandler(
+	ctx *discordgoplus.Ctx,
+	container *di.Container,
+	getItems LeaderboardDataFunc,
+	formatter LeaderboardFormatFunc,
+) {
 	page := 1
 
 	pageOption := ctx.Options["page"]
@@ -59,19 +68,45 @@ func LeaderboardCommandHandler(ctx *discordgoplus.Ctx, container *di.Container, 
 		page = int(pageOption.IntValue())
 	}
 
-	ShowLeaderboard(ctx, container, LEADERBOARD_INTERACTION, page, getItems, formatter)
+	ShowLeaderboard(
+		ctx,
+		container,
+		LEADERBOARD_INTERACTION,
+		page,
+		getItems,
+		formatter,
+	)
 }
 
-func LeaderboardMessageComponentHandler(ctx *discordgoplus.Ctx, container *di.Container, getItems LeaderboardDataFunc, formatter LeaderboardFormatFunc) {
+func LeaderboardMessageComponentHandler(
+	ctx *discordgoplus.Ctx,
+	container *di.Container,
+	getItems LeaderboardDataFunc,
+	formatter LeaderboardFormatFunc,
+) {
 	page, err := strconv.Atoi(ctx.MessageComponentOptions["page"])
 	if err != nil {
 		return
 	}
 
-	ShowLeaderboard(ctx, container, LEADERBOARD_MESSAGE_COMPONENT, page, getItems, formatter)
+	ShowLeaderboard(
+		ctx,
+		container,
+		LEADERBOARD_MESSAGE_COMPONENT,
+		page,
+		getItems,
+		formatter,
+	)
 }
 
-func ShowLeaderboard(ctx *discordgoplus.Ctx, container *di.Container, source leaderboardSourceType, page int, getItems LeaderboardDataFunc, formatter LeaderboardFormatFunc) {
+func ShowLeaderboard(
+	ctx *discordgoplus.Ctx,
+	container *di.Container,
+	source leaderboardSourceType,
+	page int,
+	getItems LeaderboardDataFunc,
+	formatter LeaderboardFormatFunc,
+) {
 	if source == LEADERBOARD_INTERACTION {
 		discordgoplus.Defer(ctx, true)
 	}
@@ -85,19 +120,35 @@ func ShowLeaderboard(ctx *discordgoplus.Ctx, container *di.Container, source lea
 	}
 
 	if total == 0 {
-		doTextResponse(ctx, source, "There is no leaderboard available yet for this server.")
+		doTextResponse(
+			ctx,
+			source,
+			"There is no leaderboard available yet for this server.",
+		)
 		return
 	}
 
 	if len(items) == 0 {
-		doTextResponse(ctx, source, fmt.Sprintf("No players found for page %d", page))
+		doTextResponse(
+			ctx,
+			source,
+			fmt.Sprintf("No players found for page %d", page),
+		)
 		return
 	}
 
 	doLeaderboardResponse(ctx, container, source, page, total, items, formatter)
 }
 
-func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, source leaderboardSourceType, page int, total int, items []interface{}, formatter LeaderboardFormatFunc) {
+func doLeaderboardResponse(
+	ctx *discordgoplus.Ctx,
+	container *di.Container,
+	source leaderboardSourceType,
+	page int,
+	total int,
+	items []interface{},
+	formatter LeaderboardFormatFunc,
+) {
 	embedColor := container.Get(static.DiEmbedColor).(int)
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
@@ -121,7 +172,12 @@ func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, sour
 
 	description := ""
 	for i, item := range items {
-		description = fmt.Sprintf("%s\n%d. %s", description, i, formatter(ctx, item))
+		description = fmt.Sprintf(
+			"%s\n%d. %s",
+			description,
+			i,
+			formatter(ctx, item),
+		)
 	}
 
 	embed := &discordgo.MessageEmbed{
@@ -153,7 +209,10 @@ func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, sour
 
 	components := []discordgo.MessageComponent{}
 	if len(buttons) > 0 {
-		components = append(components, discordgo.ActionsRow{Components: buttons})
+		components = append(
+			components,
+			discordgo.ActionsRow{Components: buttons},
+		)
 	}
 
 	if source == LEADERBOARD_MESSAGE_COMPONENT {
@@ -179,7 +238,11 @@ func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, sour
 	}
 }
 
-func doTextResponse(ctx *discordgoplus.Ctx, source leaderboardSourceType, content string) {
+func doTextResponse(
+	ctx *discordgoplus.Ctx,
+	source leaderboardSourceType,
+	content string,
+) {
 	if source == LEADERBOARD_INTERACTION {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content:    content,

@@ -24,7 +24,12 @@ func CreatePointsService(container *di.Container) *PointsService {
 	}
 }
 
-func (service *PointsService) GetPlayer(ctx context.Context, guildID string, userID string, setInGuild bool) (*db.PlayerStatsModel, error) {
+func (service *PointsService) GetPlayer(
+	ctx context.Context,
+	guildID string,
+	userID string,
+	setInGuild bool,
+) (*db.PlayerStatsModel, error) {
 	created := false
 	player, err := service.database.PlayerStats.FindFirst(
 		db.PlayerStats.UserID.Equals(userID),
@@ -58,7 +63,12 @@ func (service *PointsService) GetPlayer(ctx context.Context, guildID string, use
 	return player, nil
 }
 
-func (service *PointsService) AddGamePoints(ctx context.Context, guildID string, userID string, amount int) error {
+func (service *PointsService) AddGamePoints(
+	ctx context.Context,
+	guildID string,
+	userID string,
+	amount int,
+) error {
 	player, err := service.GetPlayer(ctx, guildID, userID, true)
 	if err != nil {
 		return fmt.Errorf("points: add game points: %w", err)
@@ -76,7 +86,12 @@ func (service *PointsService) AddGamePoints(ctx context.Context, guildID string,
 	return nil
 }
 
-func (service *PointsService) RemoveGamePoints(ctx context.Context, guildID string, userID string, amount int) error {
+func (service *PointsService) RemoveGamePoints(
+	ctx context.Context,
+	guildID string,
+	userID string,
+	amount int,
+) error {
 	player, err := service.GetPlayer(ctx, guildID, userID, true)
 	if err != nil {
 		return fmt.Errorf("points: remove game points: %w", err)
@@ -94,7 +109,10 @@ func (service *PointsService) RemoveGamePoints(ctx context.Context, guildID stri
 	return nil
 }
 
-func (service *PointsService) ResetLeaderboardByGuildID(ctx context.Context, guildID string) error {
+func (service *PointsService) ResetLeaderboardByGuildID(
+	ctx context.Context,
+	guildID string,
+) error {
 	_, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
 	).Delete().Exec(ctx)
@@ -110,7 +128,11 @@ func (service *PointsService) ResetLeaderboardByGuildID(ctx context.Context, gui
 	return nil
 }
 
-func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(ctx context.Context, guildID string, userID string) error {
+func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(
+	ctx context.Context,
+	guildID string,
+	userID string,
+) error {
 	_, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
 		db.PlayerStats.UserID.Equals(userID),
@@ -121,13 +143,20 @@ func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(ctx context.Con
 	}
 
 	if err != nil {
-		return fmt.Errorf("points: reset leaderboard by guild id and user id: %w", err)
+		return fmt.Errorf(
+			"points: reset leaderboard by guild id and user id: %w",
+			err,
+		)
 	}
 
 	return nil
 }
 
-func (service *PointsService) GetLeaderboardByGuildID(ctx context.Context, guildID string, page int) ([]db.PlayerStatsModel, int, error) {
+func (service *PointsService) GetLeaderboardByGuildID(
+	ctx context.Context,
+	guildID string,
+	page int,
+) ([]db.PlayerStatsModel, int, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
 	var items []db.PlayerStatsModel
@@ -150,7 +179,11 @@ func (service *PointsService) GetLeaderboardByGuildID(ctx context.Context, guild
 	return items, total, nil
 }
 
-func (service *PointsService) getLeaderboardItemsByGuildID(ctx context.Context, guildID string, page int) ([]db.PlayerStatsModel, error) {
+func (service *PointsService) getLeaderboardItemsByGuildID(
+	ctx context.Context,
+	guildID string,
+	page int,
+) ([]db.PlayerStatsModel, error) {
 	items, err := service.database.PlayerStats.FindMany(
 		db.PlayerStats.GuildID.Equals(guildID),
 		db.PlayerStats.InGuild.Equals(true),
@@ -163,7 +196,10 @@ func (service *PointsService) getLeaderboardItemsByGuildID(ctx context.Context, 
 	return items, nil
 }
 
-func (service *PointsService) getLeaderboardTotalByGuildID(ctx context.Context, guildID string) (int, error) {
+func (service *PointsService) getLeaderboardTotalByGuildID(
+	ctx context.Context,
+	guildID string,
+) (int, error) {
 	var res []struct {
 		Count string `json:"count"`
 	}

@@ -12,6 +12,8 @@ import (
 	"jurien.dev/yugen/shared/static"
 )
 
+const productionEnv = "production"
+
 var Logger *zap.SugaredLogger
 
 func CreateLogger(appName string) *zap.SugaredLogger {
@@ -27,9 +29,9 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 	}
 
 	cfg := zap.NewProductionConfig()
-	environment := "production"
+	environment := productionEnv
 
-	if os.Getenv(static.Env) != "production" {
+	if os.Getenv(static.Env) != productionEnv {
 		// cfg = zap.NewDevelopmentConfig()
 		cfg = prettyconsole.NewConfig()
 		environment = os.Getenv(static.Env)
@@ -44,11 +46,7 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 
 	logger.Sugar().Infof("Log level is set to %s", cfg.Level.String())
 
-	if err != nil {
-		log.Panic(err)
-	}
-
-	if len(os.Getenv(static.EnvLokiHost)) > 0 && environment == "production" {
+	if len(os.Getenv(static.EnvLokiHost)) > 0 && environment == productionEnv {
 		logger.Info("Received loki endpoint, setting up hook...")
 		logger.Debug(os.Getenv(static.EnvLokiHost))
 

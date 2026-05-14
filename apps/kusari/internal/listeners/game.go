@@ -38,7 +38,10 @@ func AddGameListeners(container *di.Container) {
 	bot.AddHandler(colorListener.MessageDeleteHandler)
 }
 
-func (listener *GameListener) MessageCreateHandler(bot *discordgo.Session, event *discordgo.MessageCreate) {
+func (listener *GameListener) MessageCreateHandler(
+	bot *discordgo.Session,
+	event *discordgo.MessageCreate,
+) {
 	ok, settings := listener.getSettings(event.GuildID, event.ChannelID)
 	if !ok {
 		return
@@ -49,10 +52,19 @@ func (listener *GameListener) MessageCreateHandler(bot *discordgo.Session, event
 		return
 	}
 
-	listener.service.AddWord(context.Background(), event.GuildID, word, event.Message, settings)
+	listener.service.AddWord(
+		context.Background(),
+		event.GuildID,
+		word,
+		event.Message,
+		settings,
+	)
 }
 
-func (listener *GameListener) MessageUpdateHandler(bot *discordgo.Session, event *discordgo.MessageUpdate) {
+func (listener *GameListener) MessageUpdateHandler(
+	bot *discordgo.Session,
+	event *discordgo.MessageUpdate,
+) {
 	ok, settings := listener.getSettings(event.GuildID, event.ChannelID)
 	if !ok {
 		return
@@ -62,7 +74,12 @@ func (listener *GameListener) MessageUpdateHandler(bot *discordgo.Session, event
 		return
 	}
 
-	isEqual, word := listener.service.IsEqualToLast(context.Background(), event.Message, settings, false)
+	isEqual, word := listener.service.IsEqualToLast(
+		context.Background(),
+		event.Message,
+		settings,
+		false,
+	)
 	if isEqual {
 		return
 	}
@@ -74,7 +91,10 @@ Last word was **%s**!`, event.Author.ID, word),
 	)
 }
 
-func (listener *GameListener) MessageDeleteHandler(bot *discordgo.Session, event *discordgo.MessageDelete) {
+func (listener *GameListener) MessageDeleteHandler(
+	bot *discordgo.Session,
+	event *discordgo.MessageDelete,
+) {
 	ok, settings := listener.getSettings(event.GuildID, event.ChannelID)
 	if !ok {
 		return
@@ -84,7 +104,12 @@ func (listener *GameListener) MessageDeleteHandler(bot *discordgo.Session, event
 		return
 	}
 
-	isEqual, word := listener.service.IsEqualToLast(context.Background(), event.BeforeDelete, settings, true)
+	isEqual, word := listener.service.IsEqualToLast(
+		context.Background(),
+		event.BeforeDelete,
+		settings,
+		true,
+	)
 	if isEqual {
 		return
 	}
@@ -96,10 +121,16 @@ Last word was **%s**!`, event.BeforeDelete.Author.ID, word),
 	)
 }
 
-func (listener *GameListener) getSettings(guildID string, channelID string) (ok bool, settings *db.SettingsModel) {
+func (listener *GameListener) getSettings(
+	guildID string,
+	channelID string,
+) (ok bool, settings *db.SettingsModel) {
 	ok = false
 
-	settings, err := listener.settings.GetByGuildId(context.Background(), guildID)
+	settings, err := listener.settings.GetByGuildId(
+		context.Background(),
+		guildID,
+	)
 	if err != nil {
 		utils.Logger.Error("Failed to get settings", err)
 		return

@@ -1,7 +1,7 @@
 package static
 
 const (
-	DiConfig         = "config"
+	DiConfig = "config"
 
 	DiBot            = "discordbot"
 	DiCron           = "cron"

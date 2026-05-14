@@ -59,19 +59,30 @@ func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, param)
+	_, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		param,
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	idx := slices.IndexFunc(resetChoices, func(c *discordgo.ApplicationCommandOptionChoice) bool {
-		return c.Value == setting
-	})
+	idx := slices.IndexFunc(
+		resetChoices,
+		func(c *discordgo.ApplicationCommandOptionChoice) bool {
+			return c.Value == setting
+		},
+	)
 	name := resetChoices[idx].Name
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("%s has been reset to its default value of `%s`", name, value),
+		Content: fmt.Sprintf(
+			"%s has been reset to its default value of `%s`",
+			name,
+			value,
+		),
 	}, true)
 }
 
@@ -80,8 +91,10 @@ func (m *SettingsResetModule) Commands() []*discordgoplus.Command {
 		{
 			Name:        "reset",
 			Description: "Reset a Hoshi setting to its default value.",
-			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     discordgoplus.HandlerFunc(m.reset),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			},
+			Handler: discordgoplus.HandlerFunc(m.reset),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,

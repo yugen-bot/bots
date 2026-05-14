@@ -28,7 +28,10 @@ func (m *SettingsMathModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	enabled := ctx.Options["enabled"].BoolValue()
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return

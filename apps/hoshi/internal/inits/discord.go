@@ -26,7 +26,11 @@ func InitDiscordBot(container *di.Container) error {
 	bot.Identify.Intents = Intents
 
 	bot.AddHandler(func(bot *discordgo.Session, event *discordgo.Ready) {
-		utils.Logger.Infof("Logged in as: %v#%v", bot.State.User.Username, bot.State.User.Discriminator)
+		utils.Logger.Infof(
+			"Logged in as: %v#%v",
+			bot.State.User.Username,
+			bot.State.User.Discriminator,
+		)
 		bot.UpdateWatchStatus(0, "the ✨")
 	})
 

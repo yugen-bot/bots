@@ -14,7 +14,9 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func CreateVoteHandler(container *di.Container) func(userID string, source string) error {
+func CreateVoteHandler(
+	container *di.Container,
+) func(userID string, source string) error {
 	saves := container.Get(localStatic.DiSaves).(*services.SavesService)
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
@@ -43,7 +45,10 @@ func CreateVoteHandler(container *di.Container) func(userID string, source strin
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	voteReward := func(userID string) string {
 		saves := container.Get(localStatic.DiSaves).(*services.SavesService)
-		player, err := saves.GetPlayerSavesByUserID(context.Background(), userID)
+		player, err := saves.GetPlayerSavesByUserID(
+			context.Background(),
+			userID,
+		)
 		if err != nil {
 			utils.Logger.Error(err)
 			return ""
@@ -57,7 +62,10 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 		voteTime := lastVoteTime.Add(time.Hour * 12)
 		voteTimeText := "**right now**!"
 		if voteTime.After(time.Now()) {
-			voteTimeText = fmt.Sprintf("again **%s**", hammertime.Format(voteTime, hammertime.Span))
+			voteTimeText = fmt.Sprintf(
+				"again **%s**",
+				hammertime.Format(voteTime, hammertime.Span),
+			)
 		}
 
 		amount := "0.25"

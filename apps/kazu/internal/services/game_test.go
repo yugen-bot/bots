@@ -130,12 +130,12 @@ func TestParseNumberPure(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:        "math mode: expression too long",
-			content:     strings.Repeat("1+", 130), // > 256 chars
-			isBot:       false,
-			math:        true,
-			wantNum:     0,
-			wantErr:     ErrExprTooLong,
+			name:    "math mode: expression too long",
+			content: strings.Repeat("1+", 130), // > 256 chars
+			isBot:   false,
+			math:    true,
+			wantNum: 0,
+			wantErr: ErrExprTooLong,
 		},
 		{
 			name:        "math mode: invalid expression",
@@ -154,11 +154,11 @@ func TestParseNumberPure(t *testing.T) {
 			wantErr: ErrNumberCannotBeZero,
 		},
 		{
-			name:    "non-numeric plain input",
-			content: "abc",
-			isBot:   false,
-			math:    false,
-			wantNum: 0,
+			name:        "non-numeric plain input",
+			content:     "abc",
+			isBot:       false,
+			math:        false,
+			wantNum:     0,
 			wantErrSome: true,
 		},
 		{

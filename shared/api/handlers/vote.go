@@ -9,6 +9,7 @@ import (
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
 )
 
 type TopGGBody struct {
@@ -110,7 +111,9 @@ func (handler *VoteHandler) handleVote(userID string, source string) {
 		return
 	}
 
-	voteRewardHandler.(func(userID string, source string) error)(userID, source)
+	if err := voteRewardHandler.(func(userID string, source string) error)(userID, source); err != nil {
+		utils.Logger.Errorw("vote: reward handler failed", "error", err)
+	}
 }
 
 func (handler *VoteHandler) sendLogMessage(userID string, source string) {

@@ -17,7 +17,9 @@ type SettingsBotUpdatesModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSettingsBotUpdatesModule(container *di.Container) *SettingsBotUpdatesModule {
+func GetSettingsBotUpdatesModule(
+	container *di.Container,
+) *SettingsBotUpdatesModule {
 	return &SettingsBotUpdatesModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -28,7 +30,10 @@ func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
@@ -45,7 +50,10 @@ func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("I will send my updates to <#%s> from now on.", channel.ID),
+		Content: fmt.Sprintf(
+			"I will send my updates to <#%s> from now on.",
+			channel.ID,
+		),
 	}, true)
 }
 

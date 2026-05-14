@@ -38,8 +38,12 @@ func (m *InviteModule) invite(ctx *discordgoplus.Ctx) {
 	embed := &discordgo.MessageEmbed{
 		Color: embedColor,
 		Title: fmt.Sprintf("Invite %s", appName),
-		Description: fmt.Sprintf(`Do you want to share %s with your friends in another server?
-Don't hesitate now and **invite %s** wherever you want using the button bellow!`, appName, appName),
+		Description: fmt.Sprintf(
+			`Do you want to share %s with your friends in another server?
+Don't hesitate now and **invite %s** wherever you want using the button bellow!`,
+			appName,
+			appName,
+		),
 		Footer: footer,
 	}
 
@@ -50,8 +54,11 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 				Components: []discordgo.MessageComponent{
 					discordgo.Button{
 						Style: discordgo.LinkButton,
-						Label: fmt.Sprintf("Invite %s to your server 🎉", appName),
-						URL:   cfg.InviteLink,
+						Label: fmt.Sprintf(
+							"Invite %s to your server 🎉",
+							appName,
+						),
+						URL: cfg.InviteLink,
 					},
 				},
 			},

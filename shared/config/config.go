@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/caarlos0/env/v11"
 )
 
@@ -66,7 +68,7 @@ type Config struct {
 func Load() (Config, error) {
 	var c Config
 	if err := env.Parse(&c); err != nil {
-		return c, err
+		return c, fmt.Errorf("config: load: %w", err)
 	}
 	// If OWNER_IDS is set, use the first entry as the primary OwnerID
 	// so callers don't need to know about both fields.

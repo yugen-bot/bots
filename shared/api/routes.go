@@ -9,7 +9,11 @@ import (
 	"jurien.dev/yugen/shared/api/handlers"
 )
 
-func AddSharedRoutes(app *fiber.App, router fiber.Router, container *di.Container) {
+func AddSharedRoutes(
+	app *fiber.App,
+	router fiber.Router,
+	container *di.Container,
+) {
 	router.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})

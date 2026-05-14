@@ -22,7 +22,9 @@ type ResetLeaderboardModule struct {
 	points    *services.PointsService
 }
 
-func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
+func GetResetLeaderboardModule(
+	container *di.Container,
+) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
 		bot:       container.Get(static.DiBot).(*discordgoplus.Bot),
@@ -82,14 +84,20 @@ func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
 					discordgo.Button{
-						CustomID: fmt.Sprintf("RESET_LEADERBOARD/true/%s", userID),
-						Style:    discordgo.DangerButton,
-						Label:    "Reset leaderboard",
+						CustomID: fmt.Sprintf(
+							"RESET_LEADERBOARD/true/%s",
+							userID,
+						),
+						Style: discordgo.DangerButton,
+						Label: "Reset leaderboard",
 					},
 					discordgo.Button{
-						CustomID: fmt.Sprintf("RESET_LEADERBOARD/false/%s", userID),
-						Style:    discordgo.SecondaryButton,
-						Label:    "Cancel",
+						CustomID: fmt.Sprintf(
+							"RESET_LEADERBOARD/false/%s",
+							userID,
+						),
+						Style: discordgo.SecondaryButton,
+						Label: "Cancel",
 					},
 				},
 			},
@@ -106,7 +114,11 @@ func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 	if !reset {
 		contentText := "I have not reset the leaderboard"
 		if ctx.MessageComponentOptions["userID"] != "none" {
-			contentText = fmt.Sprintf("%s for <@%s>", contentText, ctx.MessageComponentOptions["userID"])
+			contentText = fmt.Sprintf(
+				"%s for <@%s>",
+				contentText,
+				ctx.MessageComponentOptions["userID"],
+			)
 		}
 
 		discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
@@ -119,8 +131,16 @@ func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 
 	contentText := "The leaderboard points have been reset"
 	if ctx.MessageComponentOptions["userID"] != "none" {
-		contentText = fmt.Sprintf("%s for <@%s>", contentText, ctx.MessageComponentOptions["userID"])
-		go m.points.ResetLeaderboardByGuildIDAndUserID(context.Background(), ctx.Interaction.GuildID, ctx.MessageComponentOptions["userID"])
+		contentText = fmt.Sprintf(
+			"%s for <@%s>",
+			contentText,
+			ctx.MessageComponentOptions["userID"],
+		)
+		go m.points.ResetLeaderboardByGuildIDAndUserID(
+			context.Background(),
+			ctx.Interaction.GuildID,
+			ctx.MessageComponentOptions["userID"],
+		)
 	} else {
 		go m.points.ResetLeaderboardByGuildID(context.Background(), ctx.Interaction.GuildID)
 	}

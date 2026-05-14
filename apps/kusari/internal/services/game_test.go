@@ -30,8 +30,8 @@ func TestFirstLetterRegex(t *testing.T) {
 		{"a", true},
 		{"Z", true},
 		{"!", true},
-		{"!a", true},  // leading exclamation mark is allowed by the regex
-		{"1", false},  // digit not in [A-Za-z!]
+		{"!a", true}, // leading exclamation mark is allowed by the regex
+		{"1", false}, // digit not in [A-Za-z!]
 		{"", false},
 		{" ", false},
 		{"#word", false},
@@ -43,7 +43,12 @@ func TestFirstLetterRegex(t *testing.T) {
 			first := string(tc.input)
 			got := firstLetterRegex.MatchString(first)
 			if got != tc.want {
-				t.Errorf("firstLetterRegex.MatchString(%q) = %v, want %v", first, got, tc.want)
+				t.Errorf(
+					"firstLetterRegex.MatchString(%q) = %v, want %v",
+					first,
+					got,
+					tc.want,
+				)
 			}
 		})
 	}
@@ -56,7 +61,7 @@ func TestLastLetterRegex(t *testing.T) {
 	}{
 		{"a", true},
 		{"Z", true},
-		{"!", false},   // exclamation is NOT in [A-Za-z]
+		{"!", false}, // exclamation is NOT in [A-Za-z]
 		{"1", false},
 		{"", false},
 		{" ", false},
@@ -67,7 +72,12 @@ func TestLastLetterRegex(t *testing.T) {
 			last := tc.input
 			got := lastLetterRegex.MatchString(last)
 			if got != tc.want {
-				t.Errorf("lastLetterRegex.MatchString(%q) = %v, want %v", last, got, tc.want)
+				t.Errorf(
+					"lastLetterRegex.MatchString(%q) = %v, want %v",
+					last,
+					got,
+					tc.want,
+				)
 			}
 		})
 	}

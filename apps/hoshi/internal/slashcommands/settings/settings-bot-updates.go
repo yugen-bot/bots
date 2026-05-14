@@ -18,7 +18,9 @@ type SettingsBotUpdatesModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSettingsBotUpdatesModule(container *di.Container) *SettingsBotUpdatesModule {
+func GetSettingsBotUpdatesModule(
+	container *di.Container,
+) *SettingsBotUpdatesModule {
 	return &SettingsBotUpdatesModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
@@ -30,14 +32,21 @@ func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
 
-	_, err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, db.Settings.BotUpdatesChannelID.Set(string(channel.ID)))
+	_, err := m.settings.Set(
+		context.Background(),
+		ctx.Interaction.GuildID,
+		db.Settings.BotUpdatesChannelID.Set(string(channel.ID)),
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Hoshi will send its updates to <#%s>!", channel.ID),
+		Content: fmt.Sprintf(
+			"Hoshi will send its updates to <#%s>!",
+			channel.ID,
+		),
 	}, true)
 }
 
@@ -46,8 +55,10 @@ func (m *SettingsBotUpdatesModule) Commands() []*discordgoplus.Command {
 		{
 			Name:        "bot-updates",
 			Description: "Set channel for the bot updates",
-			Middlewares: []discordgoplus.Handler{discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware)},
-			Handler:     discordgoplus.HandlerFunc(m.set),
+			Middlewares: []discordgoplus.Handler{
+				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			},
+			Handler: discordgoplus.HandlerFunc(m.set),
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionChannel,

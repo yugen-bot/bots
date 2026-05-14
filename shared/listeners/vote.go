@@ -2,6 +2,7 @@ package listeners
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +21,7 @@ func doRequest(url string, token string, body []byte, source string) error {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("vote: doRequest: new request: %w", err)
 	}
@@ -40,7 +41,8 @@ func doRequest(url string, token string, body []byte, source string) error {
 	}
 
 	if resp.StatusCode != 200 {
-		utils.Logger.With("url", url, "body", string(respBody)).Warnf("Something went wrong syncing %s", source)
+		utils.Logger.With("url", url, "body", string(respBody)).
+			Warnf("Something went wrong syncing %s", source)
 	}
 
 	utils.Logger.Infof("Synced %s", source)
@@ -50,13 +52,18 @@ func doRequest(url string, token string, body []byte, source string) error {
 
 func postTopGG(token string, clientID string, servers int) error {
 	url := fmt.Sprintf("https://top.gg/api/bots/%s/stats", clientID)
-	body := []byte(fmt.Sprintf(`{"server_count": %d, "shard_count": 1}`, servers))
+	body := []byte(
+		fmt.Sprintf(`{"server_count": %d, "shard_count": 1}`, servers),
+	)
 
 	return doRequest(url, token, body, "top-gg")
 }
 
 func postDiscordBotList(token string, clientID string, servers int) error {
-	url := fmt.Sprintf("https://discordbotlist.com/api/v1/bots/%s/stats", clientID)
+	url := fmt.Sprintf(
+		"https://discordbotlist.com/api/v1/bots/%s/stats",
+		clientID,
+	)
 	body := []byte(fmt.Sprintf(`{"guilds": %d}`, servers))
 
 	return doRequest(url, token, body, "discordbotlist")
@@ -84,7 +91,11 @@ func postStats(bot *discordgoplus.Bot, cfg *config.Config) {
 	if syncDiscordBotList && len(discordBotListToken) > 0 {
 		go func() {
 			if err := postDiscordBotList(discordBotListToken, clientID, servers); err != nil {
-				utils.Logger.Errorw("vote: post discordbotlist failed", "error", err)
+				utils.Logger.Errorw(
+					"vote: post discordbotlist failed",
+					"error",
+					err,
+				)
 			}
 		}()
 	}
@@ -95,9 +106,11 @@ func AddVoteListeners(container *di.Container) {
 	cron := container.Get(static.DiCron).(*cron.Cron)
 	cfg := container.Get(static.DiConfig).(*config.Config)
 
-	cron.AddFunc("@every 3h", func() {
+	if _, err := cron.AddFunc("@every 3h", func() {
 		go postStats(bot, cfg)
-	})
+	}); err != nil {
+		panic(err)
+	}
 
 	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
 		go postStats(bot, cfg)

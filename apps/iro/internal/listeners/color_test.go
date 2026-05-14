@@ -53,7 +53,12 @@ func TestRxColorHex(t *testing.T) {
 
 			// Assert
 			if got != tc.want {
-				t.Errorf("rxColorHex.MatchString(%q) = %v, want %v", tc.input, got, tc.want)
+				t.Errorf(
+					"rxColorHex.MatchString(%q) = %v, want %v",
+					tc.input,
+					got,
+					tc.want,
+				)
 			}
 		})
 	}
@@ -107,7 +112,12 @@ func TestAppendIfUnique(t *testing.T) {
 
 			// Assert
 			if len(got) != len(tc.want) {
-				t.Fatalf("len(got) = %d, want %d; got = %v", len(got), len(tc.want), got)
+				t.Fatalf(
+					"len(got) = %d, want %d; got = %v",
+					len(got),
+					len(tc.want),
+					got,
+				)
 			}
 			for i, v := range tc.want {
 				if got[i] != v {

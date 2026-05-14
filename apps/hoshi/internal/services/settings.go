@@ -24,7 +24,11 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	}
 }
 
-func (s *SettingsService) GetByGuildID(ctx context.Context, guildID string, create ...bool) (*db.SettingsModel, error) {
+func (s *SettingsService) GetByGuildID(
+	ctx context.Context,
+	guildID string,
+	create ...bool,
+) (*db.SettingsModel, error) {
 	createBool := false
 	if len(create) > 0 {
 		createBool = create[0]
@@ -59,7 +63,11 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 	return nil
 }
 
-func (s *SettingsService) Set(ctx context.Context, guildID string, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
+func (s *SettingsService) Set(
+	ctx context.Context,
+	guildID string,
+	params ...db.SettingsSetParam,
+) (*db.SettingsModel, error) {
 	result, err := s.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Update(params...).Exec(ctx)
@@ -69,7 +77,11 @@ func (s *SettingsService) Set(ctx context.Context, guildID string, params ...db.
 	return result, nil
 }
 
-func (s *SettingsService) IgnoreChannel(ctx context.Context, guildID, channelID string, ignore bool) error {
+func (s *SettingsService) IgnoreChannel(
+	ctx context.Context,
+	guildID, channelID string,
+	ignore bool,
+) error {
 	settings, err := s.GetByGuildID(ctx, guildID)
 	if err != nil {
 		return err

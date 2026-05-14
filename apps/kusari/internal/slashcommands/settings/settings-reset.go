@@ -44,7 +44,10 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	setting := ctx.Options["setting"].StringValue()
-	settings, err := m.settings.GetByGuildId(context.Background(), ctx.Interaction.GuildID)
+	settings, err := m.settings.GetByGuildId(
+		context.Background(),
+		ctx.Interaction.GuildID,
+	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
@@ -86,7 +89,11 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	name := choices[choiceIdx].Name
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("%s has been reset to it's default value of `%s`", name, value),
+		Content: fmt.Sprintf(
+			"%s has been reset to it's default value of `%s`",
+			name,
+			value,
+		),
 	}, true)
 }
 

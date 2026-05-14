@@ -25,7 +25,10 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	}
 }
 
-func (service *SettingsService) GetByGuildId(ctx context.Context, guildID string) (*db.SettingsModel, error) {
+func (service *SettingsService) GetByGuildId(
+	ctx context.Context,
+	guildID string,
+) (*db.SettingsModel, error) {
 	guildSettings, err := service.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Exec(ctx)
@@ -35,14 +38,21 @@ func (service *SettingsService) GetByGuildId(ctx context.Context, guildID string
 			db.Settings.GuildID.Set(guildID),
 		).Exec(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("settings: get guild settings: create: %w", err)
+			return nil, fmt.Errorf(
+				"settings: get guild settings: create: %w",
+				err,
+			)
 		}
 	}
 
 	return guildSettings, nil
 }
 
-func (service *SettingsService) SetHighscoreByGuildID(ctx context.Context, guildID string, highscore int) (*db.SettingsModel, error) {
+func (service *SettingsService) SetHighscoreByGuildID(
+	ctx context.Context,
+	guildID string,
+	highscore int,
+) (*db.SettingsModel, error) {
 	result, err := service.database.Settings.FindUnique(
 		db.Settings.GuildID.Equals(guildID),
 	).Update(
@@ -56,7 +66,11 @@ func (service *SettingsService) SetHighscoreByGuildID(ctx context.Context, guild
 	return result, nil
 }
 
-func (service *SettingsService) Update(ctx context.Context, settingsID int, params ...db.SettingsSetParam) (*db.SettingsModel, error) {
+func (service *SettingsService) Update(
+	ctx context.Context,
+	settingsID int,
+	params ...db.SettingsSetParam,
+) (*db.SettingsModel, error) {
 	settings, err := service.database.Settings.FindUnique(
 		db.Settings.ID.Equals(settingsID),
 	).Update(params...).Exec(ctx)

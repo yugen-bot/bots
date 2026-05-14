@@ -20,7 +20,11 @@ const NoSettingsDescription = `Someone with ` + "`Manage Server`" + ` permission
 
 That's it! Have fun playing!`
 
-func NoSettingsReply(ctx *discordgoplus.Ctx, container *di.Container, ephemeral bool) {
+func NoSettingsReply(
+	ctx *discordgoplus.Ctx,
+	container *di.Container,
+	ephemeral bool,
+) {
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	footer := shared.CreateEmbedFooter(
 		container.Get(static.DiBot).(*discordgoplus.Bot),
@@ -31,10 +35,13 @@ func NoSettingsReply(ctx *discordgoplus.Ctx, container *di.Container, ephemeral 
 	)
 
 	embed := &discordgo.MessageEmbed{
-		Color:       container.Get(static.DiEmbedColor).(int),
-		Title:       "Kazu Setup",
-		Description: fmt.Sprintf("Kazu has not yet been set up in this server! %s", NoSettingsDescription),
-		Footer:      footer,
+		Color: container.Get(static.DiEmbedColor).(int),
+		Title: "Kazu Setup",
+		Description: fmt.Sprintf(
+			"Kazu has not yet been set up in this server! %s",
+			NoSettingsDescription,
+		),
+		Footer: footer,
 	}
 
 	if ephemeral {

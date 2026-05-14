@@ -51,28 +51,46 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 	fields := discordgoplus.ParseModalData(ctx.ModalData)
 	content := fields["message"]
 
-	ctx.Session.InteractionRespond(ctx.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Flags: discordgo.MessageFlagsEphemeral,
+	ctx.Session.InteractionRespond(
+		ctx.Interaction,
+		&discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Flags: discordgo.MessageFlagsEphemeral,
+			},
 		},
-	})
+	)
 
-	total, successByBotChannel, successByStarboard, err := m.notifyService.SendNotification(context.Background(), content)
+	total, successByBotChannel, successByStarboard, err := m.notifyService.SendNotification(
+		context.Background(),
+		content,
+	)
 	if err != nil {
 		utils.Logger.Error(err)
-		ctx.Session.FollowupMessageCreate(ctx.Interaction, true, &discordgo.WebhookParams{
-			Content: "Something went wrong sending the notification.",
-			Flags:   discordgo.MessageFlagsEphemeral,
-		})
+		ctx.Session.FollowupMessageCreate(
+			ctx.Interaction,
+			true,
+			&discordgo.WebhookParams{
+				Content: "Something went wrong sending the notification.",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		)
 		return
 	}
 
-	ctx.Session.FollowupMessageCreate(ctx.Interaction, true, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Message sent to %d of %d guilds. %d were by `botUpdatesChannelId` settings.",
-			successByBotChannel+successByStarboard, total, successByBotChannel),
-		Flags: discordgo.MessageFlagsEphemeral,
-	})
+	ctx.Session.FollowupMessageCreate(
+		ctx.Interaction,
+		true,
+		&discordgo.WebhookParams{
+			Content: fmt.Sprintf(
+				"Message sent to %d of %d guilds. %d were by `botUpdatesChannelId` settings.",
+				successByBotChannel+successByStarboard,
+				total,
+				successByBotChannel,
+			),
+			Flags: discordgo.MessageFlagsEphemeral,
+		},
+	)
 }
 
 func (m *AdminNotifyModule) Modals() []*discordgoplus.Modal {
