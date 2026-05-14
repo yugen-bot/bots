@@ -9,6 +9,7 @@ import (
 	zaploki "github.com/paul-milne/zap-loki"
 	prettyconsole "github.com/thessem/zap-prettyconsole"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -32,7 +33,6 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 	environment := productionEnv
 
 	if os.Getenv(static.Env) != productionEnv {
-		// cfg = zap.NewDevelopmentConfig()
 		cfg = prettyconsole.NewConfig()
 		environment = os.Getenv(static.Env)
 	}
@@ -69,7 +69,24 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 		log.Panic(err)
 	}
 
+	if InitSentry(appName) {
+		sentryCore, sentryErr := newSentryCore(zapcore.WarnLevel)
+		if sentryErr != nil {
+			log.Printf("sentry: failed to create zap core: %v", sentryErr)
+		} else {
+			logger = logger.WithOptions(zap.WrapCore(func(original zapcore.Core) zapcore.Core {
+				return zapcore.NewTee(original, sentryCore)
+			}))
+		}
+	}
+
 	Logger = logger.Sugar()
 
 	return Logger
+}
+
+// Shutdown flushes all log sinks (Sentry, zap) and should be deferred in main.
+func Shutdown() {
+	FlushSentry(2 * time.Second)
+	_ = Logger.Sync()
 }
