@@ -28,6 +28,7 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 
 	cfg := zap.NewProductionConfig()
 	environment := "production"
+
 	if os.Getenv(static.Env) != "production" {
 		// cfg = zap.NewDevelopmentConfig()
 		cfg = prettyconsole.NewConfig()
@@ -35,12 +36,14 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 	}
 
 	cfg.Level = lvl
+
 	logger, err := cfg.Build()
 	if err != nil {
 		log.Panic(err)
 	}
 
 	logger.Sugar().Infof("Log level is set to %s", cfg.Level.String())
+
 	if err != nil {
 		log.Panic(err)
 	}

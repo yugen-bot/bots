@@ -19,6 +19,7 @@ func doRequest(url string, token string, body []byte, source string) error {
 	contentType := "application/json"
 
 	client := &http.Client{}
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("vote: doRequest: new request: %w", err)

@@ -79,42 +79,18 @@ func ShowLeaderboard(ctx *discordgoplus.Ctx, container *di.Container, source lea
 	items, total, err := getItems(ctx, page)
 	if err != nil {
 		Logger.Error(err)
-		if source == LEADERBOARD_INTERACTION {
-			discordgoplus.InteractionError(ctx, true)
-		}
+		doError(ctx, source)
 
-		if source == LEADERBOARD_MESSAGE_COMPONENT {
-			discordgoplus.MessageComponentError(ctx)
-		}
 		return
 	}
 
-	errStr := ""
 	if total == 0 {
-		errStr = "There is no leaderboard available yet for this server."
+		doTextResponse(ctx, source, "There is no leaderboard available yet for this server.")
+		return
 	}
 
 	if len(items) == 0 {
-		errStr = fmt.Sprintf("No players found for page %d", page)
-	}
-
-	if len(errStr) > 0 {
-		if source == LEADERBOARD_INTERACTION {
-			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-				Content:    errStr,
-				Embeds:     []*discordgo.MessageEmbed{},
-				Components: []discordgo.MessageComponent{},
-			})
-		}
-
-		if source == LEADERBOARD_MESSAGE_COMPONENT {
-			discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
-				Content:    errStr,
-				Embeds:     []*discordgo.MessageEmbed{},
-				Components: []discordgo.MessageComponent{},
-			})
-		}
-
+		doTextResponse(ctx, source, fmt.Sprintf("No players found for page %d", page))
 		return
 	}
 
@@ -123,29 +99,23 @@ func ShowLeaderboard(ctx *discordgoplus.Ctx, container *di.Container, source lea
 
 func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, source leaderboardSourceType, page int, total int, items []interface{}, formatter LeaderboardFormatFunc) {
 	embedColor := container.Get(static.DiEmbedColor).(int)
+	cfg := container.Get(static.DiConfig).(*config.Config)
+	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	maxPage := int(math.Ceil(float64(total) / 10))
 
-	footerParams := CreateEmbedFooterParams{
-		IsVote: false,
-	}
-
+	footerParams := CreateEmbedFooterParams{IsVote: false}
 	if maxPage > 1 {
 		footerParams.Text = fmt.Sprintf("Page %d/%d", page, maxPage)
 	}
 
-	cfg := container.Get(static.DiConfig).(*config.Config)
-	footer := CreateEmbedFooter(
-		container.Get(static.DiBot).(*discordgoplus.Bot),
-		&footerParams,
-		cfg.OwnerID,
-	)
+	footer := CreateEmbedFooter(bot, &footerParams, cfg.OwnerID)
 
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 	guild, err := bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {
 		Logger.Error(err)
 		doError(ctx, source)
+
 		return
 	}
 
@@ -164,9 +134,9 @@ func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, sour
 		Footer: footer,
 	}
 
-	components := []discordgo.MessageComponent{}
+	var buttons []discordgo.MessageComponent
 	if page > 1 {
-		components = append(components, discordgo.Button{
+		buttons = append(buttons, discordgo.Button{
 			CustomID: fmt.Sprintf("LEADERBOARD/%d", page-1),
 			Style:    discordgo.PrimaryButton,
 			Label:    "◀️",
@@ -174,45 +144,63 @@ func doLeaderboardResponse(ctx *discordgoplus.Ctx, container *di.Container, sour
 	}
 
 	if page < maxPage {
-		components = append(components, discordgo.Button{
+		buttons = append(buttons, discordgo.Button{
 			CustomID: fmt.Sprintf("LEADERBOARD/%d", page+1),
 			Style:    discordgo.PrimaryButton,
 			Label:    "▶️",
 		})
 	}
 
-	messageComponents := []discordgo.MessageComponent{}
-	if len(components) > 0 {
-		messageComponents = append(messageComponents, discordgo.ActionsRow{
-			Components: components,
-		})
+	components := []discordgo.MessageComponent{}
+	if len(buttons) > 0 {
+		components = append(components, discordgo.ActionsRow{Components: buttons})
 	}
 
 	if source == LEADERBOARD_MESSAGE_COMPONENT {
 		err = discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
 			Content:    "",
 			Embeds:     []*discordgo.MessageEmbed{embed},
-			Components: messageComponents,
+			Components: components,
 		})
 		if err != nil {
 			Logger.Error(err)
 		}
+
 		return
 	}
 
 	err = discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 		Content:    "",
 		Embeds:     []*discordgo.MessageEmbed{embed},
-		Components: messageComponents,
+		Components: components,
 	})
 	if err != nil {
 		Logger.Error(err)
 	}
 }
 
+func doTextResponse(ctx *discordgoplus.Ctx, source leaderboardSourceType, content string) {
+	if source == LEADERBOARD_INTERACTION {
+		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+			Content:    content,
+			Embeds:     []*discordgo.MessageEmbed{},
+			Components: []discordgo.MessageComponent{},
+		})
+
+		return
+	}
+
+	discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
+		Content:    content,
+		Embeds:     []*discordgo.MessageEmbed{},
+		Components: []discordgo.MessageComponent{},
+	})
+}
+
 func doError(ctx *discordgoplus.Ctx, source leaderboardSourceType) {
 	if source == LEADERBOARD_INTERACTION {
 		discordgoplus.InteractionError(ctx, true)
+		return
 	}
 
 	if source == LEADERBOARD_MESSAGE_COMPONENT {
