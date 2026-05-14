@@ -87,21 +87,25 @@ func (m *StarboardListModule) showList(ctx *discordgoplus.Ctx, page int, isCompo
 
 	maxPage := int(math.Ceil(float64(total) / 10))
 
+	// Build display rows
 	ids := make([]string, len(items))
 	emojiSources := make([]string, len(items))
 	destinations := make([]string, len(items))
 
 	for i, c := range items {
 		ids[i] = fmt.Sprintf("%d", c.ID)
+
 		_, _, display, unicode := localUtils.ResolveEmoji(c.SourceEmoji, bot)
 		emojiDisplay := c.SourceEmoji
 		if !unicode {
 			emojiDisplay = display
 		}
+
 		src := "Anywhere"
 		if sid, ok := c.SourceChannelID(); ok {
 			src = fmt.Sprintf("<#%s>", sid)
 		}
+
 		emojiSources[i] = fmt.Sprintf("%s | %s", emojiDisplay, src)
 		destinations[i] = fmt.Sprintf("<#%s>", c.TargetChannelID)
 	}
