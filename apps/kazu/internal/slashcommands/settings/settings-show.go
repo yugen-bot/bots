@@ -70,6 +70,7 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	if cooldown == 1 {
 		cooldownText = fmt.Sprintf("%d second", cooldown)
 	}
+
 	if cooldown == 0 {
 		cooldownText = "None"
 	}

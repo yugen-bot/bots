@@ -61,6 +61,7 @@ func (m *LeaderboardModule) leaderboardPage(ctx *discordgoplus.Ctx) {
 	if len(parts) >= 1 && parts[0] != "" {
 		leaderboardType = parts[0]
 	}
+
 	if len(parts) >= 2 {
 		if p, err := strconv.Atoi(parts[1]); err == nil && p > 0 {
 			page = p
@@ -111,9 +112,12 @@ func (m *LeaderboardModule) showLeaderboard(
 	typeLabel := strings.ToUpper(leaderboardType[:1]) + leaderboardType[1:]
 
 	var sb strings.Builder
+
 	for i, p := range players {
 		rank := (page-1)*10 + i + 1
+
 		var value int
+
 		switch leaderboardType {
 		case "wins":
 			value = p.Wins
@@ -122,6 +126,7 @@ func (m *LeaderboardModule) showLeaderboard(
 		default:
 			value = p.Points
 		}
+
 		fmt.Fprintf(&sb, "%d. <@%s>: **%d**\n", rank, p.UserID, value)
 	}
 
@@ -130,6 +135,7 @@ func (m *LeaderboardModule) showLeaderboard(
 	}
 
 	bot := m.container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
+
 	footer := utils.CreateEmbedFooter(
 		bot,
 		&utils.CreateEmbedFooterParams{IsVote: false},
@@ -154,6 +160,7 @@ func (m *LeaderboardModule) showLeaderboard(
 			Label:    "◀️",
 		})
 	}
+
 	if page < maxPage {
 		buttons = append(buttons, discordgo.Button{
 			CustomID: fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page+1),

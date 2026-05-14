@@ -23,11 +23,13 @@ func AddMessageListeners(container *di.Container) {
 		if event.Author == nil || event.Author.Bot {
 			return
 		}
+
 		if event.GuildID == "" {
 			return
 		}
 
 		ctx := context.Background()
+
 		settings, err := settingsSvc.GetByGuildID(ctx, event.GuildID)
 		if err != nil || settings == nil {
 			return
@@ -52,6 +54,7 @@ func AddMessageListeners(container *di.Container) {
 				event.ID,
 				"❌",
 			)
+
 			return
 		}
 

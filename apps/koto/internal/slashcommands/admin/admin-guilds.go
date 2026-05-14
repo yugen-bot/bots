@@ -30,11 +30,13 @@ func (m *AdminGuildsModule) list(ctx *discordgoplus.Ctx) {
 	if opt, ok := ctx.Options["page"]; ok {
 		page = int(opt.IntValue())
 	}
+
 	m.showList(ctx, page, false)
 }
 
 func (m *AdminGuildsModule) listPage(ctx *discordgoplus.Ctx) {
 	page := 1
+
 	if p, ok := ctx.MessageComponentOptions["page"]; ok {
 		page64, err := strconv.ParseInt(p, 10, 64)
 		if err != nil {
@@ -43,6 +45,7 @@ func (m *AdminGuildsModule) listPage(ctx *discordgoplus.Ctx) {
 			page = int(page64)
 		}
 	}
+
 	m.showList(ctx, page, true)
 }
 
@@ -75,6 +78,7 @@ func (m *AdminGuildsModule) showList(
 				true,
 			)
 		}
+
 		return
 	}
 
@@ -96,6 +100,7 @@ func (m *AdminGuildsModule) showList(
 				true,
 			)
 		}
+
 		return
 	}
 
@@ -130,6 +135,7 @@ func (m *AdminGuildsModule) showList(
 			Label:    "◀️",
 		})
 	}
+
 	if page < maxPage {
 		buttons = append(buttons, discordgo.Button{
 			CustomID: fmt.Sprintf("ADMIN_GUILDS_LIST/%d", page+1),

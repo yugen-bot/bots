@@ -82,7 +82,13 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 		Content: respond,
 	}, true)
 	if err != nil {
-		utils.Logger.Errorw("game: start: follow up failed", "error", err, "guildID", ctx.Interaction.GuildID)
+		utils.Logger.Errorw(
+			"game: start: follow up failed",
+			"error",
+			err,
+			"guildID",
+			ctx.Interaction.GuildID,
+		)
 	}
 }
 

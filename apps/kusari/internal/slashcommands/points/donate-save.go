@@ -57,6 +57,7 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 				int(player.Saves),
 			),
 		}, true)
+
 		return
 	}
 
@@ -68,6 +69,7 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 				strconv.FormatFloat(settings.MaxSaves, 'f', -1, 64),
 			),
 		}, true)
+
 		return
 	}
 
@@ -76,6 +78,7 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		ctx.Interaction.Member.User.ID,
 		1,
 	)
+
 	saves, maxSaves, err := m.saves.AddSaveToGuild(
 		context.Background(),
 		settings.GuildID,

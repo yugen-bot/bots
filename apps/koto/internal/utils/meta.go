@@ -53,6 +53,7 @@ func ParseGameMeta(raw json.RawMessage) (*GameMeta, error) {
 	if err := json.Unmarshal(raw, &meta); err != nil {
 		return nil, err
 	}
+
 	return &meta, nil
 }
 

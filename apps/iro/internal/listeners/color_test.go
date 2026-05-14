@@ -119,6 +119,7 @@ func TestAppendIfUnique(t *testing.T) {
 					got,
 				)
 			}
+
 			for i, v := range tc.want {
 				if got[i] != v {
 					t.Errorf("got[%d] = %q, want %q", i, got[i], v)

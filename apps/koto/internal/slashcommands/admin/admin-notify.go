@@ -26,6 +26,7 @@ func GetAdminNotifyModule(container *di.Container) *AdminNotifyModule {
 
 func (m *AdminNotifyModule) notify(ctx *discordgoplus.Ctx) {
 	required := true
+
 	err := discordgoplus.ModalRespond(ctx, &discordgo.InteractionResponseData{
 		CustomID: "ADMIN_NOTIFY_SEND",
 		Title:    "Send notification to all guilds",
@@ -78,6 +79,7 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 				Flags:   discordgo.MessageFlagsEphemeral,
 			},
 		)
+
 		return
 	}
 

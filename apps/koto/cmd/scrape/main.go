@@ -33,15 +33,18 @@ func main() {
 		"internal/assets/words.json",
 		"Output path for words.json",
 	)
+
 	flag.Parse()
 
 	godotenv.Load() //nolint:errcheck
 	utils.CreateLogger("koto-scrape")
+
 	defer utils.Logger.Sync()
 
 	utils.Logger.Info("Starting word scrape...")
 
 	var allWords []string
+
 	offset := 0
 	retries := 0
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -54,6 +57,7 @@ func main() {
 		utils.Logger.Infof("Scraping from offset %d...", offset)
 
 		url := fmt.Sprintf("%s&offset=%d", baseURL, offset)
+
 		req, err := http.NewRequestWithContext(
 			context.Background(),
 			"GET",
@@ -63,6 +67,7 @@ func main() {
 		if err != nil {
 			utils.Logger.Fatalf("create request: %v", err)
 		}
+
 		req.Header.Set("Accept", "application/json")
 
 		resp, err := client.Do(req)
@@ -71,30 +76,37 @@ func main() {
 			if retries >= 5 {
 				utils.Logger.Fatalf("max retries exceeded: %v", err)
 			}
+
 			utils.Logger.Warnf("request failed (retry %d): %v", retries, err)
+
 			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
+
 			retries++
 			utils.Logger.Warnf(
 				"non-200 status %d (retry %d)",
 				resp.StatusCode,
 				retries,
 			)
+
 			if retries >= 5 {
 				utils.Logger.Fatalf(
 					"max retries exceeded on status %d",
 					resp.StatusCode,
 				)
 			}
+
 			continue
 		}
+
 		retries = 0
 
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
+
 		if err != nil {
 			utils.Logger.Fatalf("read body: %v", err)
 		}

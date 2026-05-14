@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"testing"
@@ -37,6 +38,7 @@ func parseNumberPure(content string, isBot bool, math bool) (int, error) {
 		if i == 0 {
 			return -1, ErrNumberCannotBeZero
 		}
+
 		return i, err
 	}
 
@@ -71,7 +73,6 @@ func parseNumberPure(content string, isBot bool, math bool) (int, error) {
 func TestParseNumberPure(t *testing.T) {
 	// Suppress logger output during tests by ensuring Logger is non-nil
 	// (it is initialised lazily in production; our pure helper never calls it).
-
 	tests := []struct {
 		name        string
 		content     string
@@ -178,7 +179,7 @@ func TestParseNumberPure(t *testing.T) {
 
 			// Assert: error
 			if tc.wantErr != nil {
-				if gotErr != tc.wantErr {
+				if !errors.Is(gotErr, tc.wantErr) {
 					t.Errorf("want error %v, got %v", tc.wantErr, gotErr)
 				}
 			} else if !tc.wantErrSome && gotErr != nil {
@@ -208,9 +209,10 @@ func TestBotAuthorRejectedViaServiceMethod(t *testing.T) {
 	num, err := svc.ParseNumber(context.Background(), msg, false)
 
 	// Assert
-	if err != ErrAuthorIsBot {
+	if !errors.Is(err, ErrAuthorIsBot) {
 		t.Errorf("want ErrAuthorIsBot, got %v", err)
 	}
+
 	if num != -1 {
 		t.Errorf("want -1, got %d", num)
 	}
@@ -224,9 +226,10 @@ func TestZeroNumberViaServiceMethod(t *testing.T) {
 
 	num, err := svc.ParseNumber(context.Background(), msg, false)
 
-	if err != ErrNumberCannotBeZero {
+	if !errors.Is(err, ErrNumberCannotBeZero) {
 		t.Errorf("want ErrNumberCannotBeZero, got %v", err)
 	}
+
 	if num != -1 {
 		t.Errorf("want -1, got %d", num)
 	}
@@ -240,7 +243,7 @@ func TestExprTooLongViaServiceMethod(t *testing.T) {
 
 	_, err := svc.ParseNumber(context.Background(), msg, true)
 
-	if err != ErrExprTooLong {
+	if !errors.Is(err, ErrExprTooLong) {
 		t.Errorf("want ErrExprTooLong, got %v", err)
 	}
 }

@@ -76,12 +76,15 @@ Koto is a Wordle-style game! Guess the 6-letter word by typing words in the conf
 			if connectErr := client.Prisma.Connect(); connectErr != nil {
 				return nil, fmt.Errorf("prisma connect: %w", connectErr)
 			}
+
 			return client, nil
 		},
 		Close: func(obj any) error {
 			database := obj.(*db.PrismaClient)
+
 			utils.Logger.Info("Shutting down database connection...")
 			database.Disconnect()
+
 			return nil
 		},
 	})

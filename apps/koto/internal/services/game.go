@@ -36,6 +36,7 @@ type GameService struct {
 
 func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
+
 	return &GameService{
 		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
@@ -68,6 +69,7 @@ func (s *GameService) Start(
 			currentGame.ID,
 			guildID,
 		)
+
 		return false, nil
 	}
 
@@ -83,6 +85,7 @@ func (s *GameService) Start(
 				"gameID", currentGame.ID,
 			)
 		}
+
 		time.Sleep(500 * time.Millisecond)
 	}
 
@@ -112,6 +115,7 @@ func (s *GameService) Start(
 	if word == "" {
 		word = s.words.GetRandom(ignoredWords, false)
 	}
+
 	if word == "" {
 		return false, fmt.Errorf(
 			"game: start: could not pick word for %s",
@@ -135,6 +139,7 @@ func (s *GameService) Start(
 	}
 
 	baseMeta := s.createBaseState(word)
+
 	metaJSON, err := json.Marshal(baseMeta)
 	if err != nil {
 		return false, fmt.Errorf("game: start: marshal meta: %w", err)
@@ -175,6 +180,7 @@ func (s *GameService) Guess(
 	if err != nil {
 		return fmt.Errorf("game: guess: get current game: %w", err)
 	}
+
 	if game == nil {
 		return nil
 	}
@@ -212,6 +218,7 @@ func (s *GameService) Guess(
 					message.ID,
 					"❌",
 				)
+
 				return nil
 			}
 		}
@@ -225,6 +232,7 @@ func (s *GameService) Guess(
 			message.ID,
 			"🕒",
 		)
+
 		suffix := fmt.Sprintf(
 			"you can guess again <t:%d:R>",
 			cooldown.Result.Unix(),
@@ -241,6 +249,7 @@ func (s *GameService) Guess(
 				cooldown.RepeatResult.Unix(),
 			)
 		}
+
 		_, sendErr := s.bot.ChannelMessageSendReply(
 			message.ChannelID,
 			fmt.Sprintf("You're on a cooldown, %s", suffix),
@@ -294,6 +303,7 @@ func (s *GameService) Guess(
 	if err != nil {
 		return fmt.Errorf("game: guess: marshal game meta: %w", err)
 	}
+
 	updateParams := []db.GameSetParam{
 		db.Game.Status.Set(newStatus),
 		db.Game.Meta.Set(updatedMetaJSON),
@@ -361,10 +371,12 @@ func (s *GameService) Guess(
 						Unix(),
 				)
 			}
+
 			afterPart := ""
 			if settings.EnableBackToBackCooldown {
 				afterPart = " after a guess from another player"
 			}
+
 			msg := fmt.Sprintf(
 				"You are now on a cooldown. You can guess again %s<t:%d:R>%s.",
 				backToBackPart,
@@ -494,6 +506,7 @@ func (s *GameService) GetCurrentGame(
 	if errors.Is(err, db.ErrNotFound) {
 		return nil, nil
 	}
+
 	return game, err
 }
 
@@ -516,6 +529,7 @@ func (s *GameService) checkWord(
 		if i >= len(guessRunes) {
 			break
 		}
+
 		if letter == guessRunes[i] {
 			letterCount[letter]++
 
@@ -523,12 +537,14 @@ func (s *GameService) checkWord(
 			if prev, ok := state.Discovery.Correct[string(letter)]; ok &&
 				prev < letterCount[letter] {
 				pts = 2
+
 				state.Discovery.Correct[string(letter)] = letterCount[letter]
 				if prev2, ok2 := state.Discovery.Almost[string(letter)]; ok2 &&
 					prev2 >= letterCount[letter] {
 					pts = 1
 				}
 			}
+
 			if prev, ok := state.Discovery.Almost[string(letter)]; !ok ||
 				prev < letterCount[letter] {
 				state.Discovery.Almost[string(letter)] = letterCount[letter]
@@ -551,6 +567,7 @@ func (s *GameService) checkWord(
 
 			continue
 		}
+
 		unmatched[letter]++
 	}
 
@@ -559,6 +576,7 @@ func (s *GameService) checkWord(
 		if i >= len(guessRunes) {
 			break
 		}
+
 		letter := guessRunes[i]
 		if letter != element {
 			if unmatched[letter] > 0 {
@@ -665,6 +683,7 @@ func (s *GameService) createBaseState(word string) *localUtils.GameMeta {
 		Almost:  map[string]int{},
 		Correct: map[string]int{},
 	}
+
 	wordStates := make([]localUtils.WordState, len([]rune(word)))
 	for i, letter := range []rune(word) {
 		discovery.Almost[string(letter)] = 0
@@ -675,6 +694,7 @@ func (s *GameService) createBaseState(word string) *localUtils.GameMeta {
 			Type:   localUtils.GameTypeWrong,
 		}
 	}
+
 	return &localUtils.GameMeta{
 		Keyboard:  map[string]localUtils.GameType{},
 		Word:      wordStates,

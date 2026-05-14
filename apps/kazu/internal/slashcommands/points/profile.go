@@ -45,6 +45,7 @@ func (m *ProfileModule) profile(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Sorry couldn't find your profile...",
 		}, true)
+
 		return
 	}
 
@@ -58,11 +59,13 @@ func (m *ProfileModule) profile(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Sorry couldn't find your profile...",
 		}, true)
+
 		return
 	}
 
 	name := "You"
 	addressing := "have"
+
 	if playerOption != nil && player.ID != ctx.Interaction.Member.User.ID {
 		name = fmt.Sprintf("<@%s>", player.ID)
 		addressing = "has"

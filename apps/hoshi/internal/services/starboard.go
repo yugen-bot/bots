@@ -23,6 +23,7 @@ type StarboardService struct {
 
 func CreateStarboardService(container *di.Container) *StarboardService {
 	utils.Logger.Info("Creating Starboard Service")
+
 	return &StarboardService{
 		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
@@ -43,6 +44,7 @@ func (s *StarboardService) CheckReaction(
 			"guildID",
 			guildID,
 		)
+
 		return
 	}
 
@@ -69,8 +71,10 @@ func (s *StarboardService) CheckReaction(
 			"channelID", channelID,
 			"messageID", messageID,
 		)
+
 		return
 	}
+
 	if isTarget != nil {
 		return
 	}
@@ -130,6 +134,7 @@ func (s *StarboardService) CheckReaction(
 			"messageID",
 			messageID,
 		)
+
 		return
 	}
 
@@ -146,23 +151,28 @@ func (s *StarboardService) CheckReaction(
 			"messageID",
 			messageID,
 		)
+
 		return
 	}
 
 	allowSelf := settings.Self
+
 	authorID := ""
 	if msg.Author != nil {
 		authorID = msg.Author.ID
 	}
 
 	count := 0
+
 	for _, u := range users {
 		if u.Bot {
 			continue
 		}
+
 		if !allowSelf && u.ID == authorID {
 			continue
 		}
+
 		count++
 	}
 
@@ -175,6 +185,7 @@ func (s *StarboardService) CheckReaction(
 			"channelID", channelID,
 			"messageID", messageID,
 		)
+
 		return
 	}
 
@@ -218,6 +229,7 @@ func (s *StarboardService) getLogByOriginalID(
 	if err != nil {
 		return nil, fmt.Errorf("starboard: get log by original id: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -231,6 +243,7 @@ func (s *StarboardService) getLogByMessageID(
 	if err != nil {
 		return nil, fmt.Errorf("starboard: get log by message id: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -240,6 +253,7 @@ func (s *StarboardService) GetStarboardBySourceIDAndEmoji(
 	sourceChannelID *string,
 ) (*db.StarboardsModel, error) {
 	var params []db.StarboardsWhereParam
+
 	params = append(params,
 		db.Starboards.GuildID.Equals(guildID),
 		db.Starboards.SourceEmoji.Equals(sourceEmoji),
@@ -254,9 +268,10 @@ func (s *StarboardService) GetStarboardBySourceIDAndEmoji(
 	}
 
 	result, err := s.database.Starboards.FindFirst(params...).Exec(ctx)
-	if err != nil && err != db.ErrNotFound {
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		return nil, fmt.Errorf("starboard: get by source and emoji: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -308,6 +323,7 @@ func (s *StarboardService) AddStarboard(
 	if err != nil {
 		return nil, fmt.Errorf("starboard: add starboard: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -323,6 +339,7 @@ func (s *StarboardService) RemoveStarboardByID(
 	if err != nil {
 		return nil, fmt.Errorf("starboard: remove by id find: %w", err)
 	}
+
 	if config == nil {
 		return nil, nil
 	}
@@ -333,6 +350,7 @@ func (s *StarboardService) RemoveStarboardByID(
 	if err != nil {
 		return nil, fmt.Errorf("starboard: remove by id delete: %w", err)
 	}
+
 	return config, nil
 }
 
@@ -377,6 +395,7 @@ func (s *StarboardService) createContentString(
 	if emojiID != "" {
 		display = fmt.Sprintf("<:%s:%s>", emojiName, emojiID)
 	}
+
 	return fmt.Sprintf("**%d %s** at https://discord.com/channels/%s/%s/%s",
 		count, display, msg.GuildID, msg.ChannelID, msg.ID)
 }
@@ -385,6 +404,7 @@ func emojiAPIFormat(emojiName, emojiID string) string {
 	if emojiID != "" {
 		return fmt.Sprintf("%s:%s", emojiName, emojiID)
 	}
+
 	return emojiName
 }
 
@@ -418,6 +438,7 @@ func (s *StarboardService) createStarboard(
 			"targetChannelID",
 			targetChannelID,
 		)
+
 		return
 	}
 
@@ -441,7 +462,11 @@ func (s *StarboardService) createStarboard(
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		s.bot.MessageReactionAdd(targetChannelID, sent.ID, emojiAPIFormat(emojiName, emojiID)),
+		s.bot.MessageReactionAdd(
+			targetChannelID,
+			sent.ID,
+			emojiAPIFormat(emojiName, emojiID),
+		),
 	)
 	utils.LogIfErr(
 		utils.Logger,
@@ -458,6 +483,7 @@ func (s *StarboardService) updateStarboard(
 	log *db.LogModel,
 ) {
 	content := s.createContentString(count, emojiName, emojiID, msg)
+
 	_, err := s.bot.ChannelMessageEditComplex(&discordgo.MessageEdit{
 		Channel: log.ChannelID,
 		ID:      log.MessageID,
@@ -496,6 +522,7 @@ func (s *StarboardService) deleteStarboard(
 			"messageID",
 			log.MessageID,
 		)
+
 		return
 	}
 

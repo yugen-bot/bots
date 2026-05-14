@@ -41,6 +41,7 @@ type GameService struct {
 
 func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
+
 	return &GameService{
 		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
 		cfg:      container.Get(static.DiConfig).(*config.Config),
@@ -68,26 +69,53 @@ func (service *GameService) Start(
 
 	currentGame, exists, err := service.GetCurrentGame(ctx, guildID)
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
-		utils.Logger.Errorw("game: start: get current game failed", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"game: start: get current game failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return game, started, err
 	}
 
 	settings, err := service.settings.GetByGuildId(ctx, guildID)
 	if err != nil {
-		utils.Logger.Errorw("game: start: get settings failed", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"game: start: get settings failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return game, started, fmt.Errorf("game: start: get settings: %w", err)
 	}
 
 	channelID, ok := settings.ChannelID()
 	if !ok {
 		err = ErrNoChannelIDConfigured
-		utils.Logger.Errorw("game: start: no channel id configured", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"game: start: no channel id configured",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
+
 		return game, started, err
 	}
 
 	channel, err := service.bot.Channel(channelID)
 	if err != nil {
-		utils.Logger.Errorw("game: start: get channel failed", "error", err, "guildID", guildID, "channelID", channelID)
+		utils.Logger.Errorw(
+			"game: start: get channel failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+			"channelID",
+			channelID,
+		)
 		return game, started, fmt.Errorf("game: start: get channel: %w", err)
 	}
 
@@ -96,7 +124,11 @@ func (service *GameService) Start(
 	}
 
 	if (exists && recreate) || (exists && currentGame.Type != gameType) {
-		if _, endErr := service.End(ctx, currentGame.ID, db.GameStatusFailed, shame...); endErr != nil {
+		if _, endErr := service.End(
+			ctx,
+			currentGame.ID,
+			db.GameStatusFailed,
+			shame...); endErr != nil {
 			utils.Logger.Warnw(
 				"game: start: end current game failed",
 				"error", endErr,
@@ -108,6 +140,7 @@ func (service *GameService) Start(
 
 	started = true
 	number := startingNumber - 1
+
 	game, err = service.database.Game.CreateOne(
 		db.Game.Settings.Link(
 			db.Settings.ID.Equals(settings.ID),
@@ -115,7 +148,13 @@ func (service *GameService) Start(
 		db.Game.Type.Set(gameType),
 	).Exec(ctx)
 	if err != nil {
-		utils.Logger.Errorw("game: start: create game failed", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"game: start: create game failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return game, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
@@ -170,6 +209,7 @@ func (service *GameService) End(
 	if hasShame {
 		shame := shame[0]
 		roleID, okRoleID := shame.settings.ShameRoleID()
+
 		lastShameUserID, okLastShameUserID := shame.settings.LastShameUserID()
 		if okLastShameUserID && okRoleID {
 			go func() {
@@ -205,7 +245,17 @@ func (service *GameService) End(
 			db.Settings.LastShameUserID.Set(shame.message.Author.ID),
 		)
 		if err != nil {
-			utils.Logger.Errorw("game: end: update shame settings failed", "error", err, "guildID", shame.settings.GuildID, "gameID", gameID, "userID", shame.message.Author.ID)
+			utils.Logger.Errorw(
+				"game: end: update shame settings failed",
+				"error",
+				err,
+				"guildID",
+				shame.settings.GuildID,
+				"gameID",
+				gameID,
+				"userID",
+				shame.message.Author.ID,
+			)
 			return game, fmt.Errorf("game: end: update shame settings: %w", err)
 		}
 	}
@@ -221,6 +271,7 @@ func (service *GameService) ParseNumber(
 	if message.Author.Bot {
 		i = -1
 		err = ErrAuthorIsBot
+
 		return i, err
 	}
 
@@ -241,12 +292,14 @@ func (service *GameService) ParseNumber(
 	}
 
 	utils.Logger.With("Message", message.Content).Debug("Compiling expression")
+
 	program, compileErr := expr.Compile(message.Content, expr.AsFloat64())
 	if compileErr != nil {
 		return 0, fmt.Errorf("services/game: compile expr: %w", compileErr)
 	}
 
 	utils.Logger.With("Message", message.Content).Debug("Evaluating expression")
+
 	result, evalErr := expr.Run(program, nil)
 	if evalErr != nil {
 		return 0, fmt.Errorf("services/game: eval expr: %w", evalErr)
@@ -254,6 +307,7 @@ func (service *GameService) ParseNumber(
 
 	utils.Logger.With("Message", message.Content, "result", result).
 		Debug("Evaluation result")
+
 	parsedAsFloat, ok := result.(float64)
 	if !ok {
 		return 0, ErrExprNotNumber
@@ -278,7 +332,13 @@ func (service *GameService) AddNumber(
 ) {
 	game, exists, err := service.GetCurrentGame(ctx, guildID)
 	if err != nil {
-		utils.Logger.Errorw("game: add number: get current game failed", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"game: add number: get current game failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return
 	}
 
@@ -288,7 +348,15 @@ func (service *GameService) AddNumber(
 
 	history, _, err := service.GetLastHistory(ctx, game)
 	if err != nil {
-		utils.Logger.Errorw("game: add number: get last history failed", "error", err, "guildID", guildID, "gameID", game.ID)
+		utils.Logger.Errorw(
+			"game: add number: get last history failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+			"gameID",
+			game.ID,
+		)
 		return
 	}
 
@@ -314,7 +382,17 @@ func (service *GameService) AddNumber(
 
 		saves, err := service.saves.GetSaves(ctx, settings, message.Author.ID)
 		if err != nil {
-			utils.Logger.Errorw("game: add number: get saves failed", "error", err, "guildID", guildID, "userID", message.Author.ID, "messageID", message.ID)
+			utils.Logger.Errorw(
+				"game: add number: get saves failed",
+				"error",
+				err,
+				"guildID",
+				guildID,
+				"userID",
+				message.Author.ID,
+				"messageID",
+				message.ID,
+			)
 			return
 		}
 
@@ -325,7 +403,15 @@ func (service *GameService) AddNumber(
 				1,
 			)
 			if err != nil {
-				utils.Logger.Errorw("game: add number: deduct player save failed", "error", err, "guildID", guildID, "userID", message.Author.ID)
+				utils.Logger.Errorw(
+					"game: add number: deduct player save failed",
+					"error",
+					err,
+					"guildID",
+					guildID,
+					"userID",
+					message.Author.ID,
+				)
 				return
 			}
 
@@ -347,6 +433,7 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 					sendErr,
 				)
 			}()
+
 			return
 		}
 
@@ -358,7 +445,15 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 				1,
 			)
 			if err != nil {
-				utils.Logger.Errorw("game: add number: deduct guild save failed", "error", err, "guildID", guildID, "userID", message.Author.ID)
+				utils.Logger.Errorw(
+					"game: add number: deduct guild save failed",
+					"error",
+					err,
+					"guildID",
+					guildID,
+					"userID",
+					message.Author.ID,
+				)
 				return
 			}
 
@@ -380,12 +475,21 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 					sendErr,
 				)
 			}()
+
 			return
 		}
 
 		isHighscore, _, err := service.checkStreak(ctx, settings, game, number)
 		if err != nil {
-			utils.Logger.Errorw("game: add number: check streak failed", "error", err, "guildID", guildID, "gameID", game.ID)
+			utils.Logger.Errorw(
+				"game: add number: check streak failed",
+				"error",
+				err,
+				"guildID",
+				guildID,
+				"gameID",
+				game.ID,
+			)
 			return
 		}
 
@@ -447,7 +551,14 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			message:  message,
 			settings: settings,
 		}
-		if _, _, startErr := service.Start(ctx, guildID, db.GameTypeNormal, 1, true, &shame); startErr != nil {
+		if _, _, startErr := service.Start(
+			ctx,
+			guildID,
+			db.GameTypeNormal,
+			1,
+			true,
+			&shame,
+		); startErr != nil {
 			utils.Logger.Warnw(
 				"game: add number: restart failed",
 				"error", startErr,
@@ -455,6 +566,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 				"userID", message.Author.ID,
 			)
 		}
+
 		return
 	}
 
@@ -463,8 +575,18 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		game.ID,
 		settings.Cooldown,
 	)
-	if err != nil && err != db.ErrNotFound {
-		utils.Logger.Errorw("game: add number: check cooldown failed", "error", err, "guildID", guildID, "gameID", game.ID, "userID", message.Author.ID)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		utils.Logger.Errorw(
+			"game: add number: check cooldown failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+			"gameID",
+			game.ID,
+			"userID",
+			message.Author.ID,
+		)
 		return
 	}
 
@@ -478,6 +600,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			true,
 			"🕒",
 		)
+
 		return
 	}
 
@@ -497,7 +620,19 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		db.History.MessageID.Set(message.ID),
 	).Exec(ctx)
 	if err != nil {
-		utils.Logger.Errorw("game: add number: create history failed", "error", err, "guildID", guildID, "gameID", game.ID, "userID", message.Author.ID, "messageID", message.ID)
+		utils.Logger.Errorw(
+			"game: add number: create history failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+			"gameID",
+			game.ID,
+			"userID",
+			message.Author.ID,
+			"messageID",
+			message.ID,
+		)
 		return
 	}
 
@@ -509,7 +644,15 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		number,
 	)
 	if err != nil {
-		utils.Logger.Errorw("game: add number: check streak failed after history", "error", err, "guildID", guildID, "gameID", game.ID)
+		utils.Logger.Errorw(
+			"game: add number: check streak failed after history",
+			"error",
+			err,
+			"guildID",
+			guildID,
+			"gameID",
+			game.ID,
+		)
 	}
 
 	if isGameHighscored {
@@ -531,6 +674,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	if isHighscore {
 		emoji = "☑️"
 	}
+
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
@@ -583,6 +727,7 @@ func (service *GameService) IsEqualToLast(
 	}
 
 	utils.Logger.Info("Checking is equal", message.Content)
+
 	if parsedNumber != number {
 		ok = false
 	}
@@ -605,6 +750,7 @@ func (service *GameService) GetCurrentGame(
 	if errors.Is(err, db.ErrNotFound) {
 		err = nil
 		exists = false
+
 		return game, exists, err
 	}
 
@@ -634,6 +780,7 @@ func (service *GameService) GetLastHistory(
 	if errors.Is(err, db.ErrNotFound) {
 		err = nil
 		exists = false
+
 		return history, exists, err
 	}
 
@@ -655,6 +802,7 @@ func (service *GameService) checkStreak(
 	}
 
 	isHighscore = true
+
 	go service.settings.SetHighscoreByGuildID(ctx, settings.GuildID, number)
 
 	if game.IsHighscored {
@@ -692,7 +840,7 @@ func (service *GameService) checkCooldown(
 		db.History.CreatedAt.Field(),
 	).Exec(ctx)
 
-	if err == db.ErrNotFound {
+	if errors.Is(err, db.ErrNotFound) {
 		cooldown = time.Now().Add(-time.Second * 600)
 		return cooldown, err
 	}
@@ -704,6 +852,7 @@ func (service *GameService) checkCooldown(
 	cooldown = lastHistory.CreatedAt.Add(
 		time.Second * time.Duration(settingsCooldown),
 	)
+
 	return cooldown, err
 }
 
@@ -731,7 +880,15 @@ func (service *GameService) replyAndDelete(
 		message.Reference(),
 	)
 	if err != nil {
-		utils.Logger.Errorw("game: reply and delete: send reply failed", "error", err, "channelID", message.ChannelID, "messageID", message.ID)
+		utils.Logger.Errorw(
+			"game: reply and delete: send reply failed",
+			"error",
+			err,
+			"channelID",
+			message.ChannelID,
+			"messageID",
+			message.ID,
+		)
 		return
 	}
 

@@ -34,6 +34,7 @@ func (m *LeaderboardModule) getItems(
 		ctx.Interaction.GuildID,
 		page,
 	)
+
 	return utils.UnpackArray(items), total, err
 }
 

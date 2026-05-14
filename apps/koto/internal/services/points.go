@@ -19,6 +19,7 @@ type PointsService struct {
 
 func CreatePointsService(container *di.Container) *PointsService {
 	utils.Logger.Info("Creating Points Service")
+
 	return &PointsService{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 	}
@@ -133,23 +134,30 @@ func (s *PointsService) GetLeaderboard(
 ) ([]db.PlayerStatsModel, int, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
-	var items []db.PlayerStatsModel
-	var total int
+	var (
+		items []db.PlayerStatsModel
+		total int
+	)
 
 	g.Go(func() error {
 		var err error
+
 		items, err = s.getLeaderboardItems(gctx, guildID, leaderboardType, page)
+
 		return err
 	})
 	g.Go(func() error {
 		var err error
+
 		total, err = s.getLeaderboardTotal(gctx, guildID)
+
 		return err
 	})
 
 	if err := g.Wait(); err != nil {
 		return nil, 0, fmt.Errorf("points: get leaderboard: %w", err)
 	}
+
 	return items, total, nil
 }
 
@@ -160,6 +168,7 @@ func (s *PointsService) getLeaderboardItems(
 	page int,
 ) ([]db.PlayerStatsModel, error) {
 	var orderBy db.PlayerStatsOrderByParam
+
 	switch leaderboardType {
 	case "wins":
 		orderBy = db.PlayerStats.Wins.Order(db.DESC)
@@ -176,6 +185,7 @@ func (s *PointsService) getLeaderboardItems(
 	if err != nil {
 		return nil, fmt.Errorf("points: get leaderboard items: %w", err)
 	}
+
 	return items, nil
 }
 
@@ -202,6 +212,7 @@ func (s *PointsService) getLeaderboardTotal(
 	if err != nil {
 		return 0, fmt.Errorf("points: parse leaderboard total: %w", err)
 	}
+
 	return count, nil
 }
 
@@ -223,6 +234,7 @@ func (s *PointsService) ApplyPoints(
 			seen[g.UserID] = 0
 			order = append(order, g.UserID)
 		}
+
 		seen[g.UserID] += g.Points
 	}
 

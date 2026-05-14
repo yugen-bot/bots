@@ -40,6 +40,7 @@ func (m *StarboardRemoveModule) remove(ctx *discordgoplus.Ctx) {
 				id,
 			),
 		}, true)
+
 		return
 	}
 

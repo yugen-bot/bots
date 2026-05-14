@@ -34,6 +34,7 @@ func (m *ResetLeaderboardModule) resetLeaderboard(ctx *discordgoplus.Ctx) {
 	required := true
 
 	var memberID *string
+
 	if opt, ok := ctx.Options["member"]; ok {
 		id := opt.UserValue(ctx.Session).ID
 		memberID = &id
@@ -70,6 +71,7 @@ func (m *ResetLeaderboardModule) resetLeaderboard(ctx *discordgoplus.Ctx) {
 
 func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 	fields := discordgoplus.ParseModalData(ctx.ModalData)
+
 	confirm := fields["confirm"]
 	if confirm != "CONFIRM" {
 		ctx.InteractionRespond(
@@ -82,13 +84,16 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 				},
 			},
 		)
+
 		return
 	}
 
 	// Parse userID from CustomID: RESET_LEADERBOARD/<userID>
 	customID := ctx.Interaction.ModalSubmitData().CustomID
 	parts := strings.SplitN(customID, "/", 2)
+
 	var userID *string
+
 	if len(parts) > 1 && parts[1] != "" {
 		id := parts[1]
 		userID = &id
@@ -121,6 +126,7 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 				Flags:   discordgo.MessageFlagsEphemeral,
 			},
 		)
+
 		return
 	}
 

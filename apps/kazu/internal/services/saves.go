@@ -23,6 +23,7 @@ type GetSavesResult struct {
 
 func CreateSavesService(container *di.Container) *SavesService {
 	utils.Logger.Info("Creating Saves Service")
+
 	return &SavesService{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(static.DiSettings).(*SettingsService),

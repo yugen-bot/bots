@@ -31,10 +31,12 @@ func (m *AdminEmojisModule) emojis(ctx *discordgoplus.Ctx) {
 	var sb strings.Builder
 	for _, color := range colors {
 		fmt.Fprintf(&sb, "**%s:**\n", color)
+
 		for _, letter := range letters {
 			emoji := localUtils.GetEmoji(color, letter)
 			sb.WriteString(emoji)
 		}
+
 		sb.WriteString("\n")
 	}
 

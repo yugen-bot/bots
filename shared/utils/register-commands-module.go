@@ -22,7 +22,7 @@ type ModalsModule interface {
 
 func getStructName(m interface{}) string {
 	t := reflect.TypeOf(m)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		return t.Elem().Name()
 	}
 

@@ -42,11 +42,14 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "You can only use emojis from guilds that the bot is in.",
 		}, true)
+
 		return
 	}
 
 	var sourceChannelID *string
+
 	sourceLabel := ""
+
 	if opt, ok := ctx.Options["source"]; ok {
 		src := opt.ChannelValue(ctx.Session)
 		id := src.ID
@@ -63,12 +66,15 @@ func (m *StarboardAddModule) add(ctx *discordgoplus.Ctx) {
 	if err != nil {
 		utils.Logger.Warnf("error getting starboard", "error", err)
 		discordgoplus.InteractionError(ctx, true)
+
 		return
 	}
+
 	if existing != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "A starboard for the supplied rules already exists.",
 		}, true)
+
 		return
 	}
 

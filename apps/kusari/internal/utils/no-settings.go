@@ -49,6 +49,7 @@ func NoSettingsReply(
 			Embeds: []*discordgo.MessageEmbed{embed},
 			Flags:  discordgo.MessageFlagsEphemeral,
 		}, true)
+
 		return
 	}
 

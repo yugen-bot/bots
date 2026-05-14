@@ -35,6 +35,7 @@ func (m *SettingsTresholdModule) set(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Treshold must be at least 1.",
 		}, true)
+
 		return
 	}
 

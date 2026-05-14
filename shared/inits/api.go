@@ -50,6 +50,7 @@ func RunHTTP(ctx context.Context, container *di.Container) error {
 			10*time.Second,
 		)
 		defer cancel()
+
 		utils.Logger.Info("Shutting down HTTP server...")
 
 		return app.ShutdownWithContext(shutdownCtx)

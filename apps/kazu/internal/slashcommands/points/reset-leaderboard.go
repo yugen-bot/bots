@@ -50,8 +50,15 @@ func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 
 	guild, err := m.bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.Logger.Errorw("reset-leaderboard: get guild failed", "error", err, "guildID", ctx.Interaction.GuildID)
+		utils.Logger.Errorw(
+			"reset-leaderboard: get guild failed",
+			"error",
+			err,
+			"guildID",
+			ctx.Interaction.GuildID,
+		)
 		m.err(ctx)
+
 		return
 	}
 
@@ -64,7 +71,6 @@ func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 	if memberOption != nil {
 		userID = memberOption.Value.(string)
 		confirmationTarget = fmt.Sprintf("<@%s>", userID)
-
 	}
 
 	embed := &discordgo.MessageEmbed{
@@ -104,7 +110,13 @@ func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 		},
 	}, true)
 	if err != nil {
-		utils.Logger.Errorw("reset-leaderboard: respond failed", "error", err, "guildID", ctx.Interaction.GuildID)
+		utils.Logger.Errorw(
+			"reset-leaderboard: respond failed",
+			"error",
+			err,
+			"guildID",
+			ctx.Interaction.GuildID,
+		)
 	}
 }
 
@@ -126,6 +138,7 @@ func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 			Components: []discordgo.MessageComponent{},
 			Embeds:     []*discordgo.MessageEmbed{},
 		})
+
 		return
 	}
 
@@ -142,7 +155,10 @@ func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 			ctx.MessageComponentOptions["userID"],
 		)
 	} else {
-		go m.points.ResetLeaderboardByGuildID(context.Background(), ctx.Interaction.GuildID)
+		go m.points.ResetLeaderboardByGuildID(
+			context.Background(),
+			ctx.Interaction.GuildID,
+		)
 	}
 
 	discordgoplus.Update(ctx, &discordgo.InteractionResponseData{

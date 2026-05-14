@@ -38,8 +38,10 @@ func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
 
 	setting := ctx.Options["setting"].StringValue()
 
-	var param db.SettingsSetParam
-	var value string
+	var (
+		param db.SettingsSetParam
+		value string
+	)
 
 	switch setting {
 	case "treshold":

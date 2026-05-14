@@ -28,6 +28,7 @@ func (m *SettingsShameModule) setRole(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	role := ctx.Options["role"].RoleValue(ctx.Session, ctx.Interaction.GuildID)
+
 	settings, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,
@@ -59,6 +60,7 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	remove := ctx.Options["remove"].BoolValue()
+
 	settings, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,

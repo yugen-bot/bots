@@ -19,6 +19,7 @@ type SettingsService struct {
 
 func CreateSettingsService(container *di.Container) *SettingsService {
 	utils.Logger.Info("Creating Settings Service")
+
 	return &SettingsService{
 		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),

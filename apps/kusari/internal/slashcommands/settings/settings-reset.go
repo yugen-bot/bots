@@ -44,6 +44,7 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	setting := ctx.Options["setting"].StringValue()
+
 	settings, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,
@@ -53,8 +54,11 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	var dbSetting db.SettingsSetParam
-	var value string
+	var (
+		dbSetting db.SettingsSetParam
+		value     string
+	)
+
 	switch setting {
 	case "channelID":
 		dbSetting = db.Settings.ChannelID.SetOptional(nil)

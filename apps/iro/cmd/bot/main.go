@@ -18,6 +18,7 @@ import (
 func main() {
 	godotenv.Load() //nolint:errcheck // missing .env is fine in production
 	utils.CreateLogger("iro")
+
 	defer utils.Logger.Sync()
 
 	ctx, stop := signal.NotifyContext(
@@ -53,5 +54,6 @@ func main() {
 	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 		utils.Logger.Errorf("shutdown: %v", err)
 	}
+
 	utils.Logger.Info("Gracefully shut down.")
 }

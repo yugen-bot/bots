@@ -47,12 +47,15 @@ func InitDI() (container di.Container, err error) {
 		Build: func(ctn di.Container) (any, error) {
 			client := db.NewClient()
 			err := client.Prisma.Connect()
+
 			return client, err
 		},
 		Close: func(obj any) error {
 			database := obj.(*db.PrismaClient)
+
 			utils.Logger.Info("Shutting down database connection...")
 			database.Disconnect()
+
 			return nil
 		},
 	})

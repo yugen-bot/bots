@@ -30,6 +30,7 @@ func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	seconds := ctx.Options["seconds"].IntValue()
+
 	settings, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,

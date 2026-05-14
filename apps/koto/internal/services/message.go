@@ -29,6 +29,7 @@ type MessageService struct {
 
 func CreateMessageService(container *di.Container) *MessageService {
 	utils.Logger.Info("Creating Message Service")
+
 	return &MessageService{
 		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
@@ -73,6 +74,7 @@ func (m *MessageService) Create(
 
 	// Build content (ping role)
 	content := ""
+
 	pingRoleID, hasPingRole := settings.PingRoleID()
 	if hasPingRole && pingRoleID != "" && (isNew || !settings.PingOnlyNew) {
 		content = fmt.Sprintf("<@&%s>", pingRoleID)
@@ -123,6 +125,7 @@ func (m *MessageService) buildEmbed(
 	info := m.buildGameInfo(game, meta, len(guesses), settings)
 
 	color := localStatic.EmbedColorInProgress
+
 	switch game.Status {
 	case db.GameStatusCompleted:
 		color = localStatic.EmbedColorSuccess
@@ -201,6 +204,7 @@ func (m *MessageService) buildRows(
 
 	for i, row := range rows {
 		sb.WriteString(localStatic.AsciiNumbers[i+1])
+
 		for _, letterMeta := range row.meta {
 			emojiColor := localUtils.GameTypeToEmojiColor[letterMeta.Type]
 			sb.WriteString(localUtils.GetEmoji(emojiColor, letterMeta.Letter))
@@ -211,9 +215,12 @@ func (m *MessageService) buildRows(
 			if status == db.GameStatusCompleted && !receivedBonus[row.userID] {
 				bonus = " (+2)"
 			}
+
 			fmt.Fprintf(&sb, " <@%s> **+%d%s**", row.userID, row.points, bonus)
 		}
+
 		sb.WriteString("\n")
+
 		receivedBonus[row.userID] = true
 	}
 
@@ -228,20 +235,24 @@ func (m *MessageService) buildKeyboard(meta *localUtils.GameMeta) string {
 	}
 
 	var sb strings.Builder
+
 	for _, row := range rows {
 		for _, item := range row {
 			if item == nil {
 				sb.WriteString(localUtils.GetEmoji("GRAY", "blank"))
 			} else {
 				letter := item.(string)
+
 				gameType, exists := meta.Keyboard[letter]
 				if !exists {
 					gameType = localUtils.GameTypeDefault
 				}
+
 				color := localUtils.GameTypeToEmojiColor[gameType]
 				sb.WriteString(localUtils.GetEmoji(color, letter))
 			}
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -264,6 +275,7 @@ func (m *MessageService) buildGameInfo(
 	switch game.Status {
 	case db.GameStatusCompleted:
 		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", game.EndingAt.Unix())
+
 		return fmt.Sprintf(
 			"\nGood job! Everyone who participated gets **+2** points!\n%s\n\n%s%s",
 			nextKoto,
@@ -272,6 +284,7 @@ func (m *MessageService) buildGameInfo(
 		)
 	case db.GameStatusFailed:
 		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", game.EndingAt.Unix())
+
 		return fmt.Sprintf(
 			"\nOut of guesses, The correct word was **%s**!\n%s\n\n%s%s",
 			strings.ToUpper(game.Word),
@@ -284,6 +297,7 @@ func (m *MessageService) buildGameInfo(
 			time.Duration(settings.Frequency) * time.Minute,
 		)
 		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", nextAt.Unix())
+
 		return fmt.Sprintf(
 			"\nTime's up! The correct word was **%s**!\n%s\n\n%s%s",
 			strings.ToUpper(game.Word),
@@ -293,6 +307,7 @@ func (m *MessageService) buildGameInfo(
 		)
 	default:
 		remaining := localStatic.MaxGuesses - guessCount
+
 		var timerLine string
 		if game.EndingAt.Year() == 3000 {
 			timerLine = "Timer will start after first guess"
@@ -302,6 +317,7 @@ func (m *MessageService) buildGameInfo(
 				game.EndingAt.Unix(),
 			)
 		}
+
 		return fmt.Sprintf(
 			"\n%d guesses remaining\n%s\n\n%s%s",
 			remaining,
