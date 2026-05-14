@@ -1,0 +1,54 @@
+package services
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jurienhamaker/discordgoplus"
+	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/koto/prisma/db"
+	sharedStatic "jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
+)
+
+type NotifyService struct {
+	database *db.PrismaClient
+	bot      *discordgoplus.Bot
+}
+
+func CreateNotifyService(container *di.Container) *NotifyService {
+	utils.Logger.Info("Creating Notify Service")
+	return &NotifyService{
+		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
+		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
+	}
+}
+
+// SendNotification sends a message to all guilds' BotUpdatesChannelID.
+// Returns total guilds, successful sends, error.
+func (s *NotifyService) SendNotification(ctx context.Context, content string) (int, int, error) {
+	settings, err := s.database.Settings.FindMany().Exec(ctx)
+	if err != nil {
+		return 0, 0, fmt.Errorf("notify: find settings: %w", err)
+	}
+
+	total := len(settings)
+	success := 0
+
+	for _, setting := range settings {
+		channelID, ok := setting.BotUpdatesChannelID()
+		if !ok || len(channelID) == 0 {
+			continue
+		}
+
+		_, sendErr := s.bot.ChannelMessageSend(channelID, content)
+		if sendErr != nil {
+			utils.Logger.With("guildID", setting.GuildID, "channelID", channelID).Warn("Failed to send notification")
+			continue
+		}
+
+		success++
+	}
+
+	return total, success, nil
+}

@@ -12,6 +12,7 @@ exclude_dir = [
 	"apps/iro",
 	"apps/kusari",
 	"apps/hoshi",
+	"apps/koto",
 	"apps/kazu/assets",
 	"apps/kazu/tmp",
 	"apps/kazu/vendor",
