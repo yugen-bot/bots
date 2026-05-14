@@ -47,7 +47,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		ctx.Interaction.GuildID,
 	)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("server: get settings failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		m.err(ctx)
 		return
 	}
@@ -57,7 +57,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		ctx.Interaction.GuildID,
 	)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("server: get current game failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		m.err(ctx)
 		return
 	}
@@ -67,14 +67,14 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		game,
 	)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("server: get last history failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		m.err(ctx)
 		return
 	}
 
 	guild, err := m.bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("server: get guild failed", "error", err, "guildID", ctx.Interaction.GuildID)
 		m.err(ctx)
 		return
 	}
@@ -156,7 +156,7 @@ Saves used: **%s**
 		Embeds: []*discordgo.MessageEmbed{embed},
 	}, true)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("server: follow up failed", "error", err, "guildID", ctx.Interaction.GuildID)
 	}
 }
 

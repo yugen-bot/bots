@@ -43,7 +43,10 @@ func (m *AdminNotifyModule) notify(ctx *discordgoplus.Ctx) {
 		},
 	})
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("admin: notify: modal respond failed",
+			"error", err,
+			"guildID", ctx.Interaction.GuildID,
+		)
 	}
 }
 
@@ -63,7 +66,10 @@ func (m *AdminNotifyModule) handleNotifyModal(ctx *discordgoplus.Ctx) {
 		content,
 	)
 	if err != nil {
-		utils.Logger.Error(err)
+		utils.Logger.Errorw("admin: notify: send notification failed",
+			"error", err,
+			"guildID", ctx.Interaction.GuildID,
+		)
 		ctx.FollowupMessageCreate(
 			ctx.Interaction,
 			true,

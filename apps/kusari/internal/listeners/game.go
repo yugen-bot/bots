@@ -132,7 +132,7 @@ func (listener *GameListener) getSettings(
 		guildID,
 	)
 	if err != nil {
-		utils.Logger.Error("Failed to get settings", err)
+		utils.Logger.Errorw("game listener: get settings failed", "error", err, "guildID", guildID)
 		return
 	}
 

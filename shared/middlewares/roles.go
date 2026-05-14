@@ -80,7 +80,7 @@ func checkResponse(ctx *discordgoplus.Ctx, pass bool, err error) {
 	if !pass {
 		err := discordgoplus.ForbiddenResponse(ctx)
 		if err != nil {
-			utils.Logger.Error(err)
+			utils.Logger.Errorw("roles: forbidden response failed", "error", err, "guildID", ctx.Interaction.GuildID, "userID", ctx.Interaction.Member.User.ID)
 		}
 
 		return
