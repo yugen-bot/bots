@@ -108,6 +108,10 @@ func InitSchedule(container *di.Container) {
 			}
 		}
 
+		if outOfTimeCount == 0 && startedGames == 0 {
+			return
+		}
+
 		utils.Logger.Infof(
 			"Schedule: ended %d games, checked %d guilds, started %d games",
 			outOfTimeCount,
