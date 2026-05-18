@@ -2,6 +2,7 @@ package listeners
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -49,11 +50,18 @@ func AddMessageListeners(container *di.Container) {
 		}
 
 		if !wordsSvc.Exists(word) {
-			bot.MessageReactionAdd(
-				event.ChannelID,
-				event.ID,
-				"❌",
+			utils.LogIfErr(
+				utils.Logger,
+				"message: reaction add",
+				bot.MessageReactionAdd(event.ChannelID, event.ID, "❌"),
 			)
+
+			_, replyErr := bot.ChannelMessageSendReply(
+				event.ChannelID,
+				fmt.Sprintf(`Sorry, I couldn't find "**%s**" in my database.`, word),
+				event.Reference(),
+			)
+			utils.LogIfErr(utils.Logger, "message: reply unknown word", replyErr)
 
 			return
 		}
