@@ -30,10 +30,6 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 	}
 
 	cfg := prettyconsole.NewConfig()
-
-	cfg.EncoderConfig.EncodeTime = prettyconsole.DefaultTimeEncoder(
-		time.RFC1123,
-	)
 	environment := productionEnv
 
 	if os.Getenv(static.Env) != productionEnv {
