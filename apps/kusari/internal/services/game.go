@@ -203,6 +203,16 @@ func (service *GameService) End(
 		return game, fmt.Errorf("game: end: update game: %w", err)
 	}
 
+	if _, delErr := service.database.History.FindMany(
+		db.History.GameID.Equals(gameID),
+	).Delete().Exec(ctx); delErr != nil {
+		utils.Logger.Warnw(
+			"game: end: delete history failed",
+			"error", delErr,
+			"gameID", gameID,
+		)
+	}
+
 	return game, err
 }
 
