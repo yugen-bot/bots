@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -245,5 +246,66 @@ func TestExprTooLongViaServiceMethod(t *testing.T) {
 
 	if !errors.Is(err, ErrExprTooLong) {
 		t.Errorf("want ErrExprTooLong, got %v", err)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// specialEmojisForNumber
+// ─────────────────────────────────────────────────────────────────────────────
+
+func TestSpecialEmojisForNumber(t *testing.T) {
+	tests := []struct {
+		number    int
+		wantEmoji string // specific emoji that must be present; "" means want empty slice
+		wantEmpty bool   // true when no emojis expected
+	}{
+		{number: 1, wantEmpty: true},
+		{number: 5, wantEmpty: true},
+		{number: 10, wantEmpty: true},   // palindrome but NOT > 10
+		{number: 4, wantEmoji: "🍀"},
+		{number: 69, wantEmoji: "niceone:1260697303224815696"},
+		{number: 100, wantEmoji: "💯"},
+		{number: 360, wantEmoji: "⚪"},
+		{number: 420, wantEmoji: "🍃"},
+		{number: 666, wantEmoji: "🤘"},
+		{number: 777, wantEmoji: "🎰"},
+		{number: 1000, wantEmoji: "1000:1262411624019525684"},
+		{number: 10_000, wantEmoji: "10000:1262411765996851200"},
+		{number: 100_000, wantEmoji: "100000:1262411649407647904"},
+		// palindromes > 10
+		{number: 11, wantEmoji: "🪞"},
+		{number: 121, wantEmoji: "🪞"},
+		{number: 1221, wantEmoji: "🪞"},
+	}
+
+	for _, tc := range tests {
+		t.Run(strconv.Itoa(tc.number), func(t *testing.T) {
+			got := specialEmojisForNumber(tc.number)
+
+			if tc.wantEmpty {
+				if len(got) != 0 {
+					t.Errorf("number %d: want no emojis, got %v", tc.number, got)
+				}
+				return
+			}
+
+			if !slices.Contains(got, tc.wantEmoji) {
+				t.Errorf("number %d: want emoji %q in %v", tc.number, tc.wantEmoji, got)
+			}
+		})
+	}
+}
+
+func TestSpecialEmojisForNumber_PalindromeAndSpecial_BothPresent(t *testing.T) {
+	// 11 is both > 10 and a palindrome; it has no special-number emoji
+	// 777 is also a palindrome (7==7==7) AND a special number
+	emojis := specialEmojisForNumber(777)
+
+	if !slices.Contains(emojis, "🎰") {
+		t.Error("want 🎰 for 777")
+	}
+
+	if !slices.Contains(emojis, "🪞") {
+		t.Error("want 🪞 for 777 (palindrome > 10)")
 	}
 }

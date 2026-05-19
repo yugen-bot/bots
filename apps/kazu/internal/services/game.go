@@ -906,11 +906,47 @@ func (service *GameService) replyAndDelete(
 	}
 }
 
+// specialEmojisForNumber returns the extra emoji reactions a number earns.
+// Pure function — no side effects; tested directly.
+func specialEmojisForNumber(number int) []string {
+	var emojis []string
+
+	if number > 10 && utils.IsPalindrome(strconv.Itoa(number)) {
+		emojis = append(emojis, "🪞")
+	}
+
+	switch number {
+	case 4:
+		emojis = append(emojis, "🍀")
+	case 69:
+		emojis = append(emojis, "niceone:1260697303224815696")
+	case 100:
+		emojis = append(emojis, "💯")
+	case 360:
+		emojis = append(emojis, "⚪")
+	case 420:
+		emojis = append(emojis, "🍃")
+	case 666:
+		emojis = append(emojis, "🤘")
+	case 777:
+		emojis = append(emojis, "🎰")
+	case 1000:
+		emojis = append(emojis, "1000:1262411624019525684")
+	case 10_000:
+		emojis = append(emojis, "10000:1262411765996851200")
+	case 100_000:
+		emojis = append(emojis, "100000:1262411649407647904")
+	}
+
+	return emojis
+}
+
 func (service *GameService) checkSpecialReactions(
 	message *discordgo.Message,
 	number int,
 ) {
-	if number > 10 && utils.IsPalindrome(strconv.Itoa(number)) {
+	for _, emoji := range specialEmojisForNumber(number) {
+		emoji := emoji
 		go func() {
 			utils.LogIfErr(
 				utils.Logger,
@@ -918,147 +954,7 @@ func (service *GameService) checkSpecialReactions(
 				service.bot.MessageReactionAdd(
 					message.ChannelID,
 					message.ID,
-					"🪞",
-				),
-			)
-		}()
-	}
-
-	if number == 4 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"🍀",
-				),
-			)
-		}()
-	}
-
-	if number == 69 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"niceone:1260697303224815696",
-				),
-			)
-		}()
-	}
-
-	if number == 100 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"💯",
-				),
-			)
-		}()
-	}
-
-	if number == 360 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"⚪",
-				),
-			)
-		}()
-	}
-
-	if number == 420 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"🍃",
-				),
-			)
-		}()
-	}
-
-	if number == 666 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"🤘",
-				),
-			)
-		}()
-	}
-
-	if number == 777 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"🎰",
-				),
-			)
-		}()
-	}
-
-	if number == 1000 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"1000:1262411624019525684",
-				),
-			)
-		}()
-	}
-
-	if number == 10_000 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"10000:1262411765996851200",
-				),
-			)
-		}()
-	}
-
-	if number == 100_000 {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				service.bot.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"100000:1262411649407647904",
+					emoji,
 				),
 			)
 		}()
