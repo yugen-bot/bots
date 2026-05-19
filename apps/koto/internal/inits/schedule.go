@@ -119,7 +119,7 @@ func InitSchedule(container *di.Container) {
 			startedGames,
 		)
 	}); err != nil {
-		panic(err)
+		utils.Logger.Errorf("schedule: add job: %v", err)
 	}
 }
 
