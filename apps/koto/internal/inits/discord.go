@@ -53,5 +53,9 @@ func InitDiscordBot(container *di.Container) error {
 		return fmt.Errorf("discord: open: %w", err)
 	}
 
+	if err := InitEmojis(container); err != nil {
+		return fmt.Errorf("discord: init emojis: %w", err)
+	}
+
 	return nil
 }
