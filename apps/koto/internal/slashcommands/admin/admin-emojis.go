@@ -8,6 +8,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
+	"jurien.dev/yugen/shared/utils"
 )
 
 type AdminEmojisModule struct {
@@ -28,21 +29,25 @@ func (m *AdminEmojisModule) emojis(ctx *discordgoplus.Ctx) {
 		"n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
 	}
 
+	utils.Logger.Debug("Getting color emojis")
 	var sb strings.Builder
 	for _, color := range colors {
 		fmt.Fprintf(&sb, "**%s:**\n", color)
 
+		utils.Logger.Debugf("Processing color %s", color)
 		for _, letter := range letters {
 			emoji := localUtils.GetEmoji(color, letter)
+			utils.Logger.Debugf("Processing letter %s", letter)
 			sb.WriteString(emoji)
 		}
 
-		sb.WriteString("\n")
+		ctx.Session.ChannelMessageSend(ctx.Interaction.ChannelID, sb.String())
+		sb.Reset()
 	}
 
 	discordgoplus.FollowUp(
 		ctx,
-		&discordgo.WebhookParams{Content: sb.String()},
+		&discordgo.WebhookParams{Content: "There you go!"},
 		true,
 	)
 }
