@@ -204,7 +204,7 @@ func (s *StarboardService) CheckReaction(
 	}
 
 	if log != nil {
-		s.updateStarboard(count, embed, msg, emojiName, emojiID, log)
+		s.updateStarboard(count, embed, msg, guildID, emojiName, emojiID, log)
 		return
 	}
 
@@ -213,6 +213,7 @@ func (s *StarboardService) CheckReaction(
 		count,
 		embed,
 		msg,
+		guildID,
 		config.TargetChannelID,
 		emojiName,
 		emojiID,
@@ -388,6 +389,7 @@ func (s *StarboardService) createEmbed(
 
 func (s *StarboardService) createContentString(
 	count int,
+	guildID string,
 	emojiName, emojiID string,
 	msg *discordgo.Message,
 ) string {
@@ -397,7 +399,7 @@ func (s *StarboardService) createContentString(
 	}
 
 	return fmt.Sprintf("**%d %s** at https://discord.com/channels/%s/%s/%s",
-		count, display, msg.GuildID, msg.ChannelID, msg.ID)
+		count, display, guildID, msg.ChannelID, msg.ID)
 }
 
 func emojiAPIFormat(emojiName, emojiID string) string {
@@ -413,6 +415,7 @@ func (s *StarboardService) createStarboard(
 	count int,
 	embed *discordgo.MessageEmbed,
 	msg *discordgo.Message,
+	guildID string,
 	targetChannelID,
 	emojiName,
 	emojiID string,
@@ -420,8 +423,14 @@ func (s *StarboardService) createStarboard(
 	sent, err := s.bot.ChannelMessageSendComplex(
 		targetChannelID,
 		&discordgo.MessageSend{
-			Content: s.createContentString(count, emojiName, emojiID, msg),
-			Embeds:  []*discordgo.MessageEmbed{embed},
+			Content: s.createContentString(
+				count,
+				guildID,
+				emojiName,
+				emojiID,
+				msg,
+			),
+			Embeds: []*discordgo.MessageEmbed{embed},
 		},
 	)
 	if err != nil {
@@ -479,10 +488,11 @@ func (s *StarboardService) updateStarboard(
 	count int,
 	embed *discordgo.MessageEmbed,
 	msg *discordgo.Message,
+	guildID string,
 	emojiName, emojiID string,
 	log *db.LogModel,
 ) {
-	content := s.createContentString(count, emojiName, emojiID, msg)
+	content := s.createContentString(count, guildID, emojiName, emojiID, msg)
 
 	_, err := s.bot.ChannelMessageEditComplex(&discordgo.MessageEdit{
 		Channel: log.ChannelID,
