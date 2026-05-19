@@ -58,6 +58,16 @@ func (s *GameService) Start(
 ) (bool, error) {
 	utils.Logger.Infof("Trying to start a game for %s", guildID)
 
+	if _, gErr := s.bot.State.Guild(guildID); gErr != nil {
+		if _, gErr2 := s.bot.Guild(guildID); gErr2 != nil {
+			utils.Logger.Debugf(
+				"Skipping game start, bot not in guild %s",
+				guildID,
+			)
+			return false, nil
+		}
+	}
+
 	currentGame, err := s.GetCurrentGame(ctx, guildID)
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		return false, err
