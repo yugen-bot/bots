@@ -31,7 +31,7 @@ func InitDiscordBot(container *di.Container) error {
 			s.State.User.Username,
 			s.State.User.Discriminator,
 		)
-		s.UpdateWatchStatus(0, "wordle 🟩")
+		s.UpdateWatchStatus(0, "Koto 🖊️")
 	})
 
 	middlewares.InitMiddlewares(container)
