@@ -473,6 +473,16 @@ func (s *GameService) EndGame(
 		return fmt.Errorf("game: end: update: %w", err)
 	}
 
+	if _, gErr := s.bot.State.Guild(game.GuildID); gErr != nil {
+		if _, gErr2 := s.bot.Guild(game.GuildID); gErr2 != nil {
+			utils.Logger.Debugf(
+				"Skipping end message, bot not in guild %s",
+				game.GuildID,
+			)
+			return nil
+		}
+	}
+
 	guesses, _ := s.database.Guess.FindMany(
 		db.Guess.GameID.Equals(game.ID),
 	).Exec(ctx)
