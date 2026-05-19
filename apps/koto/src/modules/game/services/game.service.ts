@@ -8,7 +8,7 @@ import {
 	setYear,
 	subSeconds,
 } from 'date-fns';
-import { Message } from 'discord.js';
+import { Message, Client } from 'discord.js';
 
 import { SettingsService } from '../../settings';
 import { WordsService } from '../../words/services/words.service';
@@ -35,7 +35,8 @@ export class GameService {
 		private _settings: SettingsService,
 		private _words: WordsService,
 		private _message: GameMessageService,
-		private _points: GamePointsService
+		private _points: GamePointsService,
+		private _client: Client
 	) {}
 
 	async start(
@@ -45,6 +46,11 @@ export class GameService {
 		word = undefined
 	): Promise<boolean | void> {
 		this._logger.log(`Trying to start a game for ${guildId}`);
+
+		const guild = await this._client.guilds.fetch(guildId).catch(() => null);
+		if(!guild) {
+			return;
+		}
 
 		const currentGame = await this.getCurrentGame(guildId);
 

@@ -44,9 +44,15 @@ export class GameScheduleService {
 			},
 		});
 
+
 		stats.outOfTimeGames = outOfTimeGames.length;
 		const endPromises = [];
 		for (const game of outOfTimeGames) {
+			const guild = await this._client.guilds.fetch(game.guildId).catch(() => null);
+			if(!guild) {
+				continue;
+			}
+
 			endPromises.push(this._endGame(game.id, game.guildId));
 		}
 		const endGames = await Promise.allSettled(endPromises);
