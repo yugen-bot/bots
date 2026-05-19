@@ -370,7 +370,10 @@ func (s *StarboardService) createEmbeds(
 		footerIconURL = owner.AvatarURL("64")
 	}
 	footer := &discordgo.MessageEmbedFooter{
-		Text:    fmt.Sprintf("Like %s? Please vote using /vote!", s.bot.State.User.Username),
+		Text: fmt.Sprintf(
+			"Like %s? Please vote using /vote!",
+			s.bot.State.User.Username,
+		),
 		IconURL: footerIconURL,
 	}
 
@@ -476,7 +479,7 @@ func (s *StarboardService) createStarboard(
 		return
 	}
 
-	_, err = s.database.Log.CreateOne(
+	result, err := s.database.Log.CreateOne(
 		db.Log.GuildID.Set(msg.GuildID),
 		db.Log.ChannelID.Set(targetChannelID),
 		db.Log.MessageID.Set(sent.ID),
@@ -491,6 +494,7 @@ func (s *StarboardService) createStarboard(
 			"messageID", msg.ID,
 			"targetChannelID", targetChannelID,
 		)
+		return
 	}
 
 	utils.LogIfErr(
@@ -506,6 +510,18 @@ func (s *StarboardService) createStarboard(
 		utils.Logger,
 		"message-reaction-add",
 		s.bot.MessageReactionAdd(msg.ChannelID, msg.ID, "🌟"),
+	)
+
+	utils.Logger.Info(
+		"starboard: create starboard: created new starboard entry",
+		"starboardID",
+		result.ID,
+		"guildID",
+		guildID,
+		"channelID",
+		targetChannelID,
+		"messageID",
+		sent.ID,
 	)
 }
 
@@ -538,6 +554,18 @@ func (s *StarboardService) updateStarboard(
 			log.MessageID,
 		)
 	}
+
+	utils.Logger.Info(
+		"starboard: update starboard: updated starboard entry",
+		"starboardID",
+		log.ID,
+		"guildID",
+		guildID,
+		"channelID",
+		log.ChannelID,
+		"messageID",
+		log.MessageID,
+	)
 }
 
 func (s *StarboardService) deleteStarboard(
