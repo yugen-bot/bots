@@ -692,6 +692,10 @@ func (service *GameService) IsEqualToLast(
 	ok = true
 	number = -1
 
+	if message == nil {
+		return ok, number
+	}
+
 	game, exists, err := service.GetCurrentGame(ctx, message.GuildID)
 	if err != nil || !exists {
 		utils.Logger.Info("Couldnt find game", err)
