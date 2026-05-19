@@ -44,6 +44,7 @@ func main() {
 	}
 
 	sharedInits.InitCron(&container)
+	inits.InitCleanup(&container)
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
