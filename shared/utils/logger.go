@@ -29,10 +29,11 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 		lvl.SetLevel(zap.ErrorLevel)
 	}
 
-	cfg := prettyconsole.NewConfig()
+	cfg := zap.NewProductionConfig()
 	environment := productionEnv
 
 	if os.Getenv(static.Env) != productionEnv {
+		cfg = prettyconsole.NewConfig()
 		environment = os.Getenv(static.Env)
 	}
 
@@ -73,11 +74,9 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 		if sentryErr != nil {
 			log.Printf("sentry: failed to create zap core: %v", sentryErr)
 		} else {
-			logger = logger.WithOptions(
-				zap.WrapCore(func(original zapcore.Core) zapcore.Core {
-					return zapcore.NewTee(original, sentryCore)
-				}),
-			)
+			logger = logger.WithOptions(zap.WrapCore(func(original zapcore.Core) zapcore.Core {
+				return zapcore.NewTee(original, sentryCore)
+			}))
 		}
 	}
 
