@@ -11,6 +11,7 @@ import (
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/hoshi/internal/static"
 	"jurien.dev/yugen/hoshi/prisma/db"
+	"jurien.dev/yugen/shared/config"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -19,6 +20,7 @@ type StarboardService struct {
 	database *db.PrismaClient
 	settings *SettingsService
 	bot      *discordgoplus.Bot
+	cfg      *config.Config
 }
 
 func CreateStarboardService(container *di.Container) *StarboardService {
@@ -28,6 +30,7 @@ func CreateStarboardService(container *di.Container) *StarboardService {
 		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
 		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
+		cfg:      container.Get(sharedStatic.DiConfig).(*config.Config),
 	}
 }
 
@@ -198,20 +201,20 @@ func (s *StarboardService) CheckReaction(
 		return
 	}
 
-	embed := s.createEmbed(msg)
-	if embed == nil {
+	embeds := s.createEmbeds(msg)
+	if len(embeds) == 0 {
 		return
 	}
 
 	if log != nil {
-		s.updateStarboard(count, embed, msg, guildID, emojiName, emojiID, log)
+		s.updateStarboard(count, embeds, msg, guildID, emojiName, emojiID, log)
 		return
 	}
 
 	s.createStarboard(
 		ctx,
 		count,
-		embed,
+		embeds,
 		msg,
 		guildID,
 		config.TargetChannelID,
@@ -355,36 +358,58 @@ func (s *StarboardService) RemoveStarboardByID(
 	return config, nil
 }
 
-func (s *StarboardService) createEmbed(
+func (s *StarboardService) createEmbeds(
 	msg *discordgo.Message,
-) *discordgo.MessageEmbed {
+) []*discordgo.MessageEmbed {
 	if len(msg.Content) == 0 && len(msg.Attachments) == 0 {
 		return nil
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Color:     static.EmbedColor,
-		Timestamp: msg.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
+	var footerIconURL string
+	if owner, err := s.bot.User(s.cfg.OwnerID); err == nil {
+		footerIconURL = owner.AvatarURL("64")
+	}
+	footer := &discordgo.MessageEmbedFooter{
+		Text:    fmt.Sprintf("Like %s? Please vote using /vote!", s.bot.State.User.Username),
+		IconURL: footerIconURL,
 	}
 
-	if msg.Author != nil {
-		embed.Author = &discordgo.MessageEmbedAuthor{
-			Name:    msg.Author.Username,
-			IconURL: msg.Author.AvatarURL("64"),
+	chunks := utils.SplitBySentence(msg.Content, static.MaxEmbedDescription)
+	if len(chunks) == 0 {
+		chunks = []string{""}
+	}
+
+	embeds := make([]*discordgo.MessageEmbed, 0, len(chunks))
+	for i, chunk := range chunks {
+		e := &discordgo.MessageEmbed{
+			Color: static.EmbedColor,
 		}
-	}
 
-	if len(msg.Content) > 0 {
-		embed.Description = msg.Content
-	}
-
-	if len(msg.Attachments) > 0 {
-		embed.Image = &discordgo.MessageEmbedImage{
-			URL: msg.Attachments[0].URL,
+		if i == 0 && msg.Author != nil {
+			e.Author = &discordgo.MessageEmbedAuthor{
+				Name:    msg.Author.Username,
+				IconURL: msg.Author.AvatarURL("64"),
+			}
 		}
+
+		if chunk != "" {
+			e.Description = chunk
+		}
+
+		if i == len(chunks)-1 {
+			e.Timestamp = msg.Timestamp.Format("2006-01-02T15:04:05Z07:00")
+			e.Footer = footer
+			if len(msg.Attachments) > 0 {
+				e.Image = &discordgo.MessageEmbedImage{
+					URL: msg.Attachments[0].URL,
+				}
+			}
+		}
+
+		embeds = append(embeds, e)
 	}
 
-	return embed
+	return embeds
 }
 
 func (s *StarboardService) createContentString(
@@ -413,7 +438,7 @@ func emojiAPIFormat(emojiName, emojiID string) string {
 func (s *StarboardService) createStarboard(
 	ctx context.Context,
 	count int,
-	embed *discordgo.MessageEmbed,
+	embeds []*discordgo.MessageEmbed,
 	msg *discordgo.Message,
 	guildID string,
 	targetChannelID,
@@ -430,7 +455,7 @@ func (s *StarboardService) createStarboard(
 				emojiID,
 				msg,
 			),
-			Embeds: []*discordgo.MessageEmbed{embed},
+			Embeds: embeds,
 		},
 	)
 	if err != nil {
@@ -486,7 +511,7 @@ func (s *StarboardService) createStarboard(
 
 func (s *StarboardService) updateStarboard(
 	count int,
-	embed *discordgo.MessageEmbed,
+	embeds []*discordgo.MessageEmbed,
 	msg *discordgo.Message,
 	guildID string,
 	emojiName, emojiID string,
@@ -498,7 +523,7 @@ func (s *StarboardService) updateStarboard(
 		Channel: log.ChannelID,
 		ID:      log.MessageID,
 		Content: &content,
-		Embeds:  &[]*discordgo.MessageEmbed{embed},
+		Embeds:  &embeds,
 	})
 	if err != nil {
 		utils.Logger.Errorw(
