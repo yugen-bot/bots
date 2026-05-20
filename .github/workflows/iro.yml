@@ -2,7 +2,7 @@ name: "Iro: Build & Deploy docker image"
 
 on:
   push:
-    branches: ["go"]
+    branches: ["main"]
     paths:
       ["apps/iro/**", "shared/**", "external/**", "Dockerfile.iro", "Makefile"]
   workflow_dispatch:

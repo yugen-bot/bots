@@ -2,7 +2,7 @@ name: "Koto: Build & Deploy docker image"
 
 on:
   push:
-    branches: ["go", "go-rewrites"]
+    branches: ["main"]
     paths:
       [
         "apps/koto/**",

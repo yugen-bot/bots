@@ -2,7 +2,7 @@ name: "Kazu: Build & Deploy docker image"
 
 on:
   push:
-    branches: ["go"]
+    branches: ["main"]
     paths:
       [
         "apps/kazu/**",

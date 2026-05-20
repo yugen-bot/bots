@@ -2,7 +2,7 @@ name: "Hoshi: Build & Deploy docker image"
 
 on:
   push:
-    branches: ["go", "go-rewrites"]
+    branches: ["main"]
     paths:
       [
         "apps/hoshi/**",
