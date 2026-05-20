@@ -272,21 +272,23 @@ func (m *MessageService) buildGameInfo(
 		envSuffix = fmt.Sprintf("\nDevelopment mode: **%s**", game.Word)
 	}
 
+	nextKoto := fmt.Sprintf("\nNext koto <t:%d:R>", game.EndingAt.Unix())
+
+	if settings.AutoStart {
+		nextKoto = ""
+	}
+
 	switch game.Status {
 	case db.GameStatusCompleted:
-		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", game.EndingAt.Unix())
-
 		return fmt.Sprintf(
-			"\nGood job! Everyone who participated gets **+2** points!\n%s\n\n%s%s",
+			"\nGood job! Everyone who participated gets **+2** points!%s\n\n%s%s",
 			nextKoto,
 			footer,
 			envSuffix,
 		)
 	case db.GameStatusFailed:
-		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", game.EndingAt.Unix())
-
 		return fmt.Sprintf(
-			"\nOut of guesses, The correct word was **%s**!\n%s\n\n%s%s",
+			"\nOut of guesses, The correct word was **%s**!%s\n\n%s%s",
 			strings.ToUpper(game.Word),
 			nextKoto,
 			footer,
@@ -296,10 +298,13 @@ func (m *MessageService) buildGameInfo(
 		nextAt := game.CreatedAt.Add(
 			time.Duration(settings.Frequency) * time.Minute,
 		)
-		nextKoto := fmt.Sprintf("Next koto <t:%d:R>", nextAt.Unix())
+
+		if !settings.AutoStart {
+			nextKoto = fmt.Sprintf("\nNext koto <t:%d:R>", nextAt.Unix())
+		}
 
 		return fmt.Sprintf(
-			"\nTime's up! The correct word was **%s**!\n%s\n\n%s%s",
+			"\nTime's up! The correct word was **%s**!%s\n\n%s%s",
 			strings.ToUpper(game.Word),
 			nextKoto,
 			footer,
