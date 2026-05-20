@@ -603,22 +603,19 @@ func (s *StarboardService) deleteStarboard(
 	}
 }
 
-func (s *StarboardService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
-	all, err := s.database.Starboards.FindMany().Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
-		return nil, fmt.Errorf("starboard: find all guild ids: %w", err)
+type GuildIDRow struct {
+	GuildID string `json:"guildId"`
+}
+
+func (s *StarboardService) FindAllGuildIDs(ctx context.Context) ([]GuildIDRow, error) {
+	var rows []GuildIDRow
+	if err := s.database.Prisma.QueryRaw(
+		`SELECT DISTINCT "guildId" FROM "Starboards"`,
+	).Exec(ctx, &rows); err != nil {
+		return nil, fmt.Errorf("starboard: find distinct guild ids: %w", err)
 	}
 
-	seen := make(map[string]struct{})
-	var ids []string
-	for _, sb := range all {
-		if _, ok := seen[sb.GuildID]; !ok {
-			seen[sb.GuildID] = struct{}{}
-			ids = append(ids, sb.GuildID)
-		}
-	}
-
-	return ids, nil
+	return rows, nil
 }
 
 func (s *StarboardService) FindByGuildIDs(ctx context.Context, guildIDs []string) ([]db.StarboardsModel, error) {

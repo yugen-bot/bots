@@ -762,3 +762,18 @@ func (s *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (
 
 	return gameResult.Count, guessResult.Count, nil
 }
+
+type GuildIDRow struct {
+	GuildID string `json:"guildId"`
+}
+
+func (s *GameService) FindAllGuildIDs(ctx context.Context) ([]GuildIDRow, error) {
+	var rows []GuildIDRow
+	if err := s.database.Prisma.QueryRaw(
+		`SELECT DISTINCT "guildId" FROM "Game"`,
+	).Exec(ctx, &rows); err != nil {
+		return nil, fmt.Errorf("game: find distinct guild ids: %w", err)
+	}
+
+	return rows, nil
+}

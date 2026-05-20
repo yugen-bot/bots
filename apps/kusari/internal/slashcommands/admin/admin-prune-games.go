@@ -15,7 +15,6 @@ import (
 
 type AdminPruneGamesModule struct {
 	container *di.Container
-	settings  *services.SettingsService
 	games     *services.GameService
 	bot       *discordgoplus.Bot
 }
@@ -23,7 +22,6 @@ type AdminPruneGamesModule struct {
 func GetAdminPruneGamesModule(container *di.Container) *AdminPruneGamesModule {
 	return &AdminPruneGamesModule{
 		container: container,
-		settings:  container.Get(static.DiSettings).(*services.SettingsService),
 		games:     container.Get(localStatic.DiGame).(*services.GameService),
 		bot:       container.Get(static.DiBot).(*discordgoplus.Bot),
 	}
@@ -38,17 +36,17 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 		shouldDelete = opt.BoolValue()
 	}
 
-	all, err := m.settings.FindAll(context.Background())
+	rows, err := m.games.FindAllGuildIDs(context.Background())
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	utils.Logger.Infow("Found guilds", "guilds", len(all))
+	utils.Logger.Infow("Found guilds", "guilds", len(rows))
 	var orphanGuildIDs []string
-	for _, s := range all {
-		if !utils.IsBotInGuild(m.bot, s.GuildID) {
-			orphanGuildIDs = append(orphanGuildIDs, s.GuildID)
+	for _, row := range rows {
+		if !utils.IsBotInGuild(m.bot, row.GuildID) {
+			orphanGuildIDs = append(orphanGuildIDs, row.GuildID)
 		}
 	}
 

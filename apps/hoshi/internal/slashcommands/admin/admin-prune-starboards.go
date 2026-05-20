@@ -41,17 +41,17 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 		shouldDelete = opt.BoolValue()
 	}
 
-	guildIDs, err := m.starboards.FindAllGuildIDs(context.Background())
+	rows, err := m.starboards.FindAllGuildIDs(context.Background())
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	utils.Logger.Infow("Found guilds", "guilds", len(guildIDs))
+	utils.Logger.Infow("Found guilds", "guilds", len(rows))
 	var orphanGuildIDs []string
-	for _, guildID := range guildIDs {
-		if !utils.IsBotInGuild(m.bot, guildID) {
-			orphanGuildIDs = append(orphanGuildIDs, guildID)
+	for _, row := range rows {
+		if !utils.IsBotInGuild(m.bot, row.GuildID) {
+			orphanGuildIDs = append(orphanGuildIDs, row.GuildID)
 		}
 	}
 
