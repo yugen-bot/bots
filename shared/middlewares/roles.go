@@ -97,7 +97,7 @@ func checkResponse(ctx *discordgoplus.Ctx, pass bool, err error) {
 	ctx.Next()
 }
 
-func GuildOwnerMiddleware(ctx *discordgoplus.Ctx) {
+func OwnerMiddleware(ctx *discordgoplus.Ctx) {
 	pass, err := checkBase(ctx)
 	checkResponse(ctx, pass, err)
 }

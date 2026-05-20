@@ -67,6 +67,15 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 	return nil
 }
 
+func (s *SettingsService) FindAll(ctx context.Context) ([]db.SettingsModel, error) {
+	settings, err := s.database.Settings.FindMany().Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("settings: find all: %w", err)
+	}
+
+	return settings, nil
+}
+
 // Set updates specific settings fields.
 func (s *SettingsService) Set(
 	ctx context.Context,

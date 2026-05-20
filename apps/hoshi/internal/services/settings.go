@@ -80,6 +80,15 @@ func (s *SettingsService) Set(
 	return result, nil
 }
 
+func (s *SettingsService) FindAll(ctx context.Context) ([]db.SettingsModel, error) {
+	settings, err := s.database.Settings.FindMany().Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("settings: find all: %w", err)
+	}
+
+	return settings, nil
+}
+
 func (s *SettingsService) IgnoreChannel(
 	ctx context.Context,
 	guildID, channelID string,

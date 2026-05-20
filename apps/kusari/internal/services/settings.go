@@ -67,6 +67,26 @@ func (service *SettingsService) SetHighscoreByGuildID(
 	return result, nil
 }
 
+func (service *SettingsService) FindAll(ctx context.Context) ([]db.SettingsModel, error) {
+	settings, err := service.database.Settings.FindMany().Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("settings: find all: %w", err)
+	}
+
+	return settings, nil
+}
+
+func (service *SettingsService) Delete(ctx context.Context, guildID string) error {
+	_, err := service.database.Settings.FindUnique(
+		db.Settings.GuildID.Equals(guildID),
+	).Delete().Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("settings: delete: %w", err)
+	}
+
+	return nil
+}
+
 func (service *SettingsService) Update(
 	ctx context.Context,
 	settingsID int,
