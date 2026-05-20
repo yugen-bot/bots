@@ -1070,3 +1070,39 @@ func (service *GameService) setNumber(message *discordgo.Message, count int) {
 		}
 	}
 }
+
+func (service *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, history int, err error) {
+	gameResult, err := service.database.Game.FindMany(
+		db.Game.GuildID.In(guildIDs),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: count by guild ids: games: %w", err)
+	}
+
+	historyResult, err := service.database.History.FindMany(
+		db.History.Game.Where(db.Game.GuildID.In(guildIDs)),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: count by guild ids: history: %w", err)
+	}
+
+	return len(gameResult), len(historyResult), nil
+}
+
+func (service *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (games int, history int, err error) {
+	historyResult, hErr := service.database.History.FindMany(
+		db.History.Game.Where(db.Game.GuildID.In(guildIDs)),
+	).Delete().Exec(ctx)
+	if hErr != nil && !errors.Is(hErr, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: delete by guild ids: history: %w", hErr)
+	}
+
+	gameResult, err := service.database.Game.FindMany(
+		db.Game.GuildID.In(guildIDs),
+	).Delete().Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: delete by guild ids: games: %w", err)
+	}
+
+	return gameResult.Count, historyResult.Count, nil
+}

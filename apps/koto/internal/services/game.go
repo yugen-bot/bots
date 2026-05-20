@@ -726,3 +726,39 @@ func (s *GameService) createBaseState(word string) *localUtils.GameMeta {
 func roundToNearestMinute(t time.Time) time.Time {
 	return t.Round(time.Minute)
 }
+
+func (s *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, guesses int, err error) {
+	gameResult, err := s.database.Game.FindMany(
+		db.Game.GuildID.In(guildIDs),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: count by guild ids: games: %w", err)
+	}
+
+	guessResult, err := s.database.Guess.FindMany(
+		db.Guess.Game.Where(db.Game.GuildID.In(guildIDs)),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: count by guild ids: guesses: %w", err)
+	}
+
+	return len(gameResult), len(guessResult), nil
+}
+
+func (s *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (games int, guesses int, err error) {
+	guessResult, gErr := s.database.Guess.FindMany(
+		db.Guess.Game.Where(db.Game.GuildID.In(guildIDs)),
+	).Delete().Exec(ctx)
+	if gErr != nil && !errors.Is(gErr, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: delete by guild ids: guesses: %w", gErr)
+	}
+
+	gameResult, err := s.database.Game.FindMany(
+		db.Game.GuildID.In(guildIDs),
+	).Delete().Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, 0, fmt.Errorf("game: delete by guild ids: games: %w", err)
+	}
+
+	return gameResult.Count, guessResult.Count, nil
+}

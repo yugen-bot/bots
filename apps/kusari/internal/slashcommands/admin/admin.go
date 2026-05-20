@@ -13,10 +13,12 @@ type AdminModule struct {
 
 func GetAdminModule(container *di.Container) *AdminModule {
 	pruneSettings := GetAdminPruneSettingsModule(container)
+	pruneGames := GetAdminPruneGamesModule(container)
 
 	var subCommands []*discordgoplus.Command
 
 	subCommands = append(subCommands, pruneSettings.Commands()...)
+	subCommands = append(subCommands, pruneGames.Commands()...)
 
 	return &AdminModule{
 		container:   container,

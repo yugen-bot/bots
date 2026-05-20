@@ -21,6 +21,7 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	recreate := GetAdminRecreateModule(container)
 	sendWelcome := GetAdminSendWelcomeModule(container)
 	pruneSettings := GetAdminPruneSettingsModule(container)
+	pruneGames := GetAdminPruneGamesModule(container)
 
 	var subCommands []*discordgoplus.Command
 
@@ -31,6 +32,7 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	subCommands = append(subCommands, recreate.Commands()...)
 	subCommands = append(subCommands, sendWelcome.Commands()...)
 	subCommands = append(subCommands, pruneSettings.Commands()...)
+	subCommands = append(subCommands, pruneGames.Commands()...)
 
 	return &AdminModule{
 		container:   container,
