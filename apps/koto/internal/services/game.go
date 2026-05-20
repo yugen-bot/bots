@@ -57,7 +57,7 @@ func (s *GameService) Start(
 	recreate bool,
 	word string,
 ) (bool, error) {
-	utils.Logger.Infof("Trying to start a game for %s", guildID)
+	utils.Logger.Debugf("Trying to start a game for %s", guildID)
 
 	if _, gErr := s.bot.State.Guild(guildID); gErr != nil {
 		if _, gErr2 := s.bot.Guild(guildID); gErr2 != nil {
