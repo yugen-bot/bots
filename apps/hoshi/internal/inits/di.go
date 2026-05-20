@@ -88,6 +88,13 @@ func InitDI() (container di.Container, err error) {
 		},
 	})
 
+	diBuilder.Add(&di.Def{
+		Name: static.DiVoteReward,
+		Build: func(ctn di.Container) (any, error) {
+			return CreateVoteRewardFunc(&ctn), nil
+		},
+	})
+
 	container, err = diBuilder.Build()
 	if err != nil {
 		utils.Logger.Fatalw("failed to build DI container", "error", err)
