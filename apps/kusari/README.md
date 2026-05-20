@@ -16,11 +16,11 @@
 ### Getting started
 
 ```bash
-$ git clone git@github.com:jurienhamaker/yugen.git
+git clone git@github.com:jurienhamaker/yugen.git
 ```
 
 **Copy the `.env.example` to `.env` and change the values in the `.env` file**
-**Copy the `kusari.env.example` to `kusari.env` and change the values in the `kusari.env` file**
+**Copy the `apps/kusari/.env.example` to `apps/kusari/.env` and change the values in the `.env` file**
 
 ---
 
@@ -33,14 +33,14 @@ $ git clone git@github.com:jurienhamaker/yugen.git
 ### Running the app
 
 ```bash
-$ docker-compose up -d db
-$ docker-compose up kusari
+docker-compose up -d db
+docker-compose up kusari
 ```
 
 ### Running migrations
 
 ```bash
-$ docker-compose exec -it kusari yarn kusari:prima:migrate:dev
+docker-compose exec -it kusari make kusari-migrate
 ```
 
 ---
@@ -49,25 +49,25 @@ $ docker-compose exec -it kusari yarn kusari:prima:migrate:dev
 
 #### Prerequisite
 
-- [NodeJS 18.x](https://nodejs.org/en/download)
+- [go 1.25](https://go.dev/doc/install)
 - [PostgresDB](https://www.postgresql.org/)
 
-#### Installing
-
-```bash
-$ yarn
-$ yarn kusari:prisma:generate
-$ yarn kusari:prisma:migrate:dev
-```
-
-### Running the bot/api
+### Building the bot & running the bot
 
 ```bash
 # watch mode (recommended)
-$ yarn kusari:start
+$ make kusari
 
 # production mode
-$ yarn kusari:start:prod
+$ make kusari-build
+$ ./dist/kusari
+```
+
+### Running migrations (Development)
+
+```bash
+# development
+$ make kusari-migrate
 ```
 
 ---
@@ -80,4 +80,4 @@ $ yarn kusari:start:prod
 
 ## License
 
-KUSARI is [GPL licensed](LICENSE).
+Kusari is [GPL licensed](../../LICENSE).

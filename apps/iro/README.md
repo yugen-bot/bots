@@ -16,11 +16,11 @@
 ### Getting started
 
 ```bash
-$ git clone git@github.com:jurienhamaker/yugen.git
+git clone git@github.com:jurienhamaker/yugen.git
 ```
 
 **Copy the `.env.example` to `.env` and change the values in the `.env` file**
-**Copy the `apps/iro/.env.example` to `apps/iro/.env` and change the values in the `apps/iro/.env` file**
+**Copy the `apps/iro/.env.example` to `apps/iro/.env` and change the values in the `.env` file**
 
 ---
 
@@ -33,27 +33,42 @@ $ git clone git@github.com:jurienhamaker/yugen.git
 ### Running the app
 
 ```bash
-$ docker compose up -d db
-$ docker compose up iro
+docker-compose up -d db
+docker-compose up iro
+```
+
+### Running migrations
+
+```bash
+docker-compose exec -it koto make iro-migrate
 ```
 
 ---
 
-### Golang
+### NodeJS
 
 #### Prerequisite
 
-- [Golang 1.23.x](https://go.dev/)
+- [go 1.25](https://go.dev/doc/install)
 - [PostgresDB](https://www.postgresql.org/)
 
-````
-
-### Running the bot/api
+### Building the bot & running the bot
 
 ```bash
 # watch mode (recommended)
 $ make iro
-````
+
+# production mode
+$ make iro-build
+$ ./dist/iro
+```
+
+### Running migrations (Development)
+
+```bash
+# development
+$ make iro-migrate
+```
 
 ---
 
@@ -65,4 +80,4 @@ $ make iro
 
 ## License
 
-iro is [GPL licensed](LICENSE).
+Iro is [GPL licensed](../../LICENSE).
