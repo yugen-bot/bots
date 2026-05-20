@@ -76,7 +76,11 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 - Channel, specify a dedicated channel
 - Cooldown, specify a cooldown before users can add a word again
 - Math, Wether Kazu will try to parse equations
-- Shame role, a role to apply to someone that breaks the chain`, nil
+- Shame role, a role to apply to someone that breaks the chain
+
+**Points:**
+- A point is received for each correct number
+- If the chain is broken, 10% of the chain's number is deducted`, nil
 		},
 	})
 
