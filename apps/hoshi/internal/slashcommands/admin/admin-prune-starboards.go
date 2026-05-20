@@ -22,7 +22,9 @@ type AdminPruneStarboardsModule struct {
 	bot        *discordgoplus.Bot
 }
 
-func GetAdminPruneStarboardsModule(container *di.Container) *AdminPruneStarboardsModule {
+func GetAdminPruneStarboardsModule(
+	container *di.Container,
+) *AdminPruneStarboardsModule {
 	return &AdminPruneStarboardsModule{
 		container:  container,
 		starboards: container.Get(localStatic.DiStarboard).(*services.StarboardService),
@@ -33,6 +35,7 @@ func GetAdminPruneStarboardsModule(container *di.Container) *AdminPruneStarboard
 func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
+	utils.Logger.Infow("Starboard pruning started")
 	shouldDelete := false
 	if opt, ok := ctx.Options["delete"]; ok {
 		shouldDelete = opt.BoolValue()
@@ -44,6 +47,7 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 		return
 	}
 
+	utils.Logger.Infow("Found guilds", "guilds", len(guildIDs))
 	var orphanGuildIDs []string
 	for _, guildID := range guildIDs {
 		if !utils.IsBotInGuild(m.bot, guildID) {
@@ -51,16 +55,27 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 		}
 	}
 
+	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
 	channelID := ctx.Interaction.ChannelID
 
 	if len(orphanGuildIDs) == 0 {
-		m.bot.ChannelMessageSend(channelID, "**Orphan starboards: 0** — nothing to prune.")
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
+		m.bot.ChannelMessageSend(
+			channelID,
+			"**Orphan starboards: 0** — nothing to prune.",
+		)
+		discordgoplus.FollowUp(
+			ctx,
+			&discordgo.WebhookParams{Content: "Done."},
+			true,
+		)
 		return
 	}
 
 	if !shouldDelete {
-		all, err := m.starboards.FindByGuildIDs(context.Background(), orphanGuildIDs)
+		all, err := m.starboards.FindByGuildIDs(
+			context.Background(),
+			orphanGuildIDs,
+		)
 		if err != nil {
 			discordgoplus.InteractionError(ctx, true)
 			return
@@ -72,9 +87,19 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 		}
 
 		var buf strings.Builder
-		buf.WriteString(fmt.Sprintf("**Orphan starboards: %d** across %d guild(s)\n", len(all), len(orphanGuildIDs)))
+		buf.WriteString(
+			fmt.Sprintf(
+				"**Orphan starboards: %d** across %d guild(s)\n",
+				len(all),
+				len(orphanGuildIDs),
+			),
+		)
 		for _, guildID := range orphanGuildIDs {
-			line := fmt.Sprintf("`%s` — %d starboard(s)\n", guildID, counts[guildID])
+			line := fmt.Sprintf(
+				"`%s` — %d starboard(s)\n",
+				guildID,
+				counts[guildID],
+			)
 			if buf.Len()+len(line) > pruneStarboardsLineLimit {
 				m.bot.ChannelMessageSend(channelID, buf.String())
 				buf.Reset()
@@ -86,22 +111,37 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 		}
 
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Content: fmt.Sprintf("Found %d orphan guild(s). See <#%s>.", len(orphanGuildIDs), channelID),
+			Content: fmt.Sprintf(
+				"Found %d orphan guild(s). See <#%s>.",
+				len(orphanGuildIDs),
+				channelID,
+			),
 		}, true)
 		return
 	}
 
-	deleted, err := m.starboards.DeleteByGuildIDs(context.Background(), orphanGuildIDs)
+	deleted, err := m.starboards.DeleteByGuildIDs(
+		context.Background(),
+		orphanGuildIDs,
+	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
+	utils.Logger.Infof(
+		"Deleted **%d** starboard(s) for %d orphan guild(s).",
+		deleted, len(orphanGuildIDs),
+	)
 	m.bot.ChannelMessageSend(channelID, fmt.Sprintf(
 		"Deleted **%d** starboard(s) for %d orphan guild(s).",
 		deleted, len(orphanGuildIDs),
 	))
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
+	discordgoplus.FollowUp(
+		ctx,
+		&discordgo.WebhookParams{Content: "Done."},
+		true,
+	)
 }
 
 func (m *AdminPruneStarboardsModule) Commands() []*discordgoplus.Command {
