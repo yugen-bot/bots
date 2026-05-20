@@ -602,3 +602,43 @@ func (s *StarboardService) deleteStarboard(
 		)
 	}
 }
+
+func (s *StarboardService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
+	all, err := s.database.Starboards.FindMany().Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return nil, fmt.Errorf("starboard: find all guild ids: %w", err)
+	}
+
+	seen := make(map[string]struct{})
+	var ids []string
+	for _, sb := range all {
+		if _, ok := seen[sb.GuildID]; !ok {
+			seen[sb.GuildID] = struct{}{}
+			ids = append(ids, sb.GuildID)
+		}
+	}
+
+	return ids, nil
+}
+
+func (s *StarboardService) FindByGuildIDs(ctx context.Context, guildIDs []string) ([]db.StarboardsModel, error) {
+	result, err := s.database.Starboards.FindMany(
+		db.Starboards.GuildID.In(guildIDs),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return nil, fmt.Errorf("starboard: find by guild ids: %w", err)
+	}
+
+	return result, nil
+}
+
+func (s *StarboardService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (int, error) {
+	result, err := s.database.Starboards.FindMany(
+		db.Starboards.GuildID.In(guildIDs),
+	).Delete().Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, fmt.Errorf("starboard: delete by guild ids: %w", err)
+	}
+
+	return result.Count, nil
+}

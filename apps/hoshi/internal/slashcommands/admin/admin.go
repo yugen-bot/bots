@@ -16,12 +16,14 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	guilds := GetAdminGuildsModule(container)
 	notify := GetAdminNotifyModule(container)
 	pruneSettings := GetAdminPruneSettingsModule(container)
+	pruneStarboards := GetAdminPruneStarboardsModule(container)
 
 	var subCommands []*discordgoplus.Command
 
 	subCommands = append(subCommands, guilds.Commands()...)
 	subCommands = append(subCommands, notify.Commands()...)
 	subCommands = append(subCommands, pruneSettings.Commands()...)
+	subCommands = append(subCommands, pruneStarboards.Commands()...)
 
 	return &AdminModule{
 		container:   container,
