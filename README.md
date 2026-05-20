@@ -27,4 +27,4 @@
 
 ## License
 
-YUGEN is [GPL licensed](LICENSE).
+Yugen is [GPL licensed](LICENSE).
