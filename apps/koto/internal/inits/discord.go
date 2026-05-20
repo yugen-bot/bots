@@ -17,8 +17,7 @@ const Intents = discordgo.IntentGuilds |
 	discordgo.IntentsGuildMessages |
 	discordgo.IntentsGuildMessageReactions |
 	discordgo.IntentMessageContent |
-	discordgo.IntentsGuildEmojis |
-	discordgo.IntentsGuildMembers
+	discordgo.IntentsGuildEmojis
 
 func InitDiscordBot(container *di.Container) error {
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
