@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -173,6 +174,38 @@ func (s *GameService) Start(
 			"guildID", guildID,
 			"gameID", game.ID,
 		)
+
+		// if we fail to send the message because the channel is not found or inaccessible, reset channel.
+		if strings.Contains(err.Error(), "404 Not Found") ||
+			strings.Contains(err.Error(), "403 Forbidden") {
+			if _, err := s.settings.Set(
+				context.Background(),
+				guildID,
+				db.Settings.ChannelID.SetOptional(nil),
+			); err != nil {
+				utils.Logger.Warnw("game: start: reset channel failed",
+					"error", err)
+			}
+
+			if endErr := s.EndGame(
+				ctx,
+				game.ID,
+				db.GameStatusFailed,
+			); endErr != nil {
+				utils.Logger.Warnw("game: start: end current failed",
+					"error", endErr,
+					"guildID", guildID,
+					"gameID", currentGame.ID,
+				)
+			}
+
+			reason := "Forbidden"
+			if strings.Contains(err.Error(), "404 Not Found") {
+				reason = "Not found"
+			}
+
+			return false, fmt.Errorf("game: start: %s: %w", reason, err)
+		}
 	}
 
 	return true, nil
@@ -727,7 +760,10 @@ func roundToNearestMinute(t time.Time) time.Time {
 	return t.Round(time.Minute)
 }
 
-func (s *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, guesses int, err error) {
+func (s *GameService) CountByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) (games int, guesses int, err error) {
 	gameResult, err := s.database.Game.FindMany(
 		db.Game.GuildID.In(guildIDs),
 	).Exec(ctx)
@@ -745,7 +781,10 @@ func (s *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (g
 	return len(gameResult), len(guessResult), nil
 }
 
-func (s *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (games int, guesses int, err error) {
+func (s *GameService) DeleteByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) (games int, guesses int, err error) {
 	guessResult, gErr := s.database.Guess.FindMany(
 		db.Guess.Game.Where(db.Game.GuildID.In(guildIDs)),
 	).Delete().Exec(ctx)
@@ -767,7 +806,9 @@ type GuildIDRow struct {
 	GuildID string `json:"guildId"`
 }
 
-func (s *GameService) FindAllGuildIDs(ctx context.Context) ([]GuildIDRow, error) {
+func (s *GameService) FindAllGuildIDs(
+	ctx context.Context,
+) ([]GuildIDRow, error) {
 	var rows []GuildIDRow
 	if err := s.database.Prisma.QueryRaw(
 		`SELECT DISTINCT "guildId" FROM "Game"`,

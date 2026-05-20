@@ -11,6 +11,7 @@ import (
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/middlewares"
 	sharedStatic "jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
 )
 
 type GameResetModule struct {
@@ -46,7 +47,8 @@ func (m *GameResetModule) reset(ctx *discordgoplus.Ctx) {
 
 	started, err := m.game.Start(context.Background(), guildID, true, true, "")
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		utils.Logger.Warnw("game: start: start failed: %w", err)
+		localUtils.HandleChannelInaccessible(ctx, channelID, err)
 		return
 	}
 

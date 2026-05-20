@@ -10,6 +10,7 @@ import (
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	sharedStatic "jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
 )
 
 type GameStartModule struct {
@@ -56,7 +57,8 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 
 	started, err := m.game.Start(context.Background(), guildID, true, false, "")
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		utils.Logger.Warnw("game: start: start failed: %w", err)
+		localUtils.HandleChannelInaccessible(ctx, channelID, err)
 		return
 	}
 
