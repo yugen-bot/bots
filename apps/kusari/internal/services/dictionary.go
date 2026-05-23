@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -16,12 +18,23 @@ import (
 )
 
 type DictionaryService struct {
-	cfg *config.Config
+	cfg    *config.Config
+	client *http.Client
 }
 
 func CreateDictionaryService(cfg *config.Config) *DictionaryService {
 	utils.Logger.Info("Creating Dictionary Service")
-	return &DictionaryService{cfg: cfg}
+	return &DictionaryService{
+		cfg: cfg,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        20,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     90 * time.Second,
+			},
+		},
+	}
 }
 
 func (service *DictionaryService) Check(
@@ -31,8 +44,8 @@ func (service *DictionaryService) Check(
 	word = strings.ToLower(word)
 
 	replacer := strings.NewReplacer(
-		"‘", "'",
 		"’", "'",
+		"‘", "'",
 		"“", `"`,
 		"”", `"`,
 	)
@@ -41,10 +54,6 @@ func (service *DictionaryService) Check(
 		"https://en.wiktionary.org/w/api.php?action=opensearch&format=json&formatversion=2&search=%s&namespace=0&limit=2",
 		url.QueryEscape(word),
 	)
-
-	client := &http.Client{
-		Transport: &http.Transport{},
-	}
 
 	utils.Logger.Debug(wiktionaryURL)
 
@@ -62,14 +71,16 @@ func (service *DictionaryService) Check(
 		service.cfg.WiktionaryPassword,
 	)
 
-	resp, err := client.Do(req)
+	resp, err := service.client.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("dictionary: do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	utils.Logger.Debug(resp.Status)
-	utils.Logger.Debug(resp.Body)
 
 	var respBody []any
 
