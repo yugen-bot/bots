@@ -29,8 +29,14 @@ github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/ad
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+github.com/jurienhamaker/discordgoplus v1.0.1 h1:e+QLl25+4vX6QOqbXIGUqROS9ufH5GuzHK3Z1s1wbzg=
+github.com/jurienhamaker/discordgoplus v1.0.1/go.mod h1:5Sld9ywSwrSflMOnDFcglXVovRyTHUfU44Tx2NRClYE=
 github.com/jurienhamaker/discordgoplus v1.0.2-0.20260512212740-07724a0f538f h1:T5dVNC0myJL0lmulcgT4mLLz87AUzrB0Oej6qrBL768=
 github.com/jurienhamaker/discordgoplus v1.0.2-0.20260512212740-07724a0f538f/go.mod h1:5Sld9ywSwrSflMOnDFcglXVovRyTHUfU44Tx2NRClYE=
+github.com/jurienhamaker/discordgoplus v1.0.2-0.20260522143052-c0c65ee20c27 h1:ZO4jNqU6rF5+tWdOxMiofAdSXHGjjjmV9TBUVm0RbyA=
+github.com/jurienhamaker/discordgoplus v1.0.2-0.20260522143052-c0c65ee20c27/go.mod h1:5Sld9ywSwrSflMOnDFcglXVovRyTHUfU44Tx2NRClYE=
+github.com/jurienhamaker/discordgoplus v1.0.2 h1:hjezsMgk26PXUYKrv2AeaxFKAIMjVcPgrZrQ5IuahpQ=
+github.com/jurienhamaker/discordgoplus v1.0.2/go.mod h1:5Sld9ywSwrSflMOnDFcglXVovRyTHUfU44Tx2NRClYE=
 github.com/klauspost/compress v1.17.9 h1:6KIumPrER1LHsvBVuDa0r5xaG0Es51mhhB9BQB2qeMA=
 github.com/klauspost/compress v1.17.9/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=

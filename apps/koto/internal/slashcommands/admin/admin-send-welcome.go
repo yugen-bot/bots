@@ -15,9 +15,7 @@ type AdminSendWelcomeModule struct {
 	bot       *discordgoplus.Bot
 }
 
-func GetAdminSendWelcomeModule(
-	container *di.Container,
-) *AdminSendWelcomeModule {
+func GetAdminSendWelcomeModule(container *di.Container) *AdminSendWelcomeModule {
 	return &AdminSendWelcomeModule{
 		container: container,
 		bot:       container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
