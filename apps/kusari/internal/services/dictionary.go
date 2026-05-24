@@ -14,13 +14,14 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	localMetrics "jurien.dev/yugen/kusari/internal/metrics"
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/utils"
 )
 
 const (
 	dictionaryCacheSize = 10_000
-	dictionaryCacheTTL  = 24 * time.Hour
+	dictionaryCacheTTL  = 4 * time.Hour
 )
 
 var smartQuoteReplacer = strings.NewReplacer(
@@ -72,12 +73,14 @@ func (service *DictionaryService) Check(
 	}
 
 	service.cache.Add(word, found)
+	localMetrics.DictionaryCacheSize.Set(float64(service.cache.Len()))
 	return found, nil
 }
 
 func (service *DictionaryService) Clear() int {
 	n := service.cache.Len()
 	service.cache.Purge()
+	localMetrics.DictionaryCacheSize.Set(0)
 	return n
 }
 
