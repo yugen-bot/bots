@@ -1214,22 +1214,29 @@ func (service *GameService) DeleteByGuildIDs(
 	return gameResult.Count, historyResult.Count, nil
 }
 
+type emptyGameRow struct {
+	ID      int    `json:"id"`
+	GuildID string `json:"guildId"`
+	Type    string `json:"type"`
+}
+
 func (service *GameService) ResetEmptyGames(ctx context.Context) (int, error) {
-	games, err := service.database.Game.FindMany(
-		db.Game.Status.Equals(db.GameStatusInProgress),
-		db.Game.History.None(),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
-		return 0, fmt.Errorf("game: reset empty: find: %w", err)
+	var rows []emptyGameRow
+
+	err := service.database.Prisma.QueryRaw(
+		`SELECT id, "guildId", type FROM "Game" WHERE status = 'IN_PROGRESS' AND id NOT IN (SELECT DISTINCT "gameId" FROM "History")`,
+	).Exec(ctx, &rows)
+	if err != nil {
+		return 0, fmt.Errorf("game: reset empty: query: %w", err)
 	}
 
 	count := 0
 
-	for _, game := range games {
+	for _, row := range rows {
 		_, started, startErr := service.Start(
 			ctx,
-			game.GuildID,
-			game.Type,
+			row.GuildID,
+			db.GameType(row.Type),
 			"",
 			true,
 		)
@@ -1239,7 +1246,7 @@ func (service *GameService) ResetEmptyGames(ctx context.Context) (int, error) {
 				"error",
 				startErr,
 				"gameID",
-				game.ID,
+				row.ID,
 			)
 
 			continue
@@ -1254,15 +1261,27 @@ func (service *GameService) ResetEmptyGames(ctx context.Context) (int, error) {
 }
 
 func (service *GameService) CountEmptyGames(ctx context.Context) (int, error) {
-	games, err := service.database.Game.FindMany(
-		db.Game.Status.Equals(db.GameStatusInProgress),
-		db.Game.History.None(),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	var res []struct {
+		Count string `json:"count"`
+	}
+
+	err := service.database.Prisma.QueryRaw(
+		`SELECT count(*) as count FROM "Game" WHERE status = 'IN_PROGRESS' AND id NOT IN (SELECT DISTINCT "gameId" FROM "History")`,
+	).Exec(ctx, &res)
+	if err != nil {
 		return 0, fmt.Errorf("game: count empty: %w", err)
 	}
 
-	return len(games), nil
+	if len(res) == 0 {
+		return 0, nil
+	}
+
+	count, err := strconv.Atoi(res[0].Count)
+	if err != nil {
+		return 0, fmt.Errorf("game: count empty: parse count: %w", err)
+	}
+
+	return count, nil
 }
 
 type GuildIDRow struct {
