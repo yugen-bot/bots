@@ -306,8 +306,42 @@ func (service *GameService) AddWord(
 		return
 	}
 
-	isSameUser := service.cfg.Env != "development" &&
-		message.Author.ID == history.UserID
+	isSameUser := false
+	if history != nil && message != nil && message.Author != nil {
+		isSameUser = service.cfg.Env != "development" &&
+			message.Author.ID == history.UserID
+	}
+
+	if history == nil {
+		utils.Logger.Debugw(
+			"History is nil",
+			"guildID",
+			guildID,
+			"gameID",
+			game.ID,
+		)
+	}
+
+	if message == nil {
+		utils.Logger.Debugw(
+			"Message is nil",
+			"guildID",
+			guildID,
+			"gameID",
+			game.ID,
+		)
+	}
+
+	if message.Author == nil {
+		utils.Logger.Debugw(
+			"Author is nil",
+			"guildID",
+			guildID,
+			"gameID",
+			game.ID,
+		)
+	}
+
 	if isSameUser {
 		utils.LogIfErr(
 			utils.Logger,
@@ -752,7 +786,7 @@ func (service *GameService) IsEqualToLast(
 	}
 
 	history, _, err := service.GetLastHistory(ctx, game)
-	if err != nil {
+	if err != nil || history == nil {
 		utils.Logger.Info("Couldnt find last history", err)
 		return ok, word
 	}
