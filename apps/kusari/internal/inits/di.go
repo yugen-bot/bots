@@ -56,6 +56,7 @@ func InitDI() (container di.Container, err error) {
 				utils.Logger.Info("Shutting down Valkey connection...")
 				vk.Close()
 			}
+
 			return nil
 		},
 	})
@@ -146,6 +147,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
 			vk, _ := ctn.Get(static.DiValkey).(valkey.Client)
+
 			return services.CreateDictionaryService(cfg, vk), nil
 		},
 	})

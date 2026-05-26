@@ -24,13 +24,15 @@ func InitDiscordBot(container *di.Container) error {
 
 	bot.Identify.Intents = Intents
 
-	bot.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
+	bot.AddHandler(func(bot *discordgo.Session, event *discordgo.Ready) {
 		utils.Logger.Infof(
-			"Logged in as: %v#%v",
-			s.State.User.Username,
-			s.State.User.Discriminator,
+			"Logged in as: %v#%v (%d/%d)",
+			bot.State.User.Username,
+			bot.State.User.Discriminator,
+			bot.ShardID+1,
+			bot.ShardCount,
 		)
-		s.UpdateWatchStatus(0, "Koto 🖊️")
+		bot.UpdateWatchStatus(0, "Koto 🖊️")
 	})
 
 	middlewares.InitMiddlewares(container)

@@ -36,6 +36,7 @@ func InitEmojis(container *di.Container) error {
 		len(knownColors),
 	)
 	totalEmojis := 0
+
 	for _, c := range knownColors {
 		table[c] = make(map[string]localStatic.EmojiData, 27)
 	}
@@ -45,6 +46,7 @@ func InitEmojis(container *di.Container) error {
 		if !ok {
 			continue
 		}
+
 		table[color][letter] = localStatic.EmojiData{Name: e.Name, ID: e.ID}
 		totalEmojis++
 	}
@@ -66,6 +68,7 @@ func parseEmojiName(name string) (localStatic.EmojiColor, string, bool) {
 		if !known {
 			return "", "", false
 		}
+
 		return color, localStatic.EmojiLetterBlank, true
 	}
 
@@ -74,10 +77,12 @@ func parseEmojiName(name string) (localStatic.EmojiColor, string, bool) {
 		if letterCh < 'A' || letterCh > 'Z' {
 			return "", "", false
 		}
+
 		color, known := knownColors[strings.ToLower(rest[1:])]
 		if !known {
 			return "", "", false
 		}
+
 		return color, strings.ToLower(string(letterCh)), true
 	}
 
@@ -94,12 +99,14 @@ func validateEmojiTable(
 	}
 
 	total := 0
+
 	for color, sub := range table {
 		for _, l := range letters {
 			if _, ok := sub[l]; !ok {
 				return fmt.Errorf("missing %s/%s", color, l)
 			}
 		}
+
 		total += len(sub)
 	}
 

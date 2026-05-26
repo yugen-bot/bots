@@ -107,7 +107,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	self := m.bot.State.User
+	self := ctx.State.User
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer := utils.CreateEmbedFooter(

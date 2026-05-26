@@ -68,7 +68,7 @@ func (listener *ColorListener) MessageReactionHandler(
 	bot *discordgo.Session,
 	event *discordgo.MessageReactionAdd,
 ) {
-	self := listener.bot.State.User
+	self := bot.State.User
 
 	if event.UserID == self.ID {
 		return

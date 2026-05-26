@@ -53,33 +53,38 @@ func AddMessageListeners(container *di.Container) {
 			utils.LogIfErr(
 				utils.Logger,
 				"message: reaction add",
-				bot.MessageReactionAdd(event.ChannelID, event.ID, "❌"),
+				s.MessageReactionAdd(event.ChannelID, event.ID, "❌"),
 			)
 
-			_, replyErr := bot.ChannelMessageSendReply(
+			_, replyErr := s.ChannelMessageSendReply(
 				event.ChannelID,
-				fmt.Sprintf(`Sorry, I couldn't find "**%s**" in my database.`, word),
+				fmt.Sprintf(
+					`Sorry, I couldn't find "**%s**" in my database.`,
+					word,
+				),
 				event.Reference(),
 			)
-			utils.LogIfErr(utils.Logger, "message: reply unknown word", replyErr)
+			utils.LogIfErr(
+				utils.Logger,
+				"message: reply unknown word",
+				replyErr,
+			)
 
 			return
 		}
 
-		go func() {
-			if err := gameSvc.Guess(
-				ctx,
+		if err := gameSvc.Guess(
+			ctx,
+			event.GuildID,
+			word,
+			event.Message,
+			settings,
+		); err != nil {
+			utils.Logger.Warnf(
+				"message: guess failed for guild %s: %v",
 				event.GuildID,
-				word,
-				event.Message,
-				settings,
-			); err != nil {
-				utils.Logger.Warnf(
-					"message: guess failed for guild %s: %v",
-					event.GuildID,
-					err,
-				)
-			}
-		}()
+				err,
+			)
+		}
 	})
 }

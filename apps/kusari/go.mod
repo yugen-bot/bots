@@ -5,10 +5,13 @@ go 1.25.0
 require (
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/joho/godotenv v1.5.1
-	github.com/jurienhamaker/discordgoplus v1.0.2
+	github.com/jurienhamaker/discordgoplus v1.0.5
+	github.com/prometheus/client_golang v1.20.5
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/shopspring/decimal v1.4.0
 	github.com/steebchen/prisma-client-go v0.44.0
+	github.com/valkey-io/valkey-go v1.0.75
 	github.com/zekroTJA/shinpuru v0.0.0-20240828005211-d93172643d5f
 	golang.org/x/sync v0.20.0
 	golang.org/x/text v0.36.0
@@ -17,15 +20,16 @@ require (
 
 require (
 	github.com/Code-Hex/dd v1.1.0 // indirect
+	github.com/TheZeroSlave/zapsentry v1.24.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/caarlos0/env/v11 v11.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/getsentry/sentry-go v0.46.2 // indirect
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4 // indirect
 	github.com/gofiber/fiber/v2 v2.52.5 // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -34,15 +38,12 @@ require (
 	github.com/paul-milne/zap-loki v0.5.0 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.20.5 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/thessem/zap-prettyconsole v0.5.2 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
-	github.com/valkey-io/valkey-go v1.0.75 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect

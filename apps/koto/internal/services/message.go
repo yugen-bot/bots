@@ -47,6 +47,7 @@ func (m *MessageService) Create(
 	isNew bool,
 ) error {
 	settings, err := m.settings.GetByGuildID(ctx, game.GuildID)
+
 	if err != nil || settings == nil {
 		return err
 	}
@@ -58,13 +59,11 @@ func (m *MessageService) Create(
 
 	// Delete previous message if exists
 	if lastMsgID, ok := game.LastMessageID(); ok && lastMsgID != "" {
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"channel-message-delete",
-				m.bot.ChannelMessageDelete(channelID, lastMsgID),
-			)
-		}()
+		utils.LogIfErr(
+			utils.Logger,
+			"channel-message-delete",
+			m.bot.ChannelMessageDelete(channelID, lastMsgID),
+		)
 	}
 
 	embed, err := m.buildEmbed(game, guesses, settings)
@@ -172,6 +171,8 @@ func (m *MessageService) buildRows(
 		})
 	}
 
+	b, _ := m.bot.ShardByShardID(0)
+
 	// Pad to MaxGuesses rows with blanks for IN_PROGRESS
 	if len(rows) < localStatic.MaxGuesses && status == db.GameStatusInProgress {
 		for i := localStatic.MaxGuesses - len(rows); i > 0; i-- {
@@ -186,7 +187,7 @@ func (m *MessageService) buildRows(
 
 			rows = append(rows, rowData{
 				meta:      blank,
-				userID:    m.bot.State.User.ID,
+				userID:    b.State.User.ID,
 				points:    0,
 				createdAt: time.Now(),
 			})
@@ -210,7 +211,7 @@ func (m *MessageService) buildRows(
 			sb.WriteString(localUtils.GetEmoji(emojiColor, letterMeta.Letter))
 		}
 
-		if row.userID != m.bot.State.User.ID {
+		if row.userID != b.State.User.ID {
 			bonus := ""
 			if status == db.GameStatusCompleted && !receivedBonus[row.userID] {
 				bonus = " (+2)"

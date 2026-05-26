@@ -59,6 +59,7 @@ func (m *SetCooldownModule) Commands() []*discordgoplus.Command {
 					Description: "Cooldown between guesses in seconds.",
 					Required:    true,
 					MinValue:    func() *float64 { v := float64(0); return &v }(),
+					MaxValue:    31_536_000,
 				},
 			},
 		},

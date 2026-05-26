@@ -31,6 +31,7 @@ func HandleChannelInaccessible(
 			},
 			true,
 		)
+
 		return
 	}
 

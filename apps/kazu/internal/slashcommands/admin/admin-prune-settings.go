@@ -59,7 +59,7 @@ func (m *AdminPruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 
 	if !shouldDelete {
 		if len(orphans) == 0 {
-			m.bot.ChannelMessageSend(channelID, "**Orphan settings: 0** — nothing to prune.")
+			ctx.ChannelMessageSend(channelID, "**Orphan settings: 0** — nothing to prune.")
 			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
 			return
 		}
@@ -68,14 +68,14 @@ func (m *AdminPruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 		buf.WriteString(fmt.Sprintf("**Orphan settings: %d**\n", len(orphans)))
 		for _, line := range orphans {
 			if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
-				m.bot.ChannelMessageSend(channelID, buf.String())
+				ctx.ChannelMessageSend(channelID, buf.String())
 				buf.Reset()
 			}
 			buf.WriteString(line)
 			buf.WriteByte('\n')
 		}
 		if buf.Len() > 0 {
-			m.bot.ChannelMessageSend(channelID, buf.String())
+			ctx.ChannelMessageSend(channelID, buf.String())
 		}
 
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
@@ -100,7 +100,7 @@ func (m *AdminPruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 	if failed > 0 {
 		msg += fmt.Sprintf(" Failed to delete **%d**.", failed)
 	}
-	m.bot.ChannelMessageSend(channelID, msg)
+	ctx.ChannelMessageSend(channelID, msg)
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
 }

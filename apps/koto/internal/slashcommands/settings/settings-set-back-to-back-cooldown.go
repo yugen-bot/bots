@@ -78,6 +78,7 @@ func (m *SetBackToBackCooldownModule) Commands() []*discordgoplus.Command {
 					Description: "Duration of the back-to-back cooldown in seconds.",
 					Required:    false,
 					MinValue:    func() *float64 { v := float64(0); return &v }(),
+					MaxValue:    31_536_000,
 				},
 			},
 		},

@@ -6,7 +6,7 @@ require (
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/expr-lang/expr v1.17.8
 	github.com/joho/godotenv v1.5.1
-	github.com/jurienhamaker/discordgoplus v1.0.2-0.20260512212740-07724a0f538f
+	github.com/jurienhamaker/discordgoplus v1.0.5
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/shopspring/decimal v1.4.0
 	github.com/steebchen/prisma-client-go v0.44.0
@@ -46,8 +46,8 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.0.0-beta2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
 

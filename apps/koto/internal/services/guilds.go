@@ -3,6 +3,7 @@ package services
 import (
 	"cmp"
 	"slices"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
@@ -24,8 +25,17 @@ func CreateGuildsService(container *di.Container) *GuildsService {
 }
 
 func (s *GuildsService) GetData(page int) ([]*discordgo.Guild, int) {
-	guilds := make([]*discordgo.Guild, len(s.bot.State.Guilds))
-	copy(guilds, s.bot.State.Guilds)
+	var (
+		mu     sync.Mutex
+		guilds []*discordgo.Guild
+	)
+
+	s.bot.Each(func(b *discordgoplus.Bot) {
+		mu.Lock()
+
+		guilds = append(guilds, b.State.Guilds...)
+		mu.Unlock()
+	})
 
 	slices.SortFunc(guilds, func(a, b *discordgo.Guild) int {
 		return cmp.Compare(b.MemberCount, a.MemberCount)

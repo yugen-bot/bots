@@ -73,13 +73,9 @@ func (handler *VoteHandler) handleTopGG(c *fiber.Ctx) error {
 
 	bot := handler.container.Get(static.DiBot).(*discordgoplus.Bot)
 
-	b := bot
-	var err error
-	if bot.Sharded {
-		b, err = bot.ShardByShardID(0)
-		if err != nil {
-			return c.Status(500).SendString("Could not retrieve shard")
-		}
+	b, err := bot.ShardByShardID(0)
+	if err != nil {
+		return c.Status(500).SendString("Could not retrieve shard")
 	}
 
 	self := b.State.User
@@ -144,17 +140,13 @@ func (handler *VoteHandler) sendLogMessage(userID string, source string) {
 	content := fmt.Sprintf("<@%s> has voted on **%s**!", userID, source)
 	channelID := cfg.VoteChannelID
 
-	if bot.Sharded {
-		b, err := bot.ShardByChannel(channelID)
-		if err != nil {
-			utils.Logger.Errorw("vote: Failed to get shard", err)
-			return
-		}
-
-		bot = b
+	b, err := bot.ShardByChannel(channelID)
+	if err != nil {
+		utils.Logger.Errorw("vote: Failed to get shard", err)
+		return
 	}
 
-	bot.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+	b.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
 		Content:         content,
 		AllowedMentions: &discordgo.MessageAllowedMentions{},
 	})

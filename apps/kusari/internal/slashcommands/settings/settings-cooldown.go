@@ -74,7 +74,7 @@ func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 
 func (m *SettingsCooldownModule) Commands() []*discordgoplus.Command {
 	minValue := 0.0
-	maxValue := 3600.0
+	maxValue := 31_536_000.0
 
 	return []*discordgoplus.Command{
 		{

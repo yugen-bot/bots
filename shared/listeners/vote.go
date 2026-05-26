@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
@@ -77,16 +78,13 @@ func postDiscordBotList(token string, clientID string, servers int) error {
 func postStats(bot *discordgoplus.Bot, cfg *config.Config) {
 	clientID := cfg.DiscordAppID
 
-	servers := 0
-	if bot.Sharded {
-		bot.Each(func(b *discordgoplus.Bot) {
-			servers += len(b.State.Guilds)
-		})
-	}
+	var serverCount int64
 
-	if !bot.Sharded {
-		servers = len(bot.State.Guilds)
-	}
+	bot.Each(func(b *discordgoplus.Bot) {
+		atomic.AddInt64(&serverCount, int64(len(b.State.Guilds)))
+	})
+
+	servers := int(atomic.LoadInt64(&serverCount))
 
 	syncTopGG := cfg.TopGGSync
 	topGGToken := cfg.TopGGToken

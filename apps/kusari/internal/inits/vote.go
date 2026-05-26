@@ -30,6 +30,7 @@ func CreateVoteHandler(
 				"userID",
 				userID,
 			)
+
 			return err
 		}
 
@@ -67,6 +68,7 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 				"userID",
 				userID,
 			)
+
 			return ""
 		}
 

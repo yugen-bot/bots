@@ -140,6 +140,7 @@ func (listener *GameListener) getSettings(
 			"guildID",
 			guildID,
 		)
+
 		return
 	}
 

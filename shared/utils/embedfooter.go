@@ -28,22 +28,9 @@ func CreateEmbedFooter(
 	}
 
 	if !params.IsVote && len(params.Text) == 0 {
-		var name string
-
-		if !bot.Sharded {
-			name = bot.State.User.Username
-		}
-
-		if bot.Sharded {
-			b, err := bot.ShardByShardID(0)
-			if err != nil {
-				name = "me"
-			}
-
-			if err == nil {
-				name = b.State.User.Username
-			}
-
+		name := "me"
+		if b, err := bot.ShardByShardID(0); err == nil {
+			name = b.State.User.Username
 		}
 
 		text = fmt.Sprintf("Like %s? Please vote using /vote! | %s", name, text)

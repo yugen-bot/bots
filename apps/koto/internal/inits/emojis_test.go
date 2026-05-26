@@ -33,12 +33,15 @@ func TestParseEmojiName(t *testing.T) {
 			if ok != tt.wantOk {
 				t.Fatalf("ok = %v, want %v", ok, tt.wantOk)
 			}
+
 			if !tt.wantOk {
 				return
 			}
+
 			if color != tt.wantColor {
 				t.Errorf("color = %q, want %q", color, tt.wantColor)
 			}
+
 			if letter != tt.wantLetter {
 				t.Errorf("letter = %q, want %q", letter, tt.wantLetter)
 			}
@@ -57,6 +60,7 @@ func TestValidateEmojiTable(t *testing.T) {
 	t.Run("missing letter", func(t *testing.T) {
 		table := buildFullTable()
 		delete(table[localStatic.EmojiColorWhite], "a")
+
 		if err := validateEmojiTable(table); err == nil {
 			t.Error("expected error for missing entry")
 		}
@@ -65,6 +69,7 @@ func TestValidateEmojiTable(t *testing.T) {
 	t.Run("missing blank", func(t *testing.T) {
 		table := buildFullTable()
 		delete(table[localStatic.EmojiColorGray], localStatic.EmojiLetterBlank)
+
 		if err := validateEmojiTable(table); err == nil {
 			t.Error("expected error for missing blank")
 		}
@@ -72,6 +77,7 @@ func TestValidateEmojiTable(t *testing.T) {
 
 	t.Run("extra entry inflates count", func(t *testing.T) {
 		table := buildFullTable()
+
 		table[localStatic.EmojiColorGreen]["extra"] = localStatic.EmojiData{Name: "x", ID: "1"}
 		if err := validateEmojiTable(table); err == nil {
 			t.Error("expected error for inflated count")
@@ -100,5 +106,6 @@ func buildFullTable() map[localStatic.EmojiColor]map[string]localStatic.EmojiDat
 			table[c][l] = localStatic.EmojiData{Name: string(c) + l, ID: "1"}
 		}
 	}
+
 	return table
 }

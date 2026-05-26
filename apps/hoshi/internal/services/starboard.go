@@ -203,6 +203,8 @@ func (s *StarboardService) CheckReaction(
 		return
 	}
 
+	msg.GuildID = guildID
+
 	embeds := s.createEmbeds(msg)
 	if len(embeds) == 0 {
 		return
@@ -367,14 +369,28 @@ func (s *StarboardService) createEmbeds(
 		return nil
 	}
 
+	b, err := s.bot.ShardByGuild(msg.GuildID)
+	if err != nil {
+		utils.Logger.Errorw(
+			"starboard: createEmbeds: ShardByGuild failed",
+			"error",
+			err,
+			"guildID",
+			msg.GuildID,
+		)
+
+		return nil
+	}
+
 	var footerIconURL string
-	if owner, err := s.bot.User(s.cfg.OwnerID); err == nil {
+	if owner, ownerErr := b.User(s.cfg.OwnerID); ownerErr == nil {
 		footerIconURL = owner.AvatarURL("64")
 	}
+
 	footer := &discordgo.MessageEmbedFooter{
 		Text: fmt.Sprintf(
 			"Like %s? Please vote using /vote!",
-			s.bot.State.User.Username,
+			b.State.User.Username,
 		),
 		IconURL: footerIconURL,
 	}
@@ -403,6 +419,7 @@ func (s *StarboardService) createEmbeds(
 
 		if i == len(chunks)-1 {
 			e.Timestamp = msg.Timestamp.Format("2006-01-02T15:04:05Z07:00")
+
 			e.Footer = footer
 			if len(msg.Attachments) > 0 {
 				e.Image = &discordgo.MessageEmbedImage{
@@ -450,7 +467,20 @@ func (s *StarboardService) createStarboard(
 	emojiName,
 	emojiID string,
 ) {
-	sent, err := s.bot.ChannelMessageSendComplex(
+	b, err := s.bot.ShardByGuild(guildID)
+	if err != nil {
+		utils.Logger.Errorw(
+			"starboard: createStarboard: ShardByGuild failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
+
+		return
+	}
+
+	sent, err := b.ChannelMessageSendComplex(
 		targetChannelID,
 		&discordgo.MessageSend{
 			Content: s.createContentString(
@@ -496,13 +526,14 @@ func (s *StarboardService) createStarboard(
 			"messageID", msg.ID,
 			"targetChannelID", targetChannelID,
 		)
+
 		return
 	}
 
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		s.bot.MessageReactionAdd(
+		b.MessageReactionAdd(
 			targetChannelID,
 			sent.ID,
 			emojiAPIFormat(emojiName, emojiID),
@@ -511,7 +542,7 @@ func (s *StarboardService) createStarboard(
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		s.bot.MessageReactionAdd(msg.ChannelID, msg.ID, "🌟"),
+		b.MessageReactionAdd(msg.ChannelID, msg.ID, "🌟"),
 	)
 
 	utils.Logger.Infow(
@@ -535,9 +566,22 @@ func (s *StarboardService) updateStarboard(
 	emojiName, emojiID string,
 	log *db.LogModel,
 ) {
+	b, err := s.bot.ShardByChannel(log.ChannelID)
+	if err != nil {
+		utils.Logger.Errorw(
+			"starboard: updateStarboard: ShardByChannel failed",
+			"error",
+			err,
+			"channelID",
+			log.ChannelID,
+		)
+
+		return
+	}
+
 	content := s.createContentString(count, guildID, emojiName, emojiID, msg)
 
-	_, err := s.bot.ChannelMessageEditComplex(&discordgo.MessageEdit{
+	_, err = b.ChannelMessageEditComplex(&discordgo.MessageEdit{
 		Channel: log.ChannelID,
 		ID:      log.MessageID,
 		Content: &content,
@@ -574,7 +618,20 @@ func (s *StarboardService) deleteStarboard(
 	ctx context.Context,
 	log *db.LogModel,
 ) {
-	err := s.bot.ChannelMessageDelete(log.ChannelID, log.MessageID)
+	b, err := s.bot.ShardByChannel(log.ChannelID)
+	if err != nil {
+		utils.Logger.Errorw(
+			"starboard: deleteStarboard: ShardByChannel failed",
+			"error",
+			err,
+			"channelID",
+			log.ChannelID,
+		)
+
+		return
+	}
+
+	err = b.ChannelMessageDelete(log.ChannelID, log.MessageID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: delete starboard: delete message failed",

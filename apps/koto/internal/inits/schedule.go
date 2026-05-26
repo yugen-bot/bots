@@ -89,11 +89,8 @@ func InitSchedule(container *di.Container) {
 				continue
 			}
 
-			// Verify guild exists in bot state
-			if _, gErr := bot.State.Guild(setting.GuildID); gErr != nil {
-				if _, gErr2 := bot.Guild(setting.GuildID); gErr2 != nil {
-					continue
-				}
+			if !utils.IsBotInGuild(bot, setting.GuildID) {
+				continue
 			}
 
 			checkedGuilds++

@@ -20,7 +20,13 @@ func sendLogMessage(
 
 	name := discordgoplus.GetInteractionName(data, " ")
 
-	guild, err := bot.Guild(event.GuildID)
+	b, err := bot.ShardByGuild(event.GuildID)
+	if err != nil {
+		utils.Logger.Errorw("log: ShardByGuild failed", "error", err, "guildID", event.GuildID)
+		return
+	}
+
+	guild, err := b.Guild(event.GuildID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"log: get guild failed",
@@ -29,6 +35,7 @@ func sendLogMessage(
 			"guildID",
 			event.GuildID,
 		)
+
 		return
 	}
 
@@ -43,17 +50,7 @@ func sendLogMessage(
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	channelID := cfg.LogsChannelID
 
-	if bot.Sharded {
-		b, err := bot.ShardByChannel(channelID)
-		if err != nil {
-			utils.Logger.Errorw("log: Failed to get shard", err)
-			return
-		}
-
-		bot = b
-	}
-
-	_, sendErr := bot.ChannelMessageSend(channelID, message)
+	_, sendErr := b.ChannelMessageSend(channelID, message)
 	utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
 }
 

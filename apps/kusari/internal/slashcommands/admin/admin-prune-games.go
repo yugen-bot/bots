@@ -31,6 +31,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	utils.Logger.Infow("Game pruning started")
+
 	shouldDelete := false
 	if opt, ok := ctx.Options["delete"]; ok {
 		shouldDelete = opt.BoolValue()
@@ -43,7 +44,9 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
+
 	var orphanGuildIDs []string
+
 	for _, row := range rows {
 		if !utils.IsBotInGuild(m.bot, row.GuildID) {
 			orphanGuildIDs = append(orphanGuildIDs, row.GuildID)
@@ -51,10 +54,11 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 	}
 
 	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
+
 	channelID := ctx.Interaction.ChannelID
 
 	if len(orphanGuildIDs) == 0 {
-		m.bot.ChannelMessageSend(
+		ctx.ChannelMessageSend(
 			channelID,
 			"**Orphan games: 0** — nothing to prune.",
 		)
@@ -63,6 +67,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 			&discordgo.WebhookParams{Content: "Done."},
 			true,
 		)
+
 		return
 	}
 
@@ -76,7 +81,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 			return
 		}
 
-		m.bot.ChannelMessageSend(channelID, fmt.Sprintf(
+		ctx.ChannelMessageSend(channelID, fmt.Sprintf(
 			"**Orphan games: %d** (history entries: %d) across %d guild(s)",
 			gameCount, historyCount, len(orphanGuildIDs),
 		))
@@ -87,6 +92,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 				channelID,
 			),
 		}, true)
+
 		return
 	}
 
@@ -105,7 +111,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 		historyCount,
 		len(orphanGuildIDs),
 	)
-	m.bot.ChannelMessageSend(channelID, fmt.Sprintf(
+	ctx.ChannelMessageSend(channelID, fmt.Sprintf(
 		"Deleted **%d** game(s) and **%d** history entry/entries for %d orphan guild(s).",
 		gameCount,
 		historyCount,

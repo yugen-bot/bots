@@ -67,8 +67,8 @@ func (service *DictionaryService) Check(
 	if service.valkey != nil {
 		cacheKey := dictionaryCachePrefix + word
 		cmd := service.valkey.B().Get().Key(cacheKey).Build()
-		val, err := service.valkey.Do(ctx, cmd).ToString()
 
+		val, err := service.valkey.Do(ctx, cmd).ToString()
 		if err == nil {
 			localMetrics.DictionaryCacheHits.Inc()
 			return val == "1", nil
@@ -114,8 +114,11 @@ func (service *DictionaryService) Clear() int {
 	}
 
 	ctx := context.Background()
-	var cursor uint64
-	var keys []string
+
+	var (
+		cursor uint64
+		keys   []string
+	)
 
 	for {
 		cmd := service.valkey.B().
@@ -124,12 +127,15 @@ func (service *DictionaryService) Clear() int {
 			Match(dictionaryCachePrefix + "*").
 			Count(100).
 			Build()
+
 		entry, err := service.valkey.Do(ctx, cmd).AsScanEntry()
 		if err != nil {
 			utils.Logger.Warnw("valkey SCAN failed during Clear", "error", err)
 			break
 		}
+
 		keys = append(keys, entry.Elements...)
+
 		cursor = entry.Cursor
 		if cursor == 0 {
 			break

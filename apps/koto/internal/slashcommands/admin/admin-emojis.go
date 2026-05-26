@@ -30,11 +30,13 @@ func (m *AdminEmojisModule) emojis(ctx *discordgoplus.Ctx) {
 	}
 
 	utils.Logger.Debug("Getting color emojis")
+
 	var sb strings.Builder
 	for _, color := range colors {
 		fmt.Fprintf(&sb, "**%s:**\n", color)
 
 		utils.Logger.Debugf("Processing color %s", color)
+
 		for _, letter := range letters {
 			emoji := localUtils.GetEmoji(color, letter)
 			utils.Logger.Debugf("Processing letter %s", letter)

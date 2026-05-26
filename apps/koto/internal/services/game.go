@@ -59,12 +59,24 @@ func (s *GameService) Start(
 ) (bool, error) {
 	utils.Logger.Debugf("Trying to start a game for %s", guildID)
 
-	if _, gErr := s.bot.State.Guild(guildID); gErr != nil {
-		if _, gErr2 := s.bot.Guild(guildID); gErr2 != nil {
+	b, err := s.bot.ShardByGuild(guildID)
+	if err != nil {
+		utils.Logger.Debugf(
+			"Skipping game start, ShardByGuild failed for guild %s: %v",
+			guildID,
+			err,
+		)
+
+		return false, nil
+	}
+
+	if _, gErr := b.State.Guild(guildID); gErr != nil {
+		if _, gErr2 := b.Guild(guildID); gErr2 != nil {
 			utils.Logger.Debugf(
 				"Skipping game start, bot not in guild %s",
 				guildID,
 			)
+
 			return false, nil
 		}
 	}
@@ -228,6 +240,19 @@ func (s *GameService) Guess(
 		return nil
 	}
 
+	b, err := s.bot.ShardByGuild(guildID)
+	if err != nil {
+		utils.Logger.Warnw(
+			"game: guess: ShardByGuild failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
+
+		return nil
+	}
+
 	// Ensure player exists
 	if _, pErr := s.points.GetPlayer(
 		ctx,
@@ -256,7 +281,7 @@ func (s *GameService) Guess(
 	if os.Getenv("ENV") == "production" {
 		for _, g := range guesses {
 			if g.Word == word {
-				s.bot.MessageReactionAdd(
+				b.MessageReactionAdd(
 					message.ChannelID,
 					message.ID,
 					"❌",
@@ -270,7 +295,7 @@ func (s *GameService) Guess(
 	// Cooldown check
 	cooldown := s.checkCooldown(message.Author.ID, guesses, settings)
 	if cooldown.Hit || cooldown.RepeatHit {
-		s.bot.MessageReactionAdd(
+		b.MessageReactionAdd(
 			message.ChannelID,
 			message.ID,
 			"🕒",
@@ -293,7 +318,7 @@ func (s *GameService) Guess(
 			)
 		}
 
-		_, sendErr := s.bot.ChannelMessageSendReply(
+		_, sendErr := b.ChannelMessageSendReply(
 			message.ChannelID,
 			fmt.Sprintf("You're on a cooldown, %s", suffix),
 			message.Reference(),
@@ -368,13 +393,13 @@ func (s *GameService) Guess(
 
 	// React to guess message
 	if guessed {
-		s.bot.MessageReactionAdd(
+		b.MessageReactionAdd(
 			message.ChannelID,
 			message.ID,
 			"🎉",
 		)
 	} else {
-		s.bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
+		b.MessageReactionAdd(message.ChannelID, message.ID, "✅")
 	}
 
 	// Fetch updated guesses list (with new guess)
@@ -427,7 +452,7 @@ func (s *GameService) Guess(
 					Unix(),
 				afterPart,
 			)
-			_, sendErr := s.bot.ChannelMessageSendReply(
+			_, sendErr := b.ChannelMessageSendReply(
 				message.ChannelID,
 				msg,
 				message.Reference(),
@@ -506,12 +531,24 @@ func (s *GameService) EndGame(
 		return fmt.Errorf("game: end: update: %w", err)
 	}
 
-	if _, gErr := s.bot.State.Guild(game.GuildID); gErr != nil {
-		if _, gErr2 := s.bot.Guild(game.GuildID); gErr2 != nil {
+	b, err := s.bot.ShardByGuild(game.GuildID)
+	if err != nil {
+		utils.Logger.Debugf(
+			"Skipping end message, ShardByGuild failed for guild %s: %v",
+			game.GuildID,
+			err,
+		)
+
+		return nil
+	}
+
+	if _, gErr := b.State.Guild(game.GuildID); gErr != nil {
+		if _, gErr2 := b.Guild(game.GuildID); gErr2 != nil {
 			utils.Logger.Debugf(
 				"Skipping end message, bot not in guild %s",
 				game.GuildID,
 			)
+
 			return nil
 		}
 	}

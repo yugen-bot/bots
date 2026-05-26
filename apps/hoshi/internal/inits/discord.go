@@ -27,9 +27,11 @@ func InitDiscordBot(container *di.Container) error {
 
 	bot.AddHandler(func(bot *discordgo.Session, event *discordgo.Ready) {
 		utils.Logger.Infof(
-			"Logged in as: %v#%v",
+			"Logged in as: %v#%v (%d/%d)",
 			bot.State.User.Username,
 			bot.State.User.Discriminator,
+			bot.ShardID+1,
+			bot.ShardCount,
 		)
 		bot.UpdateWatchStatus(0, "the ✨")
 	})

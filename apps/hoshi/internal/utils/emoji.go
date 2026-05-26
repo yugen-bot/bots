@@ -2,6 +2,7 @@ package utils
 
 import (
 	"regexp"
+	"sync"
 
 	"github.com/jurienhamaker/discordgoplus"
 )
@@ -16,12 +17,35 @@ func ResolveEmoji(
 	if len(match) > 1 {
 		emojiID := match[1]
 
-		for _, guild := range bot.State.Guilds {
-			for _, e := range guild.Emojis {
-				if e.ID == emojiID {
-					return true, emojiID, input, false
+		var (
+			mu                     sync.Mutex
+			foundKey, foundDisplay string
+		)
+
+		bot.Each(func(b *discordgoplus.Bot) {
+			mu.Lock()
+			if foundKey != "" {
+				mu.Unlock()
+				return
+			}
+			mu.Unlock()
+
+			for _, guild := range b.State.Guilds {
+				for _, e := range guild.Emojis {
+					if e.ID == emojiID {
+						mu.Lock()
+						foundKey = emojiID
+						foundDisplay = input
+						mu.Unlock()
+
+						return
+					}
 				}
 			}
+		})
+
+		if foundKey != "" {
+			return true, foundKey, foundDisplay, false
 		}
 
 		return

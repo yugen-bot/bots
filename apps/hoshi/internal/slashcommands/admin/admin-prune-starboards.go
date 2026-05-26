@@ -36,6 +36,7 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	utils.Logger.Infow("Starboard pruning started")
+
 	shouldDelete := false
 	if opt, ok := ctx.Options["delete"]; ok {
 		shouldDelete = opt.BoolValue()
@@ -48,7 +49,9 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
+
 	var orphanGuildIDs []string
+
 	for _, row := range rows {
 		if !utils.IsBotInGuild(m.bot, row.GuildID) {
 			orphanGuildIDs = append(orphanGuildIDs, row.GuildID)
@@ -56,10 +59,11 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 	}
 
 	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
+
 	channelID := ctx.Interaction.ChannelID
 
 	if len(orphanGuildIDs) == 0 {
-		m.bot.ChannelMessageSend(
+		ctx.ChannelMessageSend(
 			channelID,
 			"**Orphan starboards: 0** — nothing to prune.",
 		)
@@ -68,6 +72,7 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 			&discordgo.WebhookParams{Content: "Done."},
 			true,
 		)
+
 		return
 	}
 
@@ -94,6 +99,7 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 				len(orphanGuildIDs),
 			),
 		)
+
 		for _, guildID := range orphanGuildIDs {
 			line := fmt.Sprintf(
 				"`%s` — %d starboard(s)\n",
@@ -101,13 +107,15 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 				counts[guildID],
 			)
 			if buf.Len()+len(line) > pruneStarboardsLineLimit {
-				m.bot.ChannelMessageSend(channelID, buf.String())
+				ctx.ChannelMessageSend(channelID, buf.String())
 				buf.Reset()
 			}
+
 			buf.WriteString(line)
 		}
+
 		if buf.Len() > 0 {
-			m.bot.ChannelMessageSend(channelID, buf.String())
+			ctx.ChannelMessageSend(channelID, buf.String())
 		}
 
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
@@ -117,6 +125,7 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 				channelID,
 			),
 		}, true)
+
 		return
 	}
 
@@ -133,7 +142,7 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 		"Deleted **%d** starboard(s) for %d orphan guild(s).",
 		deleted, len(orphanGuildIDs),
 	)
-	m.bot.ChannelMessageSend(channelID, fmt.Sprintf(
+	ctx.ChannelMessageSend(channelID, fmt.Sprintf(
 		"Deleted **%d** starboard(s) for %d orphan guild(s).",
 		deleted, len(orphanGuildIDs),
 	))

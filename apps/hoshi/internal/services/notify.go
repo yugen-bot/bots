@@ -56,7 +56,13 @@ func (s *NotifyService) SendNotification(
 			usingStarboard = true
 		}
 
-		_, sendErr := s.bot.ChannelMessageSend(channelID, content)
+		b, shardErr := s.bot.ShardByGuild(setting.GuildID)
+		if shardErr != nil {
+			utils.Logger.With("guildID", setting.GuildID).Warn("notify: ShardByGuild failed")
+			continue
+		}
+
+		_, sendErr := b.ChannelMessageSend(channelID, content)
 		if sendErr != nil {
 			utils.Logger.With("guildID", setting.GuildID, "channelID", channelID).
 				Warn("Failed to send notification")

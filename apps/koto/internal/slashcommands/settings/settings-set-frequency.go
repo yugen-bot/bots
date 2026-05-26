@@ -56,10 +56,10 @@ func (m *SetFrequencyModule) Commands() []*discordgoplus.Command {
 				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
 					Name:        "minutes",
-					Description: "How many minutes between games (1-1440).",
+					Description: "How many minutes between games (1-525600).",
 					Required:    true,
 					MinValue:    func() *float64 { v := float64(1); return &v }(),
-					MaxValue:    1440,
+					MaxValue:    525_600,
 				},
 			},
 		},

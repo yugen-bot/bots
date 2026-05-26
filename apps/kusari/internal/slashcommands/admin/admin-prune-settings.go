@@ -45,6 +45,7 @@ func (m *AdminPruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 	}
 
 	var orphans []string
+
 	for _, s := range all {
 		if !utils.IsBotInGuild(m.bot, s.GuildID) {
 			orphans = append(orphans, fmt.Sprintf(
@@ -59,33 +60,39 @@ func (m *AdminPruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 
 	if !shouldDelete {
 		if len(orphans) == 0 {
-			m.bot.ChannelMessageSend(channelID, "**Orphan settings: 0** — nothing to prune.")
+			ctx.ChannelMessageSend(channelID, "**Orphan settings: 0** — nothing to prune.")
 			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
+
 			return
 		}
 
 		var buf strings.Builder
 		buf.WriteString(fmt.Sprintf("**Orphan settings: %d**\n", len(orphans)))
+
 		for _, line := range orphans {
 			if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
-				m.bot.ChannelMessageSend(channelID, buf.String())
+				ctx.ChannelMessageSend(channelID, buf.String())
 				buf.Reset()
 			}
+
 			buf.WriteString(line)
 			buf.WriteByte('\n')
 		}
+
 		if buf.Len() > 0 {
-			m.bot.ChannelMessageSend(channelID, buf.String())
+			ctx.ChannelMessageSend(channelID, buf.String())
 		}
 
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: fmt.Sprintf("Found %d orphan(s). See <#%s>.", len(orphans), channelID),
 		}, true)
+
 		return
 	}
 
 	deleted := 0
 	failed := 0
+
 	for _, s := range all {
 		if !utils.IsBotInGuild(m.bot, s.GuildID) {
 			if delErr := m.settings.Delete(context.Background(), s.GuildID); delErr != nil {
@@ -100,7 +107,8 @@ func (m *AdminPruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 	if failed > 0 {
 		msg += fmt.Sprintf(" Failed to delete **%d**.", failed)
 	}
-	m.bot.ChannelMessageSend(channelID, msg)
+
+	ctx.ChannelMessageSend(channelID, msg)
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
 }

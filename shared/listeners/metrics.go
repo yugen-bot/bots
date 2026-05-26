@@ -1,6 +1,8 @@
 package listeners
 
 import (
+	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -12,28 +14,42 @@ import (
 )
 
 func setLatency(bot *discordgoplus.Bot) {
-	latency := bot.HeartbeatLatency()
-	metrics.DiscordLatency.Set(float64(latency.Milliseconds()))
+	bot.Each(func(b *discordgoplus.Bot) {
+		shard := strconv.Itoa(b.ShardID)
+		if b.ShardID < 0 {
+			shard = "0"
+		}
+
+		metrics.DiscordLatency.WithLabelValues(shard).
+			Set(float64(b.HeartbeatLatency().Milliseconds()))
+	})
 }
 
 func reloadGuilds(bot *discordgoplus.Bot) {
 	time.Sleep(time.Second)
 
-	guilds := bot.State.Guilds
-	metrics.TotalGuilds.Set(float64(len(guilds)))
+	var total int64
+
+	bot.Each(func(b *discordgoplus.Bot) {
+		atomic.AddInt64(&total, int64(len(b.State.Guilds)))
+	})
+	metrics.TotalGuilds.Set(float64(atomic.LoadInt64(&total)))
 }
 
 func reloadChannels(bot *discordgoplus.Bot) {
 	time.Sleep(time.Second)
 
-	guilds := bot.State.Guilds
+	var total int64
 
-	channelsLen := 0
-	for _, guild := range guilds {
-		channelsLen += len(guild.Channels)
-	}
+	bot.Each(func(b *discordgoplus.Bot) {
+		var n int64
+		for _, g := range b.State.Guilds {
+			n += int64(len(g.Channels))
+		}
 
-	metrics.TotalChannels.Set(float64(channelsLen))
+		atomic.AddInt64(&total, n)
+	})
+	metrics.TotalChannels.Set(float64(atomic.LoadInt64(&total)))
 }
 
 func reloadInteractions(bot *discordgoplus.Bot) {

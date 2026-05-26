@@ -3,26 +3,27 @@ module jurien.dev/yugen/shared
 go 1.25.0
 
 require (
+	github.com/TheZeroSlave/zapsentry v1.24.0
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/getsentry/sentry-go v0.46.2
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526140036-99444d963279
+	github.com/jurienhamaker/discordgoplus v1.0.5
 	github.com/paul-milne/zap-loki v0.5.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/thessem/zap-prettyconsole v0.5.2
+	github.com/valkey-io/valkey-go v1.0.75
 	go.uber.org/zap v1.27.1
 )
 
 require (
 	github.com/Code-Hex/dd v1.1.0 // indirect
-	github.com/TheZeroSlave/zapsentry v1.24.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/getsentry/sentry-go v0.46.2 // indirect
 	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
@@ -37,7 +38,6 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
-	github.com/valkey-io/valkey-go v1.0.75 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect

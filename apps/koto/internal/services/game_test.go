@@ -323,6 +323,7 @@ func makeSettings(cooldown int, b2bEnabled bool, b2bCooldown int) *db.SettingsMo
 
 func TestCheckCooldown_NoGuesses(t *testing.T) {
 	svc := &GameService{}
+
 	result := svc.checkCooldown("user1", nil, makeSettings(60, false, 0))
 	if result.Hit || result.RepeatHit {
 		t.Error("want no cooldown for empty guesses slice")
@@ -332,6 +333,7 @@ func TestCheckCooldown_NoGuesses(t *testing.T) {
 func TestCheckCooldown_UserNotInGuesses(t *testing.T) {
 	svc := &GameService{}
 	guesses := []db.GuessModel{makeGuess("other", 10*time.Second)}
+
 	result := svc.checkCooldown("user1", guesses, makeSettings(60, false, 0))
 	if result.Hit || result.RepeatHit {
 		t.Error("want no cooldown when user has made no guesses")
@@ -342,6 +344,7 @@ func TestCheckCooldown_WithinCooldown(t *testing.T) {
 	svc := &GameService{}
 	// user1 guessed 30s ago; cooldown = 60s → still active
 	guesses := []db.GuessModel{makeGuess("user1", 30*time.Second)}
+
 	result := svc.checkCooldown("user1", guesses, makeSettings(60, false, 0))
 	if !result.Hit {
 		t.Error("want Hit = true when last guess is within cooldown window")
@@ -352,6 +355,7 @@ func TestCheckCooldown_OutsideCooldown(t *testing.T) {
 	svc := &GameService{}
 	// user1 guessed 90s ago; cooldown = 60s → expired
 	guesses := []db.GuessModel{makeGuess("user1", 90*time.Second)}
+
 	result := svc.checkCooldown("user1", guesses, makeSettings(60, false, 0))
 	if result.Hit || result.RepeatHit {
 		t.Error("want no cooldown when last guess is outside cooldown window")
@@ -363,6 +367,7 @@ func TestCheckCooldown_BackToBack_Hit(t *testing.T) {
 	// user1 is the only (and therefore last) guesser; within both windows
 	g := makeGuess("user1", 10*time.Second)
 	guesses := []db.GuessModel{g}
+
 	result := svc.checkCooldown("user1", guesses, makeSettings(120, true, 60))
 	if !result.RepeatHit {
 		t.Error("want RepeatHit = true when user was last guesser within b2b window")
@@ -387,6 +392,7 @@ func TestCheckCooldown_BackToBack_NotLastGuesser(t *testing.T) {
 		makeGuess("other", 5*time.Second),
 		makeGuess("user1", 15*time.Second),
 	}
+
 	result := svc.checkCooldown("user1", guesses, makeSettings(120, true, 60))
 	if result.RepeatHit {
 		t.Error("want RepeatHit = false when another user was the last guesser")
@@ -398,10 +404,12 @@ func TestCheckCooldown_BothHit(t *testing.T) {
 	// user1 guessed 10s ago and was last; cooldown=120s, b2b=60s → both active
 	g := makeGuess("user1", 10*time.Second)
 	guesses := []db.GuessModel{g}
+
 	result := svc.checkCooldown("user1", guesses, makeSettings(120, true, 60))
 	if !result.Hit {
 		t.Error("want Hit = true")
 	}
+
 	if !result.RepeatHit {
 		t.Error("want RepeatHit = true")
 	}
@@ -413,10 +421,12 @@ func TestCheckCooldown_RepeatHitOnly(t *testing.T) {
 	// user1 was the last guesser → RepeatHit only
 	g := makeGuess("user1", 70*time.Second)
 	guesses := []db.GuessModel{g}
+
 	result := svc.checkCooldown("user1", guesses, makeSettings(60, true, 120))
 	if result.Hit {
 		t.Error("want Hit = false (regular cooldown expired)")
 	}
+
 	if !result.RepeatHit {
 		t.Error("want RepeatHit = true (b2b cooldown still active)")
 	}

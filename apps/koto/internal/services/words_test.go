@@ -13,6 +13,7 @@ func getWordsService(t *testing.T) *WordsService {
 
 	if testWordsSvc == nil {
 		utils.CreateLogger("test")
+
 		testWordsSvc = CreateWordsService()
 	}
 

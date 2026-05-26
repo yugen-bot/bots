@@ -54,7 +54,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 	channelID := ctx.Interaction.ChannelID
 
 	if len(orphanGuildIDs) == 0 {
-		m.bot.ChannelMessageSend(
+		ctx.ChannelMessageSend(
 			channelID,
 			"**Orphan games: 0** — nothing to prune.",
 		)
@@ -76,7 +76,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 			return
 		}
 
-		m.bot.ChannelMessageSend(channelID, fmt.Sprintf(
+		ctx.ChannelMessageSend(channelID, fmt.Sprintf(
 			"**Orphan games: %d** (history entries: %d) across %d guild(s)",
 			gameCount, historyCount, len(orphanGuildIDs),
 		))
@@ -105,7 +105,7 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 		historyCount,
 		len(orphanGuildIDs),
 	)
-	m.bot.ChannelMessageSend(channelID, fmt.Sprintf(
+	ctx.ChannelMessageSend(channelID, fmt.Sprintf(
 		"Deleted **%d** game(s) and **%d** history entry/entries for %d orphan guild(s).",
 		gameCount,
 		historyCount,

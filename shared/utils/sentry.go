@@ -29,6 +29,7 @@ func InitSentry(appName string) bool {
 	}
 
 	var tracesSampleRate float64
+
 	if raw := os.Getenv(static.EnvSentryTracesSampleRate); raw != "" {
 		if v, err := strconv.ParseFloat(raw, 64); err == nil {
 			tracesSampleRate = v

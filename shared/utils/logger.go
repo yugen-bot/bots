@@ -88,5 +88,6 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 // Shutdown flushes all log sinks (Sentry, zap) and should be deferred in main.
 func Shutdown() {
 	FlushSentry(2 * time.Second)
+
 	_ = Logger.Sync()
 }

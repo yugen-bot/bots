@@ -10,7 +10,7 @@ var DiscordConnected = promauto.NewGauge(prometheus.GaugeOpts{
 	Help: "Determines if the bot is connected to Discord",
 })
 
-var DiscordLatency = promauto.NewGauge(prometheus.GaugeOpts{
+var DiscordLatency = promauto.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "discord_latency",
-	Help: "Latency to Discord",
-})
+	Help: "Latency to Discord (ms) per shard",
+}, []string{"shard"})

@@ -28,7 +28,7 @@ func (m *AdminSendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
 	guildID := ctx.Options["guild"].StringValue()
 	channelID := ctx.Options["channel"].StringValue()
 
-	perms, err := m.bot.UserChannelPermissions(m.bot.State.User.ID, channelID)
+	perms, err := ctx.UserChannelPermissions(ctx.State.User.ID, channelID)
 	if err != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: fmt.Sprintf(
@@ -61,7 +61,7 @@ func (m *AdminSendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
 		Footer:      footer,
 	}
 
-	msg, err := m.bot.ChannelMessageSendEmbed(channelID, embed)
+	msg, err := ctx.ChannelMessageSendEmbed(channelID, embed)
 	if err != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Failed to send welcome message.",

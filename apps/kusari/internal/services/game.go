@@ -72,6 +72,7 @@ func (service *GameService) Start(
 			"guildID",
 			guildID,
 		)
+
 		return game, started, err
 	}
 
@@ -84,6 +85,7 @@ func (service *GameService) Start(
 			"guildID",
 			guildID,
 		)
+
 		return game, started, fmt.Errorf("game: start: get settings: %w", err)
 	}
 
@@ -112,6 +114,7 @@ func (service *GameService) Start(
 			"channelID",
 			channelID,
 		)
+
 		return game, started, fmt.Errorf("game: start: get channel: %w", err)
 	}
 
@@ -150,6 +153,7 @@ func (service *GameService) Start(
 			"guildID",
 			guildID,
 		)
+
 		return game, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
@@ -162,6 +166,7 @@ func (service *GameService) Start(
 			"guildID",
 			guildID,
 		)
+
 		return game, started, fmt.Errorf(
 			"game: start: could not retrieve shard: %w",
 			err,
@@ -188,7 +193,7 @@ func (service *GameService) Start(
 		channel.Type == discordgo.ChannelTypeGuildPublicThread ||
 		channel.Type == discordgo.ChannelTypeGuildPrivateThread {
 		go func() {
-			_, sendErr := service.bot.ChannelMessageSend(
+			_, sendErr := shard.ChannelMessageSend(
 				channelID,
 				fmt.Sprintf(
 					`**A new game has started!**
@@ -276,6 +281,12 @@ func (service *GameService) AddWord(
 		return
 	}
 
+	b, err := service.bot.ShardByGuild(guildID)
+	if err != nil {
+		utils.Logger.Warnw("game: add word: ShardByGuild failed", "error", err, "guildID", guildID)
+		return
+	}
+
 	game, exists, err := service.GetCurrentGame(ctx, guildID)
 	if err != nil {
 		utils.Logger.Errorw(
@@ -285,6 +296,7 @@ func (service *GameService) AddWord(
 			"guildID",
 			guildID,
 		)
+
 		return
 	}
 
@@ -303,6 +315,7 @@ func (service *GameService) AddWord(
 			"gameID",
 			game.ID,
 		)
+
 		return
 	}
 
@@ -346,10 +359,10 @@ func (service *GameService) AddWord(
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🕒"),
+			b.MessageReactionAdd(message.ChannelID, message.ID, "🕒"),
 		)
 		go func() {
-			_, sendErr := service.bot.ChannelMessageSendReply(
+			_, sendErr := b.ChannelMessageSendReply(
 				message.ChannelID,
 				"Sorry, but you can't add a word twice in a row! Please wait for another player to add a word.",
 				message.Reference(),
@@ -378,6 +391,7 @@ func (service *GameService) AddWord(
 			"word",
 			word,
 		)
+
 		return
 	}
 
@@ -399,7 +413,7 @@ func (service *GameService) AddWord(
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			service.bot.MessageReactionAdd(message.ChannelID, message.ID, "❌"),
+			b.MessageReactionAdd(message.ChannelID, message.ID, "❌"),
 		)
 
 		saves, err := service.saves.GetSaves(ctx, settings, message.Author.ID)
@@ -415,6 +429,7 @@ func (service *GameService) AddWord(
 				"userID",
 				message.Author.ID,
 			)
+
 			return
 		}
 
@@ -436,11 +451,12 @@ func (service *GameService) AddWord(
 					"userID",
 					message.Author.ID,
 				)
+
 				return
 			}
 
 			go func() {
-				_, sendErr := service.bot.ChannelMessageSendReply(
+				_, sendErr := b.ChannelMessageSendReply(
 					message.ChannelID,
 					fmt.Sprintf(
 						`%s
@@ -479,7 +495,7 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 			}
 
 			go func() {
-				_, sendErr := service.bot.ChannelMessageSendReply(
+				_, sendErr := b.ChannelMessageSendReply(
 					message.ChannelID,
 					fmt.Sprintf(
 						`%s
@@ -511,6 +527,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 				"gameID",
 				game.ID,
 			)
+
 			return
 		}
 
@@ -525,6 +542,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 				"gameID",
 				game.ID,
 			)
+
 			return
 		}
 
@@ -565,7 +583,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		)
 
 		go func() {
-			_, sendErr := service.bot.ChannelMessageSendReply(
+			_, sendErr := b.ChannelMessageSendReply(
 				message.ChannelID,
 				fmt.Sprintf(
 					`%s
@@ -613,6 +631,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			"userID",
 			message.Author.ID,
 		)
+
 		return
 	}
 
@@ -648,6 +667,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			"userID",
 			message.Author.ID,
 		)
+
 		return
 	}
 
@@ -694,6 +714,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			"messageID",
 			message.ID,
 		)
+
 		return
 	}
 
@@ -709,6 +730,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			"gameID",
 			game.ID,
 		)
+
 		return
 	}
 
@@ -734,7 +756,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			service.bot.MessageReactionAdd(message.ChannelID, message.ID, "🎉"),
+			b.MessageReactionAdd(message.ChannelID, message.ID, "🎉"),
 		)
 	}
 
@@ -746,7 +768,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		service.bot.MessageReactionAdd(message.ChannelID, message.ID, emoji),
+		b.MessageReactionAdd(message.ChannelID, message.ID, emoji),
 	)
 	service.checkSpecialReactions(message, word)
 	service.setNumber(message, count)
@@ -756,7 +778,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			utils.LogIfErr(
 				utils.Logger,
 				"message-reaction-add",
-				service.bot.MessageReactionAdd(
+				b.MessageReactionAdd(
 					message.ChannelID,
 					message.ID,
 					"🪞",
@@ -994,11 +1016,17 @@ func (service *GameService) replyAndDelete(
 	deleteAfter bool,
 	emoji string,
 ) {
+	b, err := service.bot.ShardByChannel(message.ChannelID)
+	if err != nil {
+		utils.Logger.Warnw("game: reply and delete: ShardByChannel failed", "error", err, "channelID", message.ChannelID)
+		return
+	}
+
 	if len(emoji) > 0 {
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			service.bot.MessageReactionAdd(
+			b.MessageReactionAdd(
 				message.ChannelID,
 				message.ID,
 				emoji,
@@ -1006,7 +1034,7 @@ func (service *GameService) replyAndDelete(
 		)
 	}
 
-	sentMessage, err := service.bot.ChannelMessageSendReply(
+	sentMessage, err := b.ChannelMessageSendReply(
 		message.ChannelID,
 		messageToSend,
 		message.Reference(),
@@ -1021,6 +1049,7 @@ func (service *GameService) replyAndDelete(
 			"messageID",
 			message.ID,
 		)
+
 		return
 	}
 
@@ -1029,7 +1058,7 @@ func (service *GameService) replyAndDelete(
 			utils.LogIfErr(
 				utils.Logger,
 				"channel-message-delete",
-				service.bot.ChannelMessageDelete(
+				b.ChannelMessageDelete(
 					sentMessage.ChannelID,
 					sentMessage.ID,
 				),
@@ -1089,6 +1118,12 @@ func (service *GameService) getRandomLetter() string {
 }
 
 func (service *GameService) setNumber(message *discordgo.Message, count int) {
+	b, err := service.bot.ShardByChannel(message.ChannelID)
+	if err != nil {
+		utils.Logger.Warnw("game: set number: ShardByChannel failed", "error", err, "channelID", message.ChannelID)
+		return
+	}
+
 	stringCount := strconv.Itoa(count)
 	usedEmojis := []string{}
 
@@ -1108,7 +1143,7 @@ func (service *GameService) setNumber(message *discordgo.Message, count int) {
 			utils.LogIfErr(
 				utils.Logger,
 				"message-reaction-add",
-				service.bot.MessageReactionAdd(
+				b.MessageReactionAdd(
 					message.ChannelID,
 					message.ID,
 					emoji,

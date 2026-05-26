@@ -8,9 +8,20 @@ import (
 
 // SendWelcomeMessage sends a welcome embed to the first sendable text channel in the guild.
 func SendWelcomeMessage(bot *discordgoplus.Bot, guildID string) {
-	guild, err := bot.State.Guild(guildID)
+	b, err := bot.ShardByGuild(guildID)
 	if err != nil {
-		guild, err = bot.Guild(guildID)
+		sharedUtils.Logger.Warnf(
+			"welcome: ShardByGuild failed for guild %s: %v",
+			guildID,
+			err,
+		)
+
+		return
+	}
+
+	guild, err := b.State.Guild(guildID)
+	if err != nil {
+		guild, err = b.Guild(guildID)
 		if err != nil {
 			sharedUtils.Logger.Warnf(
 				"welcome: could not find guild %s: %v",
@@ -27,7 +38,7 @@ func SendWelcomeMessage(bot *discordgoplus.Bot, guildID string) {
 			continue
 		}
 
-		perms, err := bot.UserChannelPermissions(bot.State.User.ID, channel.ID)
+		perms, err := b.UserChannelPermissions(b.State.User.ID, channel.ID)
 		if err != nil {
 			continue
 		}
@@ -43,12 +54,12 @@ func SendWelcomeMessage(bot *discordgoplus.Bot, guildID string) {
 		)
 		embed := &discordgo.MessageEmbed{
 			Title:       "👋 Hello! I'm Koto!",
-			Description: "Thanks for adding me! Use `/settings set-channel` to configure me.",
+			Description: "Thanks for adding me! Use `/settings channel` to configure me.",
 			Color:       0xbaad6d,
 			Footer:      footer,
 		}
 
-		_, _ = bot.ChannelMessageSendEmbed(channel.ID, embed)
+		_, _ = b.ChannelMessageSendEmbed(channel.ID, embed)
 
 		return
 	}
