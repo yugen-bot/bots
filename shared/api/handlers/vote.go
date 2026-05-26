@@ -114,7 +114,7 @@ func (handler *VoteHandler) handleDiscordBotList(c *fiber.Ctx) error {
 }
 
 func (handler *VoteHandler) handleVote(userID string, source string) {
-	go handler.sendLogMessage(userID, source)
+	handler.sendLogMessage(userID, source)
 
 	voteRewardHandler, err := handler.container.SafeGet(static.DiVoteHandler)
 	if err != nil {
