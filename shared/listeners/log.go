@@ -62,6 +62,7 @@ func AddLogListeners(container *di.Container) {
 				"username", event.Member.User.Username,
 				"userID", event.Member.User.ID,
 				"guildID", event.GuildID,
+				"shard ID", bot.ShardID+1,
 			).Infof("Interaction \"%s\" used by %s", name, event.Member.User.Username)
 
 			go sendLogMessage(container, event, &data)

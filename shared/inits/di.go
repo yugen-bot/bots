@@ -22,7 +22,7 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 		Name: static.DiBot,
 		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
-			return discordgoplus.New(cfg.DiscordToken)
+			return discordgoplus.New(cfg.DiscordToken, cfg.Shard)
 		},
 		Close: func(obj any) error {
 			bot := obj.(*discordgoplus.Bot)

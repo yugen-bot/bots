@@ -55,10 +55,10 @@ func doRequest(url string, token string, body []byte, source string) error {
 	return nil
 }
 
-func postTopGG(token string, clientID string, servers int) error {
+func postTopGG(token string, clientID string, servers int, shards int) error {
 	url := fmt.Sprintf("https://top.gg/api/bots/%s/stats", clientID)
 	body := []byte(
-		fmt.Sprintf(`{"server_count": %d, "shard_count": 1}`, servers),
+		fmt.Sprintf(`{"server_count": %d, "shard_count": %d}`, servers, shards),
 	)
 
 	return doRequest(url, token, body, "top-gg")
@@ -77,14 +77,33 @@ func postDiscordBotList(token string, clientID string, servers int) error {
 func postStats(bot *discordgoplus.Bot, cfg *config.Config) {
 	clientID := cfg.DiscordAppID
 
-	servers := len(bot.State.Guilds)
+	servers := 0
+	if bot.Sharded {
+		bot.Each(func(b *discordgoplus.Bot) {
+			servers += len(b.State.Guilds)
+		})
+	}
+
+	if !bot.Sharded {
+		servers = len(bot.State.Guilds)
+	}
 
 	syncTopGG := cfg.TopGGSync
 	topGGToken := cfg.TopGGToken
 
 	if syncTopGG && len(topGGToken) > 0 {
 		go func() {
-			if err := postTopGG(topGGToken, clientID, servers); err != nil {
+			shards := 1
+			if bot.Sharded {
+				shards = bot.ShardCount
+			}
+
+			if err := postTopGG(
+				topGGToken,
+				clientID,
+				servers,
+				shards,
+			); err != nil {
 				utils.Logger.Errorw("vote: post top.gg failed", "error", err)
 			}
 		}()
@@ -121,7 +140,11 @@ func AddVoteListeners(container *di.Container) {
 		panic(err)
 	}
 
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
+	bot.AddHandler(func(session *discordgoplus.Bot, event *discordgo.Ready) {
+		if session.Sharded && session.ShardID != 0 {
+			return
+		}
+
 		go postStats(bot, cfg)
 	})
 }

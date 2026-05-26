@@ -11,6 +11,7 @@ import (
 type Config struct {
 	// Core
 	Env      string `env:"ENV"             envDefault:"development"`
+	Shard    bool   `env:"SHARD"           envDefault:"false"`
 	LogLevel string `env:"YUGEN_LOG_LEVEL" envDefault:"info"`
 	Debug    bool   `env:"YUGEN_DEBUG"     envDefault:"false"`
 
