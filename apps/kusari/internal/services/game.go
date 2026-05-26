@@ -153,7 +153,22 @@ func (service *GameService) Start(
 		return game, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
-	self := service.bot.State.User
+	shard, err := service.bot.ShardByGuild(guildID)
+	if err != nil {
+		utils.Logger.Errorw(
+			"game: start: could not retrieve shard",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
+		return game, started, fmt.Errorf(
+			"game: start: could not retrieve shard: %w",
+			err,
+		)
+	}
+
+	self := shard.State.User
 
 	if len(word) <= 0 {
 		// get word
@@ -1071,7 +1086,10 @@ func (service *GameService) setNumber(message *discordgo.Message, count int) {
 	}
 }
 
-func (service *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, history int, err error) {
+func (service *GameService) CountByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) (games int, history int, err error) {
 	gameResult, err := service.database.Game.FindMany(
 		db.Game.GuildID.In(guildIDs),
 	).Exec(ctx)
@@ -1089,7 +1107,10 @@ func (service *GameService) CountByGuildIDs(ctx context.Context, guildIDs []stri
 	return len(gameResult), len(historyResult), nil
 }
 
-func (service *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (games int, history int, err error) {
+func (service *GameService) DeleteByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) (games int, history int, err error) {
 	historyResult, hErr := service.database.History.FindMany(
 		db.History.Game.Where(db.Game.GuildID.In(guildIDs)),
 	).Delete().Exec(ctx)
@@ -1111,7 +1132,9 @@ type GuildIDRow struct {
 	GuildID string `json:"guildId"`
 }
 
-func (service *GameService) FindAllGuildIDs(ctx context.Context) ([]GuildIDRow, error) {
+func (service *GameService) FindAllGuildIDs(
+	ctx context.Context,
+) ([]GuildIDRow, error) {
 	var rows []GuildIDRow
 	if err := service.database.Prisma.QueryRaw(
 		`SELECT DISTINCT "guildId" FROM "Game"`,
