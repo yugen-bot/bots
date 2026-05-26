@@ -514,7 +514,7 @@ func (s *StarboardService) createStarboard(
 		s.bot.MessageReactionAdd(msg.ChannelID, msg.ID, "🌟"),
 	)
 
-	utils.Logger.Info(
+	utils.Logger.Infow(
 		"starboard: create starboard: created new starboard entry",
 		"starboardID",
 		result.ID,
@@ -557,7 +557,7 @@ func (s *StarboardService) updateStarboard(
 		)
 	}
 
-	utils.Logger.Info(
+	utils.Logger.Infow(
 		"starboard: update starboard: updated starboard entry",
 		"starboardID",
 		log.ID,
