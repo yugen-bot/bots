@@ -283,7 +283,13 @@ func (service *GameService) AddWord(
 
 	b, err := service.bot.ShardByGuild(guildID)
 	if err != nil {
-		utils.Logger.Warnw("game: add word: ShardByGuild failed", "error", err, "guildID", guildID)
+		utils.Logger.Warnw(
+			"game: add word: ShardByGuild failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return
 	}
 
@@ -361,14 +367,13 @@ func (service *GameService) AddWord(
 			"message-reaction-add",
 			b.MessageReactionAdd(message.ChannelID, message.ID, "🕒"),
 		)
-		go func() {
-			_, sendErr := b.ChannelMessageSendReply(
-				message.ChannelID,
-				"Sorry, but you can't add a word twice in a row! Please wait for another player to add a word.",
-				message.Reference(),
-			)
-			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
-		}()
+
+		_, sendErr := b.ChannelMessageSendReply(
+			message.ChannelID,
+			"Sorry, but you can't add a word twice in a row! Please wait for another player to add a word.",
+			message.Reference(),
+		)
+		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 
 		return
 	}
@@ -1018,7 +1023,13 @@ func (service *GameService) replyAndDelete(
 ) {
 	b, err := service.bot.ShardByChannel(message.ChannelID)
 	if err != nil {
-		utils.Logger.Warnw("game: reply and delete: ShardByChannel failed", "error", err, "channelID", message.ChannelID)
+		utils.Logger.Warnw(
+			"game: reply and delete: ShardByChannel failed",
+			"error",
+			err,
+			"channelID",
+			message.ChannelID,
+		)
 		return
 	}
 
@@ -1120,7 +1131,13 @@ func (service *GameService) getRandomLetter() string {
 func (service *GameService) setNumber(message *discordgo.Message, count int) {
 	b, err := service.bot.ShardByChannel(message.ChannelID)
 	if err != nil {
-		utils.Logger.Warnw("game: set number: ShardByChannel failed", "error", err, "channelID", message.ChannelID)
+		utils.Logger.Warnw(
+			"game: set number: ShardByChannel failed",
+			"error",
+			err,
+			"channelID",
+			message.ChannelID,
+		)
 		return
 	}
 
@@ -1195,6 +1212,57 @@ func (service *GameService) DeleteByGuildIDs(
 	}
 
 	return gameResult.Count, historyResult.Count, nil
+}
+
+func (service *GameService) ResetEmptyGames(ctx context.Context) (int, error) {
+	games, err := service.database.Game.FindMany(
+		db.Game.Status.Equals(db.GameStatusInProgress),
+		db.Game.History.None(),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, fmt.Errorf("game: reset empty: find: %w", err)
+	}
+
+	count := 0
+
+	for _, game := range games {
+		_, started, startErr := service.Start(
+			ctx,
+			game.GuildID,
+			game.Type,
+			"",
+			true,
+		)
+		if startErr != nil {
+			utils.Logger.Warnw(
+				"game: reset empty: restart failed",
+				"error",
+				startErr,
+				"gameID",
+				game.ID,
+			)
+
+			continue
+		}
+
+		if started {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+func (service *GameService) CountEmptyGames(ctx context.Context) (int, error) {
+	games, err := service.database.Game.FindMany(
+		db.Game.Status.Equals(db.GameStatusInProgress),
+		db.Game.History.None(),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return 0, fmt.Errorf("game: count empty: %w", err)
+	}
+
+	return len(games), nil
 }
 
 type GuildIDRow struct {
