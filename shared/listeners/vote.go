@@ -140,8 +140,8 @@ func AddVoteListeners(container *di.Container) {
 		panic(err)
 	}
 
-	bot.AddHandler(func(session *discordgoplus.Bot, event *discordgo.Ready) {
-		if session.Sharded && session.ShardID != 0 {
+	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
+		if session.ShardID != 0 {
 			return
 		}
 

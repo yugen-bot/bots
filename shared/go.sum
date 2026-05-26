@@ -62,6 +62,8 @@ github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526133003-eb5789839c48 h1:t
 github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526133003-eb5789839c48/go.mod h1:5Sld9ywSwrSflMOnDFcglXVovRyTHUfU44Tx2NRClYE=
 github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526133102-f8231828b4c4 h1:0c8S/I5VjVal0cwoTXR02qvZoukm+s5/ueTq5PD1mVQ=
 github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526133102-f8231828b4c4/go.mod h1:5Sld9ywSwrSflMOnDFcglXVovRyTHUfU44Tx2NRClYE=
+github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526140036-99444d963279 h1:K+c32MccK7c7muaOVYPb+lLt/eTTLMi1EVbAzyGoiSg=
+github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526140036-99444d963279/go.mod h1:5Sld9ywSwrSflMOnDFcglXVovRyTHUfU44Tx2NRClYE=
 github.com/klauspost/compress v1.17.9 h1:6KIumPrER1LHsvBVuDa0r5xaG0Es51mhhB9BQB2qeMA=
 github.com/klauspost/compress v1.17.9/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=

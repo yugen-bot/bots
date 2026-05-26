@@ -7,7 +7,7 @@ require (
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526133102-f8231828b4c4
+	github.com/jurienhamaker/discordgoplus v1.0.3-0.20260526140036-99444d963279
 	github.com/paul-milne/zap-loki v0.5.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/robfig/cron/v3 v3.0.1

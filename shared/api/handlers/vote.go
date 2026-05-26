@@ -72,7 +72,17 @@ func (handler *VoteHandler) handleTopGG(c *fiber.Ctx) error {
 	}
 
 	bot := handler.container.Get(static.DiBot).(*discordgoplus.Bot)
-	self := bot.State.User
+
+	b := bot
+	var err error
+	if bot.Sharded {
+		b, err = bot.ShardByShardID(0)
+		if err != nil {
+			return c.Status(500).SendString("Could not retrieve shard")
+		}
+	}
+
+	self := b.State.User
 
 	if body.BotID != self.ID {
 		return c.Status(400).SendString("Bot ID does not match bot user")
