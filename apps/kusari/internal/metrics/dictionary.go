@@ -5,7 +5,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var DictionaryCacheSize = promauto.NewGauge(prometheus.GaugeOpts{
-	Name: "dictionary_cache_size",
-	Help: "Number of entries currently in the dictionary LRU cache",
+var DictionaryCacheHits = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "dictionary_cache_hits_total",
+	Help: "Total number of dictionary cache hits",
+})
+
+var DictionaryCacheMisses = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "dictionary_cache_misses_total",
+	Help: "Total number of dictionary cache misses",
 })

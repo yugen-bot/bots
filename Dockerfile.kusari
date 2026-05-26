@@ -24,6 +24,4 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 # We transport the binary to our deployable image
 COPY --from=build /opt/app/apps/kusari/dist/kusari /opt/app/
 
-ENV GOGC=50
-
 CMD ["/opt/app/kusari"]

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sarulabs/di/v2"
+	"github.com/valkey-io/valkey-go"
 	"jurien.dev/yugen/kusari/internal/services"
 	localStatic "jurien.dev/yugen/kusari/internal/static"
 	localUtils "jurien.dev/yugen/kusari/internal/utils"
@@ -41,6 +42,23 @@ func InitDI() (container di.Container, err error) {
 
 	// Initialize shared DI
 	inits.InitSharedDi(diBuilder)
+
+	// init valkey client (optional — nil when VALKEY_URL is not set)
+	diBuilder.Add(&di.Def{
+		Name: static.DiValkey,
+		Build: func(ctn di.Container) (any, error) {
+			cfg := ctn.Get(static.DiConfig).(*config.Config)
+			return inits.InitValkey(cfg)
+		},
+		Close: func(obj any) error {
+			vk, ok := obj.(valkey.Client)
+			if ok && vk != nil {
+				utils.Logger.Info("Shutting down Valkey connection...")
+				vk.Close()
+			}
+			return nil
+		},
+	})
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiAppName,
@@ -127,7 +145,8 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 		Name: localStatic.DiDictionary,
 		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
-			return services.CreateDictionaryService(cfg), nil
+			vk, _ := ctn.Get(static.DiValkey).(valkey.Client)
+			return services.CreateDictionaryService(cfg, vk), nil
 		},
 	})
 

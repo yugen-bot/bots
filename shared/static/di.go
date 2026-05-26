@@ -18,4 +18,6 @@ const (
 
 	DiTutorialText = "tutorialtext"
 	DiHelpText     = "helptext"
+
+	DiValkey = "valkey"
 )

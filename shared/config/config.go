@@ -62,6 +62,9 @@ type Config struct {
 	WiktionaryUsername string `env:"WIKTIONARY_USERNAME"`
 	WiktionaryPassword string `env:"WIKTIONARY_PASSWORD"`
 
+	// Valkey (optional — bots without caching can leave this unset)
+	ValkeyURL string `env:"VALKEY_URL"`
+
 	// Sentry
 	SentryDSN              string  `env:"SENTRY_DSN"`
 	SentryEnvironment      string  `env:"SENTRY_ENVIRONMENT"`

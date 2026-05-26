@@ -10,6 +10,8 @@ services:
       - .:/opt/app
     ports:
       - "$KAZU_API_LISTEN_PORT:$API_LISTEN_PORT"
+    depends_on:
+      - db
   kusari:
     build: .
     user: "1000:1000"
@@ -21,6 +23,9 @@ services:
       - .:/opt/app
     ports:
       - "$KUSARI_API_LISTEN_PORT:$API_LISTEN_PORT"
+    depends_on:
+      - valkey
+      - db
   iro:
     build: .
     user: "1000:1000"
@@ -43,6 +48,8 @@ services:
       - .:/opt/app
     ports:
       - "$HOSHI_API_LISTEN_PORT:$API_LISTEN_PORT"
+    depends_on:
+      - db
   koto:
     build: .
     user: "1000:1000"
@@ -54,6 +61,11 @@ services:
       - .:/opt/app
     ports:
       - "$KOTO_API_LISTEN_PORT:$API_LISTEN_PORT"
+    depends_on:
+      - db
+
+  valkey:
+    image: valkey/valkey:alpine
   db:
     image: postgres:12.2-alpine
     volumes:

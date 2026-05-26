@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/joho/godotenv v1.5.1
-	github.com/jurienhamaker/discordgoplus v1.0.2-0.20260512212740-07724a0f538f
+	github.com/jurienhamaker/discordgoplus v1.0.2
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/shopspring/decimal v1.4.0
 	github.com/steebchen/prisma-client-go v0.44.0
@@ -42,6 +42,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/thessem/zap-prettyconsole v0.5.2 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
+	github.com/valkey-io/valkey-go v1.0.75 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
