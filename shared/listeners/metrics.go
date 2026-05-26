@@ -87,7 +87,17 @@ func AddMetricsListeners(container *di.Container) {
 		panic(err)
 	}
 
+	shards := 0
 	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
+		if bot.Sharded {
+			shards = shards + 1
+		}
+
+		if !bot.Sharded {
+			shards = 1
+		}
+
+		metrics.DiscordShards.Set(float64(shards))
 		metrics.DiscordConnected.Set(1)
 
 		go reloadGuages(bot)

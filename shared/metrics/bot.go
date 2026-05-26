@@ -14,3 +14,8 @@ var DiscordLatency = promauto.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "discord_latency",
 	Help: "Latency to Discord (ms) per shard",
 }, []string{"shard"})
+
+var DiscordShards = promauto.NewGauge(prometheus.GaugeOpts{
+	Name: "discord_shards",
+	Help: "Number of shards the bot is running",
+})
