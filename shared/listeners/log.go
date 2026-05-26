@@ -22,7 +22,13 @@ func sendLogMessage(
 
 	b, err := bot.ShardByGuild(event.GuildID)
 	if err != nil {
-		utils.Logger.Errorw("log: ShardByGuild failed", "error", err, "guildID", event.GuildID)
+		utils.Logger.Errorw(
+			"log: ShardByGuild failed",
+			"error",
+			err,
+			"guildID",
+			event.GuildID,
+		)
 		return
 	}
 
@@ -49,6 +55,19 @@ func sendLogMessage(
 	)
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	channelID := cfg.LogsChannelID
+
+	guildID := cfg.DiscordDevelopmentGuild
+	b, err = bot.ShardByGuild(guildID)
+	if err != nil {
+		utils.Logger.Errorw(
+			"log: ShardByGuild failed to get development guild ID",
+			"error",
+			err,
+			"guildID",
+			event.GuildID,
+		)
+		return
+	}
 
 	_, sendErr := b.ChannelMessageSend(channelID, message)
 	utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
