@@ -143,6 +143,17 @@ func (handler *VoteHandler) sendLogMessage(userID string, source string) {
 	cfg := handler.container.Get(static.DiConfig).(*config.Config)
 	content := fmt.Sprintf("<@%s> has voted on **%s**!", userID, source)
 	channelID := cfg.VoteChannelID
+
+	if bot.Sharded {
+		b, err := bot.ShardByChannel(channelID)
+		if err != nil {
+			utils.Logger.Errorw("vote: Failed to get shard", err)
+			return
+		}
+
+		bot = b
+	}
+
 	bot.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
 		Content:         content,
 		AllowedMentions: &discordgo.MessageAllowedMentions{},

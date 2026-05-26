@@ -158,7 +158,7 @@ func (service *DictionaryService) checkWiktionary(
 		url.QueryEscape(word),
 	)
 
-	utils.Logger.Debug(wiktionaryURL)
+	// utils.Logger.Debug(wiktionaryURL)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", wiktionaryURL, nil)
 	if err != nil {
@@ -183,7 +183,7 @@ func (service *DictionaryService) checkWiktionary(
 		resp.Body.Close()
 	}()
 
-	utils.Logger.Debug(resp.Status)
+	// utils.Logger.Debug(resp.Status)
 
 	var respBody []any
 

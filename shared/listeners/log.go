@@ -42,6 +42,17 @@ func sendLogMessage(
 	)
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	channelID := cfg.LogsChannelID
+
+	if bot.Sharded {
+		b, err := bot.ShardByChannel(channelID)
+		if err != nil {
+			utils.Logger.Errorw("log: Failed to get shard", err)
+			return
+		}
+
+		bot = b
+	}
+
 	_, sendErr := bot.ChannelMessageSend(channelID, message)
 	utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
 }
