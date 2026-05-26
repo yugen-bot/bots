@@ -40,13 +40,15 @@ func (s *StarboardService) CheckReaction(
 ) {
 	settings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
-		utils.Logger.Errorw(
-			"starboard: check reaction: get settings failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-		)
+		if errors.Is(err, db.ErrNotFound) {
+			utils.Logger.Errorw(
+				"starboard: check reaction: get settings failed",
+				"error",
+				err,
+				"guildID",
+				guildID,
+			)
+		}
 
 		return
 	}
@@ -607,7 +609,9 @@ type GuildIDRow struct {
 	GuildID string `json:"guildId"`
 }
 
-func (s *StarboardService) FindAllGuildIDs(ctx context.Context) ([]GuildIDRow, error) {
+func (s *StarboardService) FindAllGuildIDs(
+	ctx context.Context,
+) ([]GuildIDRow, error) {
 	var rows []GuildIDRow
 	if err := s.database.Prisma.QueryRaw(
 		`SELECT DISTINCT "guildId" FROM "Starboards"`,
@@ -618,7 +622,10 @@ func (s *StarboardService) FindAllGuildIDs(ctx context.Context) ([]GuildIDRow, e
 	return rows, nil
 }
 
-func (s *StarboardService) FindByGuildIDs(ctx context.Context, guildIDs []string) ([]db.StarboardsModel, error) {
+func (s *StarboardService) FindByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) ([]db.StarboardsModel, error) {
 	result, err := s.database.Starboards.FindMany(
 		db.Starboards.GuildID.In(guildIDs),
 	).Exec(ctx)
@@ -629,7 +636,10 @@ func (s *StarboardService) FindByGuildIDs(ctx context.Context, guildIDs []string
 	return result, nil
 }
 
-func (s *StarboardService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (int, error) {
+func (s *StarboardService) DeleteByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) (int, error) {
 	result, err := s.database.Starboards.FindMany(
 		db.Starboards.GuildID.In(guildIDs),
 	).Delete().Exec(ctx)
