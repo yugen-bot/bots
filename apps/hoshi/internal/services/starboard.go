@@ -40,7 +40,7 @@ func (s *StarboardService) CheckReaction(
 ) {
 	settings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
+		if !errors.Is(err, db.ErrNotFound) {
 			utils.Logger.Errorw(
 				"starboard: check reaction: get settings failed",
 				"error",
