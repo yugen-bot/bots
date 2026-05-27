@@ -20,9 +20,10 @@ func CreateVoteHandler(
 ) func(userID string, source string) error {
 	saves := container.Get(localStatic.DiSaves).(*services.SavesService)
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
+	shard, _ := bot.ShardByShardID(0)
 
 	return func(userID string, source string) error {
-		user, err := bot.User(userID)
+		user, err := shard.User(userID)
 		if err != nil {
 			utils.Logger.Errorw(
 				"vote: get user failed",
@@ -53,12 +54,12 @@ func CreateVoteHandler(
 			amount,
 		)
 
-		userChannel, err := bot.UserChannelCreate(userID)
+		userChannel, err := shard.UserChannelCreate(userID)
 		if err != nil {
 			return err
 		}
 
-		_, err = bot.ChannelMessageSend(
+		_, err = shard.ChannelMessageSend(
 			userChannel.ID,
 			fmt.Sprintf(
 				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Kusari grow!\n\n**You have %s/%s saves available to use with Kusari!**",
