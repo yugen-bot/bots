@@ -13,6 +13,7 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"jurien.dev/yugen/shared/metrics"
 	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
 )
 
 func setLatency(bot *discordgoplus.Bot) {
@@ -126,13 +127,20 @@ func AddMetricsListeners(container *di.Container) {
 		}
 
 		metrics.DiscordShards.Set(float64(shards))
-		metrics.DiscordConnected.Set(1)
 
 		go reloadGuages(bot)
 	})
 
 	bot.AddHandler(
+		func(session *discordgo.Session, event *discordgo.Connect) {
+			utils.Logger.Info("Connected to Discord")
+			metrics.DiscordConnected.Set(1)
+		},
+	)
+
+	bot.AddHandler(
 		func(session *discordgo.Session, event *discordgo.Disconnect) {
+			utils.Logger.Info("Disconnected from Discord")
 			metrics.DiscordConnected.Set(0)
 		},
 	)
