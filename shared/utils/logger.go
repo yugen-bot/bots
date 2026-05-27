@@ -72,11 +72,16 @@ func CreateLogger(appName string) *zap.SugaredLogger {
 	if InitSentry(appName) {
 		sentryCore, sentryErr := newSentryCore(zapcore.WarnLevel)
 		if sentryErr != nil {
-			log.Printf("sentry: failed to create zap core: %v", sentryErr)
+			logger.Sugar().
+				Errorw("sentry: failed to create zap core: %w", sentryErr)
 		} else {
-			logger = logger.WithOptions(zap.WrapCore(func(original zapcore.Core) zapcore.Core {
-				return zapcore.NewTee(original, sentryCore)
-			}))
+			logger = logger.WithOptions(
+				zap.WrapCore(func(original zapcore.Core) zapcore.Core {
+					return zapcore.NewTee(original, sentryCore)
+				}),
+			)
+
+			logger.Info("Sentry connected to logger")
 		}
 	}
 
