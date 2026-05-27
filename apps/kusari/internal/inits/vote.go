@@ -3,6 +3,7 @@ package inits
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jurienhamaker/discordgoplus"
@@ -46,7 +47,26 @@ func CreateVoteHandler(
 			amount = 0.5
 		}
 
-		_, _, err = saves.AddSaveToPlayer(context.Background(), user.ID, amount)
+		saves, maxSaves, err := saves.AddSaveToPlayer(
+			context.Background(),
+			user.ID,
+			amount,
+		)
+
+		userChannel, err := bot.UserChannelCreate(userID)
+		if err != nil {
+			return err
+		}
+
+		_, err = bot.ChannelMessageSend(
+			userChannel.ID,
+			fmt.Sprintf(
+				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Kusari grow!\n\n**You have %s/%s saves available to use with Kusari!**",
+				source,
+				strconv.FormatFloat(saves, 'f', -1, 64),
+				strconv.FormatFloat(maxSaves, 'f', -1, 64),
+			),
+		)
 
 		return err
 	}

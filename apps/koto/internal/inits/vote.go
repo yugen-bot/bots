@@ -28,7 +28,7 @@ func CreateVoteHandler(
 		_, err = bot.ChannelMessageSend(
 			userChannel.ID,
 			fmt.Sprintf(
-				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Hoshi grow!",
+				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Koto grow!",
 				source,
 			),
 		)
@@ -39,7 +39,7 @@ func CreateVoteHandler(
 
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	voteReward := func(userID string) string {
-		return ""
+		return "\n*Rewards Coming Soon*"
 	}
 
 	return voteReward

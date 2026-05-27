@@ -95,6 +95,13 @@ func InitDI() (container di.Container, err error) {
 		},
 	})
 
+	diBuilder.Add(&di.Def{
+		Name: static.DiVoteHandler,
+		Build: func(ctn di.Container) (any, error) {
+			return CreateVoteHandler(&ctn), nil
+		},
+	})
+
 	container, err = diBuilder.Build()
 	if err != nil {
 		utils.Logger.Fatalw("failed to build DI container", "error", err)

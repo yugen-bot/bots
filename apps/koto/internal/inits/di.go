@@ -13,12 +13,6 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func createVoteRewardFunc(container *di.Container) func(userID string) string {
-	return func(userID string) string {
-		return "*Rewards Coming Soon*"
-	}
-}
-
 func InitDI() (container di.Container, err error) {
 	diBuilder, err := di.NewEnhancedBuilder()
 	if err != nil {
@@ -96,13 +90,6 @@ Koto is a Wordle-style game! Guess the 6-letter word by typing words in the conf
 	})
 
 	diBuilder.Add(&di.Def{
-		Name: static.DiVoteReward,
-		Build: func(ctn di.Container) (any, error) {
-			return createVoteRewardFunc(&ctn), nil
-		},
-	})
-
-	diBuilder.Add(&di.Def{
 		Name: static.DiSettings,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateSettingsService(&ctn), nil
@@ -148,6 +135,20 @@ Koto is a Wordle-style game! Guess the 6-letter word by typing words in the conf
 		Name: localStatic.DiGame,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateGameService(&ctn), nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiVoteReward,
+		Build: func(ctn di.Container) (any, error) {
+			return CreateVoteRewardFunc(&ctn), nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiVoteHandler,
+		Build: func(ctn di.Container) (any, error) {
+			return CreateVoteHandler(&ctn), nil
 		},
 	})
 
