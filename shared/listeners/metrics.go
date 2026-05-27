@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"os"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
+	"github.com/shirou/gopsutil/v3/process"
 	"jurien.dev/yugen/shared/metrics"
 	"jurien.dev/yugen/shared/static"
 )
@@ -75,12 +77,38 @@ func reloadGuages(bot *discordgoplus.Bot) {
 	go reloadInteractions(bot)
 }
 
+func getCPUPercentage(proc *process.Process) float64 {
+	if pct, err := proc.Percent(0); err == nil {
+		return pct
+	}
+
+	return 0
+}
+
+func startCPUMetrics(cron *cron.Cron) {
+	proc, err := process.NewProcess(int32(os.Getpid()))
+	if err != nil {
+		panic("metrics: cannot create process handle: " + err.Error())
+	}
+
+	pct := getCPUPercentage(proc)
+	metrics.ProcessCPUUsagePercentage.Set(pct)
+
+	if _, err := cron.AddFunc("@every 1m", func() {
+		pct := getCPUPercentage(proc)
+		metrics.ProcessCPUUsagePercentage.Set(pct)
+	}); err != nil {
+		panic(err)
+	}
+}
+
 func AddMetricsListeners(container *di.Container) {
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 	cron := container.Get(static.DiCron).(*cron.Cron)
 
-	setLatency(bot)
+	startCPUMetrics(cron)
 
+	setLatency(bot)
 	if _, err := cron.AddFunc("@every 1m", func() {
 		go setLatency(bot)
 	}); err != nil {
