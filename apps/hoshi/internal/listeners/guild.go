@@ -56,16 +56,5 @@ func AddGuildListeners(container *di.Container) {
 
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildDelete) {
 		utils.Logger.Infof("Left guild: %s", event.ID)
-
-		if err := settingsSvc.Delete(
-			context.Background(),
-			event.ID,
-		); err != nil {
-			utils.Logger.Warnw(
-				"guild: delete settings failed",
-				"guildID", event.ID,
-				"error", err,
-			)
-		}
 	})
 }
