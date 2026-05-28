@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,8 +33,16 @@ type GameService struct {
 	words    *WordsService
 	message  *MessageService
 	points   *PointsService
+	hints    *HintsService
 	bot      *discordgoplus.Bot
 }
+
+var (
+	ErrNoHints         = fmt.Errorf("game: hint: no hints available")
+	ErrHintUnavailable = fmt.Errorf(
+		"game: hint: hint not available for current state",
+	)
+)
 
 func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
@@ -44,6 +53,7 @@ func CreateGameService(container *di.Container) *GameService {
 		words:    container.Get(localStatic.DiWords).(*WordsService),
 		message:  container.Get(localStatic.DiGameMessage).(*MessageService),
 		points:   container.Get(localStatic.DiPoints).(*PointsService),
+		hints:    container.Get(localStatic.DiHints).(*HintsService),
 		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
 	}
 }
@@ -366,6 +376,12 @@ func (s *GameService) Guess(
 		newStatus = db.GameStatusFailed
 	}
 
+	// Recompute hint availability after scoring
+	updatedGameMeta.CanHint = localUtils.ComputeCanHint(
+		game.Word,
+		updatedGameMeta,
+	)
+
 	// Update game meta + status + possibly start timer
 	updatedMetaJSON, err := json.Marshal(updatedGameMeta)
 	if err != nil {
@@ -479,10 +495,12 @@ func (s *GameService) Guess(
 
 	// Handle terminal status
 	if newStatus != db.GameStatusInProgress {
-		// Delete guesses for privacy
-		if _, delErr := s.database.Guess.FindMany(
-			db.Guess.GameID.Equals(updatedGame.ID),
-		).Delete().Exec(context.Background()); delErr != nil {
+		// Delete guesses for privacy; keep the solving guess for completed games.
+		delFilters := []db.GuessWhereParam{db.Guess.GameID.Equals(updatedGame.ID)}
+		if newStatus == db.GameStatusCompleted {
+			delFilters = append(delFilters, db.Guess.Word.NotIn([]string{updatedGame.Word}))
+		}
+		if _, delErr := s.database.Guess.FindMany(delFilters...).Delete().Exec(context.Background()); delErr != nil {
 			utils.Logger.Warnw(
 				"game: guess: delete guesses failed",
 				"error", delErr,
@@ -565,10 +583,12 @@ func (s *GameService) EndGame(
 		)
 	}
 
-	// Delete guesses for privacy
-	if _, delErr := s.database.Guess.FindMany(
-		db.Guess.GameID.Equals(game.ID),
-	).Delete().Exec(ctx); delErr != nil {
+	// Delete guesses for privacy; keep the solving guess for completed games.
+	deleteFilters := []db.GuessWhereParam{db.Guess.GameID.Equals(game.ID)}
+	if status == db.GameStatusCompleted {
+		deleteFilters = append(deleteFilters, db.Guess.Word.NotIn([]string{game.Word}))
+	}
+	if _, delErr := s.database.Guess.FindMany(deleteFilters...).Delete().Exec(ctx); delErr != nil {
 		utils.Logger.Warnw(
 			"game: end: delete guesses failed",
 			"error", delErr,
@@ -578,6 +598,47 @@ func (s *GameService) EndGame(
 	}
 
 	return nil
+}
+
+// LastSolvedGame holds the last completed game and the userID of whoever solved it.
+type LastSolvedGame struct {
+	Game   *db.GameModel
+	Solver string // userID; empty if unknown
+}
+
+// GetLastSolvedGame returns the most recent COMPLETED game for the guild and the
+// userID of the player whose guess matched the word. Both fields may be nil/empty
+// when no completed game exists yet.
+func (s *GameService) GetLastSolvedGame(
+	ctx context.Context,
+	guildID string,
+) (*LastSolvedGame, error) {
+	game, err := s.database.Game.FindFirst(
+		db.Game.GuildID.Equals(guildID),
+		db.Game.Status.Equals(db.GameStatusCompleted),
+	).OrderBy(
+		db.Game.CreatedAt.Order(db.SortOrderDesc),
+	).Exec(ctx)
+
+	if errors.Is(err, db.ErrNotFound) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("game: last solved: %w", err)
+	}
+
+	result := &LastSolvedGame{Game: game}
+
+	guess, gErr := s.database.Guess.FindFirst(
+		db.Guess.GameID.Equals(game.ID),
+		db.Guess.Word.Equals(game.Word),
+	).Exec(ctx)
+	if gErr == nil {
+		result.Solver = guess.UserID
+	}
+
+	return result, nil
 }
 
 // GetCurrentGame returns the active (IN_PROGRESS) game for a guild, or nil if none.
@@ -598,6 +659,46 @@ func (s *GameService) GetCurrentGame(
 	}
 
 	return game, err
+}
+
+// GetNextGameStart computes when the next scheduled game will start for the guild.
+// Returns nil when no previous game exists (next game starts immediately).
+func (s *GameService) GetNextGameStart(
+	ctx context.Context,
+	guildID string,
+	settings *db.SettingsModel,
+) (*time.Time, error) {
+	lastGames, err := s.database.Game.FindMany(
+		db.Game.GuildID.Equals(guildID),
+		db.Game.Status.Not(db.GameStatusInProgress),
+	).OrderBy(
+		db.Game.CreatedAt.Order(db.SortOrderDesc),
+	).Take(1).Exec(ctx)
+
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return nil, fmt.Errorf("game: next start: %w", err)
+	}
+
+	if len(lastGames) == 0 {
+		return nil, nil
+	}
+
+	lastGame := lastGames[0]
+	baseTime := lastGame.CreatedAt
+
+	if settings.StartAfterFirstGuess {
+		firstGuesses, gErr := s.database.Guess.FindMany(
+			db.Guess.GameID.Equals(lastGame.ID),
+		).OrderBy(
+			db.Guess.CreatedAt.Order(db.SortOrderAsc),
+		).Take(1).Exec(ctx)
+		if gErr == nil && len(firstGuesses) > 0 {
+			baseTime = firstGuesses[0].CreatedAt
+		}
+	}
+
+	nextStart := baseTime.Add(time.Duration(settings.Frequency) * time.Minute)
+	return &nextStart, nil
 }
 
 // checkWord scores a guess against the target word.
@@ -785,16 +886,341 @@ func (s *GameService) createBaseState(word string) *localUtils.GameMeta {
 		}
 	}
 
-	return &localUtils.GameMeta{
+	state := &localUtils.GameMeta{
 		Keyboard:  map[string]localUtils.GameType{},
 		Word:      wordStates,
 		Discovery: discovery,
 	}
+	state.CanHint = localUtils.ComputeCanHint(word, state)
+
+	return state
 }
 
 // roundToNearestMinute rounds t to nearest minute.
 func roundToNearestMinute(t time.Time) time.Time {
 	return t.Round(time.Minute)
+}
+
+// UseHint consumes a hint from the pressing user's pool (player first, guild
+// fallback) and applies the next tier of hint reveal to the game.
+// Returns a human-readable description of what was revealed.
+func (s *GameService) UseHint(
+	ctx context.Context,
+	gameID int,
+	userID string,
+	settings *db.SettingsModel,
+) (string, error) {
+	game, err := s.database.Game.FindUnique(
+		db.Game.ID.Equals(gameID),
+	).Exec(ctx)
+	if err != nil {
+		return "", fmt.Errorf("game: hint: find game: %w", err)
+	}
+
+	if game.Status != db.GameStatusInProgress {
+		return "", ErrHintUnavailable
+	}
+
+	gameMeta, err := localUtils.ParseGameMeta(json.RawMessage(game.Meta))
+	if err != nil {
+		return "", fmt.Errorf("game: hint: parse meta: %w", err)
+	}
+
+	if !gameMeta.CanHint {
+		return "", ErrHintUnavailable
+	}
+
+	guesses, err := s.database.Guess.FindMany(
+		db.Guess.GameID.Equals(game.ID),
+	).OrderBy(
+		db.Guess.CreatedAt.Order(db.SortOrderDesc),
+	).Exec(ctx)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return "", fmt.Errorf("game: hint: find guesses: %w", err)
+	}
+
+	if len(guesses) >= localStatic.MaxGuesses-1 {
+		return "", ErrHintUnavailable
+	}
+
+	hintsResult, err := s.hints.GetHints(ctx, settings, userID)
+	if err != nil {
+		return "", fmt.Errorf("game: hint: get hints: %w", err)
+	}
+
+	var (
+		leftover     float64
+		maxHints     float64
+		usedPersonal bool
+	)
+
+	if hintsResult.player >= 1 {
+		leftover, maxHints, err = s.hints.DeductHintFromPlayer(ctx, userID, 1)
+		if err != nil {
+			return "", fmt.Errorf("game: hint: deduct player: %w", err)
+		}
+		usedPersonal = true
+	} else if hintsResult.guild >= 1 {
+		leftover, maxHints, err = s.hints.DeductHintFromGuild(
+			ctx,
+			game.GuildID,
+			settings,
+			1,
+		)
+		if err != nil {
+			return "", fmt.Errorf("game: hint: deduct guild: %w", err)
+		}
+	} else {
+		return "", ErrNoHints
+	}
+
+	hintMeta, updatedGameMeta, description, computeErr := s.computeHint(
+		game.Word,
+		gameMeta,
+	)
+	if computeErr != nil {
+		return "", computeErr
+	}
+
+	hintMetaJSON, err := json.Marshal(hintMeta)
+	if err != nil {
+		return "", fmt.Errorf("game: hint: marshal hint meta: %w", err)
+	}
+
+	_, err = s.database.Guess.CreateOne(
+		db.Guess.UserID.Set(userID),
+		db.Guess.Game.Link(db.Game.ID.Equals(game.ID)),
+		db.Guess.Word.Set(""),
+		db.Guess.Points.Set(0),
+		db.Guess.Meta.Set(hintMetaJSON),
+	).Exec(ctx)
+	if err != nil {
+		return "", fmt.Errorf("game: hint: create guess: %w", err)
+	}
+
+	updatedGameMeta.CanHint = localUtils.ComputeCanHint(
+		game.Word,
+		updatedGameMeta,
+	)
+
+	updatedMetaJSON, err := json.Marshal(updatedGameMeta)
+	if err != nil {
+		return "", fmt.Errorf("game: hint: marshal game meta: %w", err)
+	}
+
+	updatedGame, err := s.database.Game.FindUnique(
+		db.Game.ID.Equals(game.ID),
+	).Update(
+		db.Game.Meta.Set(updatedMetaJSON),
+	).Exec(ctx)
+	if err != nil {
+		return "", fmt.Errorf("game: hint: update game: %w", err)
+	}
+
+	allGuesses, _ := s.database.Guess.FindMany(
+		db.Guess.GameID.Equals(game.ID),
+	).OrderBy(
+		db.Guess.CreatedAt.Order(db.SortOrderDesc),
+	).Exec(ctx)
+
+	go func() {
+		if msgErr := s.message.Create(
+			context.Background(),
+			updatedGame,
+			allGuesses,
+			false,
+		); msgErr != nil {
+			utils.Logger.Warnw("game: hint: recreate message failed",
+				"error", msgErr,
+				"guildID", game.GuildID,
+				"gameID", game.ID,
+			)
+		}
+	}()
+
+	poolKind := "personal"
+	if !usedPersonal {
+		poolKind = "server"
+	}
+
+	return fmt.Sprintf(
+		"%s\nUsed **1** %s hint. You have **%s/%s** %s hints remaining.",
+		description,
+		poolKind,
+		strconv.FormatFloat(leftover, 'f', -1, 64),
+		strconv.FormatFloat(maxHints, 'f', -1, 64),
+		poolKind,
+	), nil
+}
+
+// computeHint applies hints in priority order and returns the row meta, updated
+// state, and a human-readable description. Caller must verify state.CanHint.
+//
+// Priority:
+//  1. ALMOST letter with unsolved position → upgrade to CORRECT (safe: nonCorrect ≥ 2).
+//  2. Undiscovered letter occurrence → mark ALMOST (no position solve).
+//  3. All letters discovered → solve the first unsolved position (nonCorrect ≥ 2).
+func (s *GameService) computeHint(
+	word string,
+	state *localUtils.GameMeta,
+) (localUtils.GuessMetaSlice, *localUtils.GameMeta, string, error) {
+	meta := make(localUtils.GuessMetaSlice, localStatic.WordLength)
+	description := ""
+
+	wordRunes := []rune(word)
+	wordCount := localUtils.WordLetterCount(word)
+
+	nonCorrect := 0
+	for _, ws := range state.Word {
+		if ws.Type != localUtils.GameTypeCorrect {
+			nonCorrect++
+		}
+	}
+
+	hintDone := false
+
+	// Tier 1: upgrade the first ALMOST letter to a correct position.
+	if nonCorrect >= 2 {
+		for i, ws := range state.Word {
+			if ws.Type == localUtils.GameTypeCorrect {
+				continue
+			}
+			// Eligible when keyboard is ALMOST, or CORRECT with unplaced occurrences.
+			kb := state.Keyboard[ws.Letter]
+			hasUnplaced := kb == localUtils.GameTypeCorrect &&
+				state.Discovery.Almost[ws.Letter] > state.Discovery.Correct[ws.Letter]
+			if kb != localUtils.GameTypeAlmost && !hasUnplaced {
+				continue
+			}
+
+			letter := ws.Letter
+			state.Word[i].Type = localUtils.GameTypeCorrect
+			state.Keyboard[letter] = localUtils.GameTypeCorrect
+			state.Discovery.Correct[letter]++
+			description = fmt.Sprintf(
+				"Solved position **%d** with **%s**",
+				i+1, strings.ToUpper(letter),
+			)
+
+			hintDone = true
+			break
+		}
+	}
+
+	// Tier 2: reveal a letter occurrence not yet found (supports duplicate letters).
+	if !hintDone {
+		seen := map[rune]bool{}
+		for _, r := range wordRunes {
+			if seen[r] {
+				continue
+			}
+			seen[r] = true
+
+			letter := string(r)
+			discovered := state.Discovery.Almost[letter]
+			if wordCount[r] <= discovered {
+				continue
+			}
+
+			newAlmost := discovered + 1
+			state.Discovery.Almost[letter] = newAlmost
+			if state.Keyboard[letter] != localUtils.GameTypeCorrect {
+				state.Keyboard[letter] = localUtils.GameTypeAlmost
+			}
+
+			description = fmt.Sprintf(
+				"Revealed letter **%s**",
+				strings.ToUpper(letter),
+			)
+			hintDone = true
+			break
+		}
+	}
+
+	// Tier 3: all letters discovered — solve the first unsolved position.
+	if !hintDone {
+		if nonCorrect < 2 {
+			return nil, nil, "", ErrHintUnavailable
+		}
+		for i, ws := range state.Word {
+			if ws.Type != localUtils.GameTypeCorrect {
+				letter := ws.Letter
+				state.Word[i].Type = localUtils.GameTypeCorrect
+				state.Keyboard[letter] = localUtils.GameTypeCorrect
+				state.Discovery.Correct[letter]++
+
+				description = fmt.Sprintf(
+					"Solved position **%d** with **%s**",
+					i+1, strings.ToUpper(letter),
+				)
+
+				break
+			}
+		}
+	}
+
+	// Build synthetic guess row: CORRECT positions first
+	for i, ws := range state.Word {
+		if ws.Type == localUtils.GameTypeCorrect {
+			meta[i] = localUtils.GuessMeta{
+				Type:   localUtils.GameTypeCorrect,
+				Letter: ws.Letter,
+			}
+		}
+	}
+
+	// Collect ALMOST letters with multiplicity, deduped by unique letter.
+	// For ALMOST keyboard: show Discovery.Almost count.
+	// For CORRECT keyboard: show any extra undiscovered occurrences (Almost - Correct).
+	var almostLetters []string
+	seenLetters := map[string]bool{}
+	for _, r := range wordRunes {
+		letter := string(r)
+		if seenLetters[letter] {
+			continue
+		}
+		seenLetters[letter] = true
+
+		var visible int
+		switch state.Keyboard[letter] {
+		case localUtils.GameTypeAlmost:
+			visible = state.Discovery.Almost[letter]
+		case localUtils.GameTypeCorrect:
+			visible = state.Discovery.Almost[letter] - state.Discovery.Correct[letter]
+		}
+		for k := 0; k < visible; k++ {
+			almostLetters = append(almostLetters, letter)
+		}
+	}
+
+	// Fill remaining positions with ALMOST letters (must be wrong-spot) or blank
+	for i := range meta {
+		if meta[i].Type == localUtils.GameTypeCorrect {
+			continue
+		}
+		placed := false
+		for j, letter := range almostLetters {
+			if string(wordRunes[i]) != letter {
+				meta[i] = localUtils.GuessMeta{
+					Type:   localUtils.GameTypeAlmost,
+					Letter: letter,
+				}
+				almostLetters = append(
+					almostLetters[:j],
+					almostLetters[j+1:]...)
+				placed = true
+				break
+			}
+		}
+		if !placed {
+			meta[i] = localUtils.GuessMeta{
+				Type:   localUtils.GameTypeDefault,
+				Letter: localStatic.EmojiLetterBlank,
+			}
+		}
+	}
+
+	return meta, state, description, nil
 }
 
 func (s *GameService) CountByGuildIDs(

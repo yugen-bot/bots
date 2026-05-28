@@ -32,6 +32,10 @@ model Settings {
   autoStart                         Boolean     @default(false)
   startAfterFirstGuess              Boolean     @default(false)
 
+  hints                             Float       @default(0)
+  maxHints                          Float       @default(3)
+  hintsUsed                         Float       @default(0)
+
   games                             Game[]
 
   // timestamps
@@ -39,6 +43,21 @@ model Settings {
   updatedAt                         DateTime    @updatedAt
 
   @@index([guildId, channelId])
+}
+
+model PlayerHints {
+  id            Int       @id @default(autoincrement())
+  userId        String
+
+  hints         Float     @default(0)
+  maxHints      Float     @default(3)
+  lastVoteTime  DateTime?
+
+  // timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
 }
 
 model Game {

@@ -13,6 +13,7 @@ type GameModule struct {
 	game        *services.GameService
 	settings    *services.SettingsService
 	subCommands []*discordgoplus.Command
+	hintModule  *GameHintModule
 }
 
 func GetGameModule(container *di.Container) *GameModule {
@@ -29,6 +30,7 @@ func GetGameModule(container *di.Container) *GameModule {
 		game:        container.Get(localStatic.DiGame).(*services.GameService),
 		settings:    container.Get(sharedStatic.DiSettings).(*services.SettingsService),
 		subCommands: subCommands,
+		hintModule:  GetGameHintModule(container),
 	}
 }
 
@@ -40,4 +42,8 @@ func (m *GameModule) Commands() []*discordgoplus.Command {
 			SubCommands: discordgoplus.NewRouter(m.subCommands),
 		},
 	}
+}
+
+func (m *GameModule) MessageComponents() []*discordgoplus.MessageComponent {
+	return m.hintModule.MessageComponents()
 }

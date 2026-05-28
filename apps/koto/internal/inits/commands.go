@@ -32,6 +32,8 @@ func InitCommands(container *di.Container) (err error) {
 		slashcommands.GetPointsModule(container),
 		slashcommands.GetLeaderboardModule(container),
 		slashcommands.GetResetLeaderboardModule(container),
+		slashcommands.GetServerModule(container),
+		slashcommands.GetDonateHintModule(container),
 		admin.GetAdminModule(container),
 	}
 

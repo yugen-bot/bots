@@ -84,11 +84,30 @@ func (m *MessageService) Create(
 		allowedRoles = []string{pingRoleID}
 	}
 
+	meta, _ := localUtils.ParseGameMeta(json.RawMessage(game.Meta))
+
+	var components []discordgo.MessageComponent
+	if game.Status == db.GameStatusInProgress && meta != nil && meta.CanHint {
+		components = []discordgo.MessageComponent{
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.Button{
+						CustomID: fmt.Sprintf("GAME_HINT/%d", game.ID),
+						Style:    discordgo.SecondaryButton,
+						Label:    "Hint",
+						Emoji:    &discordgo.ComponentEmoji{Name: "💡"},
+					},
+				},
+			},
+		}
+	}
+
 	sentMsg, err := m.bot.ChannelMessageSendComplex(
 		channelID,
 		&discordgo.MessageSend{
-			Content: content,
-			Embeds:  []*discordgo.MessageEmbed{embed},
+			Content:    content,
+			Embeds:     []*discordgo.MessageEmbed{embed},
+			Components: components,
 			AllowedMentions: &discordgo.MessageAllowedMentions{
 				Users: []string{},
 				Roles: allowedRoles,
@@ -273,10 +292,13 @@ func (m *MessageService) buildGameInfo(
 		envSuffix = fmt.Sprintf("\nDevelopment mode: **%s**", game.Word)
 	}
 
-	nextKoto := fmt.Sprintf("\nNext koto <t:%d:R>", game.EndingAt.Unix())
+	nextKoto := ""
+	nextAt := game.CreatedAt.Add(
+		time.Duration(settings.Frequency) * time.Minute,
+	)
 
-	if settings.AutoStart {
-		nextKoto = ""
+	if !settings.AutoStart {
+		nextKoto = fmt.Sprintf("\nNext koto <t:%d:R>", nextAt.Unix())
 	}
 
 	switch game.Status {
@@ -296,13 +318,6 @@ func (m *MessageService) buildGameInfo(
 			envSuffix,
 		)
 	case db.GameStatusOutOfTime:
-		nextAt := game.CreatedAt.Add(
-			time.Duration(settings.Frequency) * time.Minute,
-		)
-
-		if !settings.AutoStart {
-			nextKoto = fmt.Sprintf("\nNext koto <t:%d:R>", nextAt.Unix())
-		}
 
 		return fmt.Sprintf(
 			"\nTime's up! The correct word was **%s**!%s\n\n%s%s",

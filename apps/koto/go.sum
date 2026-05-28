@@ -97,6 +97,8 @@ github.com/valyala/fasthttp v1.55.0/go.mod h1:NkY9JtkrpPKmgwV3HTaS2HWaJss9RSIsRV
 github.com/valyala/tcplisten v1.0.0 h1:rBHj/Xf+E1tRGZyWIWwJDiRY0zc1Js+CV5DqwacVSA8=
 github.com/valyala/tcplisten v1.0.0/go.mod h1:T0xQ8SeCZGxckz9qRXTfG43PvQ/mcWh7FwZEA7Ioqkc=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
+github.com/zekroTJA/shinpuru v0.0.0-20260318014313-ed714cf1553c h1:VEoQUbO0/6N1/3U4GdfqNmMQHnJdbKQ/G3cjsmAPjGA=
+github.com/zekroTJA/shinpuru v0.0.0-20260318014313-ed714cf1553c/go.mod h1:AWNc2t5z05DQIjWoxuaJDo4Vg4glBdirsiURrNi0/mA=
 go.mongodb.org/mongo-driver/v2 v2.0.0-beta2 h1:PRtbRKwblE8ZfI8qOhofcjn9y8CmKZI7trS5vDMeJX0=
 go.mongodb.org/mongo-driver/v2 v2.0.0-beta2/go.mod h1:UGLb3ZgEzaY0cCbJpH9UFt9B6gEXiTPzsnJS38nBeoU=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=

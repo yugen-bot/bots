@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
@@ -17,6 +18,7 @@ import (
 type PointsModule struct {
 	container   *di.Container
 	pointsSvc   *services.PointsService
+	hintsSvc    *services.HintsService
 	settingsSvc *services.SettingsService
 }
 
@@ -24,6 +26,7 @@ func GetPointsModule(container *di.Container) *PointsModule {
 	return &PointsModule{
 		container:   container,
 		pointsSvc:   container.Get(localStatic.DiPoints).(*services.PointsService),
+		hintsSvc:    container.Get(localStatic.DiHints).(*services.HintsService),
 		settingsSvc: container.Get(sharedStatic.DiSettings).(*services.SettingsService),
 	}
 }
@@ -57,12 +60,27 @@ func (m *PointsModule) points(ctx *discordgoplus.Ctx) {
 		return
 	}
 
+	playerHints, _ := m.hintsSvc.GetPlayerHintsByUserID(
+		context.Background(),
+		ctx.Interaction.Member.User.ID,
+	)
+
 	bot := m.container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
 		bot,
 		&utils.CreateEmbedFooterParams{IsVote: false},
 		"",
 	)
+
+	hintsValue := "0/3"
+	if playerHints != nil {
+		hintsValue = fmt.Sprintf(
+			"%s/%s",
+			strconv.FormatFloat(playerHints.Hints, 'f', -1, 64),
+			strconv.FormatFloat(playerHints.MaxHints, 'f', -1, 64),
+		)
+	}
+
 	embed := &discordgo.MessageEmbed{
 		Title: "Your Koto Stats",
 		Color: localStatic.EmbedColor,
@@ -80,6 +98,11 @@ func (m *PointsModule) points(ctx *discordgoplus.Ctx) {
 			{
 				Name:   "Games Won",
 				Value:  fmt.Sprintf("%d", player.Wins),
+				Inline: true,
+			},
+			{
+				Name:   "Hints",
+				Value:  hintsValue,
 				Inline: true,
 			},
 		},

@@ -45,6 +45,58 @@ type GameMeta struct {
 	Keyboard  map[string]GameType `json:"keyboard"`
 	Word      []WordState         `json:"word"`
 	Discovery DiscoveryState      `json:"discovery"`
+	CanHint   bool                `json:"canHint"`
+}
+
+// WordLetterCount returns a map of each rune in word to its occurrence count.
+func WordLetterCount(word string) map[rune]int {
+	counts := map[rune]int{}
+	for _, r := range word {
+		counts[r]++
+	}
+	return counts
+}
+
+// ComputeCanHint returns true if a hint can be used without solving the word.
+// Priority mirrors computeHint:
+//  1. ALMOST letter with an unsolvable position (nonCorrect ≥ 2)
+//  2. Undiscovered letter occurrence (always safe — no position solve)
+//  3. Any unsolved position when all letters are discovered (nonCorrect ≥ 2)
+func ComputeCanHint(word string, state *GameMeta) bool {
+	nonCorrect := 0
+	for _, ws := range state.Word {
+		if ws.Type != GameTypeCorrect {
+			nonCorrect++
+		}
+	}
+
+	if nonCorrect >= 2 {
+		for _, ws := range state.Word {
+			if ws.Type == GameTypeCorrect {
+				continue
+			}
+			kb := state.Keyboard[ws.Letter]
+			hasUnplaced := kb == GameTypeCorrect &&
+				state.Discovery.Almost[ws.Letter] > state.Discovery.Correct[ws.Letter]
+			if kb == GameTypeAlmost || hasUnplaced {
+				return true
+			}
+		}
+	}
+
+	wordCount := WordLetterCount(word)
+	seen := map[rune]bool{}
+	for _, r := range word {
+		if seen[r] {
+			continue
+		}
+		seen[r] = true
+		if wordCount[r] > state.Discovery.Almost[string(r)] {
+			return true
+		}
+	}
+
+	return nonCorrect >= 2
 }
 
 // ParseGameMeta parses raw JSON bytes into GameMeta

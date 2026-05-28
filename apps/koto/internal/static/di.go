@@ -7,4 +7,5 @@ const (
 	DiPoints      = "points"
 	DiGuilds      = "adminguilds"
 	DiNotify      = "adminnotify"
+	DiHints       = "hints"
 )

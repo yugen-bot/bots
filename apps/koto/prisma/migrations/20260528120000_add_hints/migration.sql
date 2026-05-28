@@ -1,0 +1,20 @@
+-- AlterTable
+ALTER TABLE "Settings" ADD COLUMN "hints" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN "maxHints" DOUBLE PRECISION NOT NULL DEFAULT 3,
+ADD COLUMN "hintsUsed" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- CreateTable
+CREATE TABLE "PlayerHints" (
+    "id" SERIAL NOT NULL,
+    "userId" TEXT NOT NULL,
+    "hints" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "maxHints" DOUBLE PRECISION NOT NULL DEFAULT 3,
+    "lastVoteTime" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PlayerHints_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "PlayerHints_userId_idx" ON "PlayerHints"("userId");

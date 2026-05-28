@@ -1,10 +1,16 @@
 package inits
 
 import (
+	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"github.com/zekroTJA/shinpuru/pkg/hammertime"
+	"jurien.dev/yugen/koto/internal/services"
+	localStatic "jurien.dev/yugen/koto/internal/static"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -12,6 +18,7 @@ import (
 func CreateVoteHandler(
 	container *di.Container,
 ) func(userID string, source string) error {
+	hints := container.Get(localStatic.DiHints).(*services.HintsService)
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 	shard, _ := bot.ShardByShardID(0)
 
@@ -21,18 +28,38 @@ func CreateVoteHandler(
 			"source", source,
 		).Infof("Processing vote for %s from %s", userID, source)
 
-		userChannel, err := shard.UserChannelCreate(userID)
-		if err != nil {
-			return err
+		amount := 0.25
+
+		weekday := time.Now().Weekday()
+		if weekday == time.Saturday || weekday == time.Sunday {
+			amount = 0.5
 		}
 
-		_, err = shard.ChannelMessageSend(
-			userChannel.ID,
-			fmt.Sprintf(
-				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Koto grow!",
-				source,
-			),
+		playerHints, maxHints, err := hints.AddHintToPlayer(
+			context.Background(),
+			userID,
+			amount,
 		)
+
+		userChannel, chanErr := shard.UserChannelCreate(userID)
+		if chanErr != nil {
+			return chanErr
+		}
+
+		msg := fmt.Sprintf(
+			"Thank you for voting on %s!\nYour vote has been very appreciated and helps Koto grow!",
+			source,
+		)
+		if err == nil {
+			msg = fmt.Sprintf(
+				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Koto grow!\n\n**You have %s/%s hints available to use with Koto!**",
+				source,
+				strconv.FormatFloat(playerHints, 'f', -1, 64),
+				strconv.FormatFloat(maxHints, 'f', -1, 64),
+			)
+		}
+
+		_, err = shard.ChannelMessageSend(userChannel.ID, msg)
 
 		return err
 	}
@@ -40,7 +67,48 @@ func CreateVoteHandler(
 
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	voteReward := func(userID string) string {
-		return "\n*Rewards Coming Soon*"
+		hints := container.Get(localStatic.DiHints).(*services.HintsService)
+
+		player, err := hints.GetPlayerHintsByUserID(
+			context.Background(),
+			userID,
+		)
+		if err != nil {
+			utils.Logger.Errorw(
+				"vote: get player hints failed",
+				"error", err,
+				"userID", userID,
+			)
+
+			return ""
+		}
+
+		lastVoteTime, ok := player.LastVoteTime()
+		if !ok {
+			lastVoteTime = time.Now().Add(-time.Hour * 24)
+		}
+
+		voteTime := lastVoteTime.Add(time.Hour * 12)
+
+		voteTimeText := "**right now**!"
+		if voteTime.After(time.Now()) {
+			voteTimeText = fmt.Sprintf(
+				"again **%s**",
+				hammertime.Format(voteTime, hammertime.Span),
+			)
+		}
+
+		amount := "0.25"
+
+		weekday := time.Now().Weekday()
+		if weekday == time.Saturday || weekday == time.Sunday {
+			amount = "0.5"
+		}
+
+		return fmt.Sprintf(`
+You will receive **%s** hints for **each vote**
+
+You can vote %s`, amount, voteTimeText)
 	}
 
 	return voteReward

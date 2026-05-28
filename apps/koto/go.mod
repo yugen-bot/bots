@@ -45,6 +45,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.55.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
+	github.com/zekroTJA/shinpuru v0.0.0-20260318014313-ed714cf1553c // indirect
 	go.mongodb.org/mongo-driver/v2 v2.0.0-beta2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
