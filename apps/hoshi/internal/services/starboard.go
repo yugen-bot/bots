@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
@@ -219,6 +220,8 @@ func (s *StarboardService) CheckReaction(
 		ctx,
 		count,
 		embeds,
+		channelID,
+		messageID,
 		msg,
 		guildID,
 		config.TargetChannelID,
@@ -461,6 +464,8 @@ func (s *StarboardService) createStarboard(
 	ctx context.Context,
 	count int,
 	embeds []*discordgo.MessageEmbed,
+	sourceChannelID string,
+	originalMessageID string,
 	msg *discordgo.Message,
 	guildID string,
 	targetChannelID,
@@ -494,6 +499,7 @@ func (s *StarboardService) createStarboard(
 		},
 	)
 	if err != nil {
+
 		utils.Logger.Errorw(
 			"starboard: create starboard: send message failed",
 			"error",
@@ -507,6 +513,52 @@ func (s *StarboardService) createStarboard(
 			"targetChannelID",
 			targetChannelID,
 		)
+
+		var errorType string
+		if strings.Contains(err.Error(), "404 Not Found") {
+			errorType = "unknown_channel"
+		}
+
+		if strings.Contains(err.Error(), "403 Forbidden") {
+			errorType = "forbidden_channel"
+		}
+
+		if errorType != "" {
+			originalMessage, err := b.ChannelMessage(
+				sourceChannelID,
+				originalMessageID,
+			)
+			if err != nil {
+				utils.Logger.Errorw(
+					"starboard: create starboard: failed to retrieve original message",
+					sourceChannelID,
+					originalMessageID,
+				)
+				return
+			}
+
+			message := "The starboard channel does not seem to exist: <#%s>.\nPlease inform a moderator of this server."
+			if errorType == "forbidden_channel" {
+				message = "Hoshi does not have permissions to access the starboard channel: <#%s>.\nPlease inform a moderator of this server."
+			}
+
+			_, err = b.ChannelMessageSendReply(
+				sourceChannelID,
+				fmt.Sprintf(message, targetChannelID),
+				&discordgo.MessageReference{
+					Type:      discordgo.MessageReferenceTypeDefault,
+					ChannelID: originalMessage.ChannelID,
+					GuildID:   originalMessage.GuildID,
+					MessageID: originalMessage.ID,
+				})
+			if err != nil {
+				utils.Logger.Errorw(
+					"starboard: create starboard: failed to send message",
+					"error",
+					err,
+				)
+			}
+		}
 
 		return
 	}
