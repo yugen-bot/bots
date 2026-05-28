@@ -83,7 +83,7 @@ func (service *SavesService) DeductSaveFromPlayer(
 		return 0, 0, fmt.Errorf("saves: deduct save from player: %w", err)
 	}
 
-	newSaves := player.Saves - 1
+	newSaves := utils.RoundTwo(player.Saves - amount)
 
 	if newSaves < 0 {
 		newSaves = 0
@@ -110,7 +110,7 @@ func (service *SavesService) DeductSaveFromGuild(
 	settings *db.SettingsModel,
 	amount float64,
 ) (float64, float64, error) {
-	newSaves := settings.Saves - amount
+	newSaves := utils.RoundTwo(settings.Saves - amount)
 
 	if newSaves < 0 {
 		newSaves = 0
@@ -138,11 +138,11 @@ func (service *SavesService) AddSaveToPlayer(
 		return 0, 0, fmt.Errorf("saves: add save to player: %w", err)
 	}
 
-	if player.Saves == player.MaxSaves {
+	if player.Saves >= player.MaxSaves {
 		return player.MaxSaves, player.MaxSaves, nil
 	}
 
-	newSaves := player.Saves + amount
+	newSaves := utils.RoundTwo(player.Saves + amount)
 
 	if newSaves > player.MaxSaves {
 		newSaves = player.MaxSaves
@@ -166,7 +166,7 @@ func (service *SavesService) AddSaveToGuild(
 	settings *db.SettingsModel,
 	amount float64,
 ) (float64, float64, error) {
-	newSaves := settings.Saves + amount
+	newSaves := utils.RoundTwo(settings.Saves + amount)
 
 	if newSaves > settings.MaxSaves {
 		newSaves = settings.MaxSaves
