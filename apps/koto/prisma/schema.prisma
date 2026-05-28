@@ -33,7 +33,7 @@ model Settings {
   startAfterFirstGuess              Boolean     @default(false)
 
   hints                             Float       @default(0)
-  maxHints                          Float       @default(3)
+  maxHints                          Float       @default(5)
   hintsUsed                         Float       @default(0)
 
   games                             Game[]
@@ -50,7 +50,7 @@ model PlayerHints {
   userId        String
 
   hints         Float     @default(0)
-  maxHints      Float     @default(3)
+  maxHints      Float     @default(5)
   lastVoteTime  DateTime?
 
   // timestamps

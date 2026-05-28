@@ -41,11 +41,11 @@ func CreateVoteHandler(
 			"source", source,
 		).Infof("Processing vote for %s from %s", userID, source)
 
-		amount := 0.25
+		amount := localStatic.VoteRewardWeekday
 
 		weekday := time.Now().Weekday()
 		if weekday == time.Saturday || weekday == time.Sunday {
-			amount = 0.5
+			amount = localStatic.VoteRewardWeekend
 		}
 
 		saves, maxSaves, err := saves.AddSaveToPlayer(
@@ -108,12 +108,14 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 			)
 		}
 
-		amount := "0.25"
+		reward := localStatic.VoteRewardWeekday
 
 		weekday := time.Now().Weekday()
 		if weekday == time.Saturday || weekday == time.Sunday {
-			amount = "0.5"
+			reward = localStatic.VoteRewardWeekend
 		}
+
+		amount := strconv.FormatFloat(reward, 'f', -1, 64)
 
 		return fmt.Sprintf(`
 You will receive **%s** saves for **each vote**

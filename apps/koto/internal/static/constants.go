@@ -8,6 +8,10 @@ const (
 
 	MaxGuesses = 9
 	WordLength = 6
+
+	VoteRewardWeekday  = 0.5
+	VoteRewardWeekend  = 0.75
+	DonationGuildValue = 0.5
 )
 
 // ASCII number emoji sequences for Discord (indices 0-10)

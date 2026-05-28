@@ -83,7 +83,7 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		context.Background(),
 		settings.GuildID,
 		settings,
-		0.2,
+		local.DonationGuildValue,
 	)
 	if err != nil {
 		return

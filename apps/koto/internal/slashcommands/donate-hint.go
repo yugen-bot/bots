@@ -78,7 +78,7 @@ func (m *DonateHintModule) donateHint(ctx *discordgoplus.Ctx) {
 		context.Background(),
 		ctx.Interaction.GuildID,
 		settings,
-		0.2,
+		localStatic.DonationGuildValue,
 	)
 	if err != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
