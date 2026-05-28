@@ -10,7 +10,7 @@ import (
 
 	admin "jurien.dev/yugen/kusari/internal/slashcommands/admin"
 	game "jurien.dev/yugen/kusari/internal/slashcommands/game"
-	points "jurien.dev/yugen/kusari/internal/slashcommands/points"
+	"jurien.dev/yugen/kusari/internal/slashcommands/points"
 	settings "jurien.dev/yugen/kusari/internal/slashcommands/settings"
 )
 

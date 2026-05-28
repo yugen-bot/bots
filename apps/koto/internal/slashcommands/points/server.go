@@ -1,4 +1,4 @@
-package slashcommands
+package points
 
 import (
 	"context"
@@ -75,7 +75,10 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		if nextStart == nil || !nextStart.After(time.Now()) {
 			gameLines = append(gameLines, "Next game: **starting soon**")
 		} else {
-			gameLines = append(gameLines, fmt.Sprintf("Next game: <t:%d:R>", nextStart.Unix()))
+			gameLines = append(
+				gameLines,
+				fmt.Sprintf("Next game: <t:%d:R>", nextStart.Unix()),
+			)
 		}
 	}
 

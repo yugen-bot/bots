@@ -1,4 +1,4 @@
-package slashcommands
+package points
 
 import (
 	"context"
@@ -32,7 +32,10 @@ func (m *DonateHintModule) donateHint(ctx *discordgoplus.Ctx) {
 
 	userID := ctx.Interaction.Member.User.ID
 
-	player, err := m.hintsSvc.GetPlayerHintsByUserID(context.Background(), userID)
+	player, err := m.hintsSvc.GetPlayerHintsByUserID(
+		context.Background(),
+		userID,
+	)
 	if err != nil {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Sorry, couldn't retrieve your hint data.",
