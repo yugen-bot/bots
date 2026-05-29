@@ -15,21 +15,21 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldBotUpdatesChannelID holds the string denoting the botupdateschannelid field in the database.
-	FieldBotUpdatesChannelID = "botUpdatesChannelId"
+	FieldBotUpdatesChannelID = "bot_updates_channel_id"
 	// FieldTreshold holds the string denoting the treshold field in the database.
 	FieldTreshold = "treshold"
 	// FieldSelf holds the string denoting the self field in the database.
 	FieldSelf = "self"
 	// FieldIgnoredChannelIds holds the string denoting the ignoredchannelids field in the database.
-	FieldIgnoredChannelIds = "ignoredChannelIds"
+	FieldIgnoredChannelIds = "ignored_channel_ids"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the settings in the database.
-	Table = "Settings"
+	Table = "settings"
 )
 
 // Columns holds all SQL columns for settings fields.

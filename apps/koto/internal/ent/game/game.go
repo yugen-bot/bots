@@ -17,36 +17,36 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldLastMessageID holds the string denoting the lastmessageid field in the database.
-	FieldLastMessageID = "lastMessageId"
+	FieldLastMessageID = "last_message_id"
 	// FieldWord holds the string denoting the word field in the database.
 	FieldWord = "word"
 	// FieldEndingAt holds the string denoting the endingat field in the database.
-	FieldEndingAt = "endingAt"
+	FieldEndingAt = "ending_at"
 	// FieldNumber holds the string denoting the number field in the database.
 	FieldNumber = "number"
 	// FieldScheduleStarted holds the string denoting the schedulestarted field in the database.
-	FieldScheduleStarted = "scheduleStarted"
+	FieldScheduleStarted = "schedule_started"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldMeta holds the string denoting the meta field in the database.
 	FieldMeta = "meta"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// EdgeGuesses holds the string denoting the guesses edge name in mutations.
 	EdgeGuesses = "guesses"
 	// Table holds the table name of the game in the database.
-	Table = "Game"
+	Table = "games"
 	// GuessesTable is the table that holds the guesses relation/edge.
-	GuessesTable = "Guess"
+	GuessesTable = "guesses"
 	// GuessesInverseTable is the table name for the Guess entity.
 	// It exists in this package in order to avoid circular dependency with the "guess" package.
-	GuessesInverseTable = "Guess"
+	GuessesInverseTable = "guesses"
 	// GuessesColumn is the table column denoting the guesses relation/edge.
-	GuessesColumn = "gameId"
+	GuessesColumn = "game_id"
 )
 
 // Columns holds all SQL columns for game fields.

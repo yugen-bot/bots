@@ -15,28 +15,28 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldUserID holds the string denoting the userid field in the database.
-	FieldUserID = "userId"
+	FieldUserID = "user_id"
 	// FieldMessageID holds the string denoting the messageid field in the database.
-	FieldMessageID = "messageId"
+	FieldMessageID = "message_id"
 	// FieldGameID holds the string denoting the gameid field in the database.
-	FieldGameID = "gameId"
+	FieldGameID = "game_id"
 	// FieldNumber holds the string denoting the number field in the database.
 	FieldNumber = "number"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// EdgeGame holds the string denoting the game edge name in mutations.
 	EdgeGame = "game"
 	// Table holds the table name of the history in the database.
-	Table = "History"
+	Table = "histories"
 	// GameTable is the table that holds the game relation/edge.
-	GameTable = "History"
+	GameTable = "histories"
 	// GameInverseTable is the table name for the Game entity.
 	// It exists in this package in order to avoid circular dependency with the "game" package.
-	GameInverseTable = "Game"
+	GameInverseTable = "games"
 	// GameColumn is the table column denoting the game relation/edge.
-	GameColumn = "gameId"
+	GameColumn = "game_id"
 )
 
 // Columns holds all SQL columns for history fields.

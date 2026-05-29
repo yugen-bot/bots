@@ -3,155 +3,154 @@
 package migrate
 
 import (
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
 
 var (
-	// GameColumns holds the columns for the "Game" table.
-	GameColumns = []*schema.Column{
+	// GamesColumns holds the columns for the "games" table.
+	GamesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "guildId", Type: field.TypeString},
-		{Name: "lastMessageId", Type: field.TypeString, Nullable: true},
+		{Name: "guild_id", Type: field.TypeString},
+		{Name: "last_message_id", Type: field.TypeString, Nullable: true},
 		{Name: "word", Type: field.TypeString},
-		{Name: "endingAt", Type: field.TypeTime},
+		{Name: "ending_at", Type: field.TypeTime},
 		{Name: "number", Type: field.TypeInt, Default: 1},
-		{Name: "scheduleStarted", Type: field.TypeBool, Default: true},
+		{Name: "schedule_started", Type: field.TypeBool, Default: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"IN_PROGRESS", "FAILED", "COMPLETED", "OUT_OF_TIME"}, Default: "IN_PROGRESS"},
 		{Name: "meta", Type: field.TypeJSON},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// GameTable holds the schema information for the "Game" table.
-	GameTable = &schema.Table{
-		Name:       "Game",
-		Columns:    GameColumns,
-		PrimaryKey: []*schema.Column{GameColumns[0]},
+	// GamesTable holds the schema information for the "games" table.
+	GamesTable = &schema.Table{
+		Name:       "games",
+		Columns:    GamesColumns,
+		PrimaryKey: []*schema.Column{GamesColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "Game_guildId_idx",
+				Name:    "game_guild_id",
 				Unique:  false,
-				Columns: []*schema.Column{GameColumns[1]},
+				Columns: []*schema.Column{GamesColumns[1]},
 			},
 		},
 	}
-	// GuessColumns holds the columns for the "Guess" table.
-	GuessColumns = []*schema.Column{
+	// GuessesColumns holds the columns for the "guesses" table.
+	GuessesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "userId", Type: field.TypeString},
+		{Name: "user_id", Type: field.TypeString},
 		{Name: "word", Type: field.TypeString},
 		{Name: "points", Type: field.TypeInt, Default: 0},
 		{Name: "meta", Type: field.TypeJSON},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
-		{Name: "gameId", Type: field.TypeInt},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "game_id", Type: field.TypeInt},
 	}
-	// GuessTable holds the schema information for the "Guess" table.
-	GuessTable = &schema.Table{
-		Name:       "Guess",
-		Columns:    GuessColumns,
-		PrimaryKey: []*schema.Column{GuessColumns[0]},
+	// GuessesTable holds the schema information for the "guesses" table.
+	GuessesTable = &schema.Table{
+		Name:       "guesses",
+		Columns:    GuessesColumns,
+		PrimaryKey: []*schema.Column{GuessesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "Guess_Game_guesses",
-				Columns:    []*schema.Column{GuessColumns[7]},
-				RefColumns: []*schema.Column{GameColumns[0]},
+				Symbol:     "guesses_games_guesses",
+				Columns:    []*schema.Column{GuessesColumns[7]},
+				RefColumns: []*schema.Column{GamesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "Guess_gameId_idx",
+				Name:    "guess_game_id",
 				Unique:  false,
-				Columns: []*schema.Column{GuessColumns[7]},
+				Columns: []*schema.Column{GuessesColumns[7]},
 			},
 		},
 	}
-	// PlayerHintsColumns holds the columns for the "PlayerHints" table.
+	// PlayerHintsColumns holds the columns for the "player_hints" table.
 	PlayerHintsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "userId", Type: field.TypeString},
+		{Name: "user_id", Type: field.TypeString},
 		{Name: "hints", Type: field.TypeFloat64, Default: 0},
-		{Name: "maxHints", Type: field.TypeFloat64, Default: 5},
-		{Name: "lastVoteTime", Type: field.TypeTime, Nullable: true},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "max_hints", Type: field.TypeFloat64, Default: 5},
+		{Name: "last_vote_time", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// PlayerHintsTable holds the schema information for the "PlayerHints" table.
+	// PlayerHintsTable holds the schema information for the "player_hints" table.
 	PlayerHintsTable = &schema.Table{
-		Name:       "PlayerHints",
+		Name:       "player_hints",
 		Columns:    PlayerHintsColumns,
 		PrimaryKey: []*schema.Column{PlayerHintsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "PlayerHints_userId_idx",
+				Name:    "playerhints_user_id",
 				Unique:  false,
 				Columns: []*schema.Column{PlayerHintsColumns[1]},
 			},
 		},
 	}
-	// PlayerStatsColumns holds the columns for the "PlayerStats" table.
+	// PlayerStatsColumns holds the columns for the "player_stats" table.
 	PlayerStatsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "userId", Type: field.TypeString},
-		{Name: "guildId", Type: field.TypeString},
-		{Name: "inGuild", Type: field.TypeBool, Default: true},
+		{Name: "user_id", Type: field.TypeString},
+		{Name: "guild_id", Type: field.TypeString},
+		{Name: "in_guild", Type: field.TypeBool, Default: true},
 		{Name: "points", Type: field.TypeInt, Default: 0},
 		{Name: "participated", Type: field.TypeInt, Default: 0},
 		{Name: "wins", Type: field.TypeInt, Default: 0},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// PlayerStatsTable holds the schema information for the "PlayerStats" table.
+	// PlayerStatsTable holds the schema information for the "player_stats" table.
 	PlayerStatsTable = &schema.Table{
-		Name:       "PlayerStats",
+		Name:       "player_stats",
 		Columns:    PlayerStatsColumns,
 		PrimaryKey: []*schema.Column{PlayerStatsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "PlayerStats_userId_guildId_idx",
+				Name:    "playerstats_user_id_guild_id",
 				Unique:  false,
 				Columns: []*schema.Column{PlayerStatsColumns[1], PlayerStatsColumns[2]},
 			},
 		},
 	}
-	// SettingsColumns holds the columns for the "Settings" table.
+	// SettingsColumns holds the columns for the "settings" table.
 	SettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "guildId", Type: field.TypeString},
-		{Name: "botUpdatesChannelId", Type: field.TypeString, Nullable: true},
-		{Name: "channelId", Type: field.TypeString, Nullable: true},
-		{Name: "pingRoleId", Type: field.TypeString, Nullable: true},
-		{Name: "pingOnlyNew", Type: field.TypeBool, Default: true},
-		{Name: "membersCanStart", Type: field.TypeBool, Default: false},
+		{Name: "guild_id", Type: field.TypeString},
+		{Name: "bot_updates_channel_id", Type: field.TypeString, Nullable: true},
+		{Name: "channel_id", Type: field.TypeString, Nullable: true},
+		{Name: "ping_role_id", Type: field.TypeString, Nullable: true},
+		{Name: "ping_only_new", Type: field.TypeBool, Default: true},
+		{Name: "members_can_start", Type: field.TypeBool, Default: false},
 		{Name: "cooldown", Type: field.TypeInt, Default: 600},
-		{Name: "enableBackToBackCooldown", Type: field.TypeBool, Default: false},
-		{Name: "backToBackCooldown", Type: field.TypeInt, Default: 600},
-		{Name: "informCooldownAfterGuess", Type: field.TypeBool, Default: false},
+		{Name: "enable_back_to_back_cooldown", Type: field.TypeBool, Default: false},
+		{Name: "back_to_back_cooldown", Type: field.TypeInt, Default: 600},
+		{Name: "inform_cooldown_after_guess", Type: field.TypeBool, Default: false},
 		{Name: "frequency", Type: field.TypeInt, Default: 60},
-		{Name: "timeLimit", Type: field.TypeInt, Default: 60},
-		{Name: "autoStart", Type: field.TypeBool, Default: false},
-		{Name: "startAfterFirstGuess", Type: field.TypeBool, Default: false},
+		{Name: "time_limit", Type: field.TypeInt, Default: 60},
+		{Name: "auto_start", Type: field.TypeBool, Default: false},
+		{Name: "start_after_first_guess", Type: field.TypeBool, Default: false},
 		{Name: "hints", Type: field.TypeFloat64, Default: 0},
-		{Name: "maxHints", Type: field.TypeFloat64, Default: 5},
-		{Name: "hintsUsed", Type: field.TypeFloat64, Default: 0},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "max_hints", Type: field.TypeFloat64, Default: 5},
+		{Name: "hints_used", Type: field.TypeFloat64, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// SettingsTable holds the schema information for the "Settings" table.
+	// SettingsTable holds the schema information for the "settings" table.
 	SettingsTable = &schema.Table{
-		Name:       "Settings",
+		Name:       "settings",
 		Columns:    SettingsColumns,
 		PrimaryKey: []*schema.Column{SettingsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "Settings_guildId_key",
+				Name:    "settings_guild_id",
 				Unique:  true,
 				Columns: []*schema.Column{SettingsColumns[1]},
 			},
 			{
-				Name:    "Settings_guildId_channelId_idx",
+				Name:    "settings_guild_id_channel_id",
 				Unique:  false,
 				Columns: []*schema.Column{SettingsColumns[1], SettingsColumns[3]},
 			},
@@ -159,8 +158,8 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		GameTable,
-		GuessTable,
+		GamesTable,
+		GuessesTable,
 		PlayerHintsTable,
 		PlayerStatsTable,
 		SettingsTable,
@@ -168,20 +167,5 @@ var (
 )
 
 func init() {
-	GameTable.Annotation = &entsql.Annotation{
-		Table: "Game",
-	}
-	GuessTable.ForeignKeys[0].RefTable = GameTable
-	GuessTable.Annotation = &entsql.Annotation{
-		Table: "Guess",
-	}
-	PlayerHintsTable.Annotation = &entsql.Annotation{
-		Table: "PlayerHints",
-	}
-	PlayerStatsTable.Annotation = &entsql.Annotation{
-		Table: "PlayerStats",
-	}
-	SettingsTable.Annotation = &entsql.Annotation{
-		Table: "Settings",
-	}
+	GuessesTable.ForeignKeys[0].RefTable = GamesTable
 }

@@ -14,11 +14,11 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldUserID holds the string denoting the userid field in the database.
-	FieldUserID = "userId"
+	FieldUserID = "user_id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldInGuild holds the string denoting the inguild field in the database.
-	FieldInGuild = "inGuild"
+	FieldInGuild = "in_guild"
 	// FieldPoints holds the string denoting the points field in the database.
 	FieldPoints = "points"
 	// FieldParticipated holds the string denoting the participated field in the database.
@@ -26,11 +26,11 @@ const (
 	// FieldWins holds the string denoting the wins field in the database.
 	FieldWins = "wins"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the playerstats in the database.
-	Table = "PlayerStats"
+	Table = "player_stats"
 )
 
 // Columns holds all SQL columns for playerstats fields.

@@ -14,29 +14,29 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldBotUpdatesChannelID holds the string denoting the botupdateschannelid field in the database.
-	FieldBotUpdatesChannelID = "botUpdatesChannelId"
+	FieldBotUpdatesChannelID = "bot_updates_channel_id"
 	// FieldChannelID holds the string denoting the channelid field in the database.
-	FieldChannelID = "channelId"
+	FieldChannelID = "channel_id"
 	// FieldCooldown holds the string denoting the cooldown field in the database.
 	FieldCooldown = "cooldown"
 	// FieldHighscore holds the string denoting the highscore field in the database.
 	FieldHighscore = "highscore"
 	// FieldHighscoreDate holds the string denoting the highscoredate field in the database.
-	FieldHighscoreDate = "highscoreDate"
+	FieldHighscoreDate = "highscore_date"
 	// FieldSaves holds the string denoting the saves field in the database.
 	FieldSaves = "saves"
 	// FieldMaxSaves holds the string denoting the maxsaves field in the database.
-	FieldMaxSaves = "maxSaves"
+	FieldMaxSaves = "max_saves"
 	// FieldSavesUsed holds the string denoting the savesused field in the database.
-	FieldSavesUsed = "savesUsed"
+	FieldSavesUsed = "saves_used"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the settings in the database.
-	Table = "Settings"
+	Table = "settings"
 )
 
 // Columns holds all SQL columns for settings fields.

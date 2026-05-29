@@ -14,19 +14,19 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldChannelID holds the string denoting the channelid field in the database.
-	FieldChannelID = "channelId"
+	FieldChannelID = "channel_id"
 	// FieldMessageID holds the string denoting the messageid field in the database.
-	FieldMessageID = "messageId"
+	FieldMessageID = "message_id"
 	// FieldOriginalMessageID holds the string denoting the originalmessageid field in the database.
-	FieldOriginalMessageID = "originalMessageId"
+	FieldOriginalMessageID = "original_message_id"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the starboardlog in the database.
-	Table = "Log"
+	Table = "starboard_logs"
 )
 
 // Columns holds all SQL columns for starboardlog fields.

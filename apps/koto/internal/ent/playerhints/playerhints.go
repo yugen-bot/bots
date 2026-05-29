@@ -14,19 +14,19 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldUserID holds the string denoting the userid field in the database.
-	FieldUserID = "userId"
+	FieldUserID = "user_id"
 	// FieldHints holds the string denoting the hints field in the database.
 	FieldHints = "hints"
 	// FieldMaxHints holds the string denoting the maxhints field in the database.
-	FieldMaxHints = "maxHints"
+	FieldMaxHints = "max_hints"
 	// FieldLastVoteTime holds the string denoting the lastvotetime field in the database.
-	FieldLastVoteTime = "lastVoteTime"
+	FieldLastVoteTime = "last_vote_time"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the playerhints in the database.
-	Table = "PlayerHints"
+	Table = "player_hints"
 )
 
 // Columns holds all SQL columns for playerhints fields.

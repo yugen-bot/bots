@@ -14,19 +14,19 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldUserID holds the string denoting the userid field in the database.
-	FieldUserID = "userId"
+	FieldUserID = "user_id"
 	// FieldSaves holds the string denoting the saves field in the database.
 	FieldSaves = "saves"
 	// FieldMaxSaves holds the string denoting the maxsaves field in the database.
-	FieldMaxSaves = "maxSaves"
+	FieldMaxSaves = "max_saves"
 	// FieldLastVoteTime holds the string denoting the lastvotetime field in the database.
-	FieldLastVoteTime = "lastVoteTime"
+	FieldLastVoteTime = "last_vote_time"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the playersaves in the database.
-	Table = "PlayerSaves"
+	Table = "player_saves"
 )
 
 // Columns holds all SQL columns for playersaves fields.

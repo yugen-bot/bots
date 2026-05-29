@@ -16,30 +16,30 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldLastMessageID holds the string denoting the lastmessageid field in the database.
-	FieldLastMessageID = "lastMessageId"
+	FieldLastMessageID = "last_message_id"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldIsHighscored holds the string denoting the ishighscored field in the database.
-	FieldIsHighscored = "isHighscored"
+	FieldIsHighscored = "is_highscored"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// EdgeHistory holds the string denoting the history edge name in mutations.
 	EdgeHistory = "history"
 	// Table holds the table name of the game in the database.
-	Table = "Game"
+	Table = "games"
 	// HistoryTable is the table that holds the history relation/edge.
-	HistoryTable = "History"
+	HistoryTable = "histories"
 	// HistoryInverseTable is the table name for the History entity.
 	// It exists in this package in order to avoid circular dependency with the "history" package.
-	HistoryInverseTable = "History"
+	HistoryInverseTable = "histories"
 	// HistoryColumn is the table column denoting the history relation/edge.
-	HistoryColumn = "gameId"
+	HistoryColumn = "game_id"
 )
 
 // Columns holds all SQL columns for game fields.

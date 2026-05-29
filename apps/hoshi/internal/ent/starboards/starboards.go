@@ -14,19 +14,19 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldSourceEmoji holds the string denoting the sourceemoji field in the database.
-	FieldSourceEmoji = "sourceEmoji"
+	FieldSourceEmoji = "source_emoji"
 	// FieldSourceChannelID holds the string denoting the sourcechannelid field in the database.
-	FieldSourceChannelID = "sourceChannelId"
+	FieldSourceChannelID = "source_channel_id"
 	// FieldTargetChannelID holds the string denoting the targetchannelid field in the database.
-	FieldTargetChannelID = "targetChannelId"
+	FieldTargetChannelID = "target_channel_id"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the starboards in the database.
-	Table = "Starboards"
+	Table = "starboards"
 )
 
 // Columns holds all SQL columns for starboards fields.

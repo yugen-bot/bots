@@ -3,96 +3,86 @@
 package migrate
 
 import (
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
 
 var (
-	// SettingsColumns holds the columns for the "Settings" table.
+	// SettingsColumns holds the columns for the "settings" table.
 	SettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "guildId", Type: field.TypeString},
-		{Name: "botUpdatesChannelId", Type: field.TypeString, Nullable: true},
+		{Name: "guild_id", Type: field.TypeString},
+		{Name: "bot_updates_channel_id", Type: field.TypeString, Nullable: true},
 		{Name: "treshold", Type: field.TypeInt, Default: 3},
 		{Name: "self", Type: field.TypeBool, Default: false},
-		{Name: "ignoredChannelIds", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "text[]"}},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "ignored_channel_ids", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "text[]"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// SettingsTable holds the schema information for the "Settings" table.
+	// SettingsTable holds the schema information for the "settings" table.
 	SettingsTable = &schema.Table{
-		Name:       "Settings",
+		Name:       "settings",
 		Columns:    SettingsColumns,
 		PrimaryKey: []*schema.Column{SettingsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "Settings_guildId_key",
+				Name:    "settings_guild_id",
 				Unique:  true,
 				Columns: []*schema.Column{SettingsColumns[1]},
 			},
 		},
 	}
-	// LogColumns holds the columns for the "Log" table.
-	LogColumns = []*schema.Column{
+	// StarboardLogsColumns holds the columns for the "starboard_logs" table.
+	StarboardLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "guildId", Type: field.TypeString},
-		{Name: "channelId", Type: field.TypeString},
-		{Name: "messageId", Type: field.TypeString},
-		{Name: "originalMessageId", Type: field.TypeString},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "guild_id", Type: field.TypeString},
+		{Name: "channel_id", Type: field.TypeString},
+		{Name: "message_id", Type: field.TypeString},
+		{Name: "original_message_id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// LogTable holds the schema information for the "Log" table.
-	LogTable = &schema.Table{
-		Name:       "Log",
-		Columns:    LogColumns,
-		PrimaryKey: []*schema.Column{LogColumns[0]},
+	// StarboardLogsTable holds the schema information for the "starboard_logs" table.
+	StarboardLogsTable = &schema.Table{
+		Name:       "starboard_logs",
+		Columns:    StarboardLogsColumns,
+		PrimaryKey: []*schema.Column{StarboardLogsColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "Log_messageId_key",
+				Name:    "starboardlog_message_id",
 				Unique:  true,
-				Columns: []*schema.Column{LogColumns[3]},
+				Columns: []*schema.Column{StarboardLogsColumns[3]},
 			},
 			{
-				Name:    "Log_originalMessageId_key",
+				Name:    "starboardlog_original_message_id",
 				Unique:  true,
-				Columns: []*schema.Column{LogColumns[4]},
+				Columns: []*schema.Column{StarboardLogsColumns[4]},
 			},
 		},
 	}
-	// StarboardsColumns holds the columns for the "Starboards" table.
+	// StarboardsColumns holds the columns for the "starboards" table.
 	StarboardsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "guildId", Type: field.TypeString},
-		{Name: "sourceEmoji", Type: field.TypeString, Default: "⭐"},
-		{Name: "sourceChannelId", Type: field.TypeString, Nullable: true},
-		{Name: "targetChannelId", Type: field.TypeString},
-		{Name: "createdAt", Type: field.TypeTime},
-		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "guild_id", Type: field.TypeString},
+		{Name: "source_emoji", Type: field.TypeString, Default: "⭐"},
+		{Name: "source_channel_id", Type: field.TypeString, Nullable: true},
+		{Name: "target_channel_id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
-	// StarboardsTable holds the schema information for the "Starboards" table.
+	// StarboardsTable holds the schema information for the "starboards" table.
 	StarboardsTable = &schema.Table{
-		Name:       "Starboards",
+		Name:       "starboards",
 		Columns:    StarboardsColumns,
 		PrimaryKey: []*schema.Column{StarboardsColumns[0]},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		SettingsTable,
-		LogTable,
+		StarboardLogsTable,
 		StarboardsTable,
 	}
 )
 
 func init() {
-	SettingsTable.Annotation = &entsql.Annotation{
-		Table: "Settings",
-	}
-	LogTable.Annotation = &entsql.Annotation{
-		Table: "Log",
-	}
-	StarboardsTable.Annotation = &entsql.Annotation{
-		Table: "Starboards",
-	}
 }

@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"entgo.io/ent"
-	"entgo.io/ent/dialect/entsql"
-	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -13,35 +11,24 @@ import (
 
 type Game struct{ ent.Schema }
 
-func (Game) Annotations() []schema.Annotation {
-	return []schema.Annotation{entsql.Annotation{Table: "Game"}}
-}
-
 func (Game) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("guildID").
-			StorageKey("guildId"),
+		field.String("guildID"),
 		field.String("lastMessageID").
-			StorageKey("lastMessageId").
 			Optional().
 			Nillable(),
 		field.Enum("status").
 			Values("IN_PROGRESS", "FAILED", "COMPLETED").
-			Default("IN_PROGRESS").
-			StorageKey("status"),
+			Default("IN_PROGRESS"),
 		field.Enum("type").
 			Values("NORMAL").
-			Default("NORMAL").
-			StorageKey("type"),
+			Default("NORMAL"),
 		field.Bool("isHighscored").
-			StorageKey("isHighscored").
 			Default(false),
 		field.Time("createdAt").
-			StorageKey("createdAt").
 			Default(time.Now).
 			Immutable(),
 		field.Time("updatedAt").
-			StorageKey("updatedAt").
 			Default(time.Now).
 			UpdateDefault(time.Now),
 	}
@@ -55,7 +42,6 @@ func (Game) Edges() []ent.Edge {
 
 func (Game) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("guildID").
-			StorageKey("Game_guildId_idx"),
+		index.Fields("guildID"),
 	}
 }

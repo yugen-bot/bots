@@ -14,45 +14,45 @@ const (
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
-	FieldGuildID = "guildId"
+	FieldGuildID = "guild_id"
 	// FieldBotUpdatesChannelID holds the string denoting the botupdateschannelid field in the database.
-	FieldBotUpdatesChannelID = "botUpdatesChannelId"
+	FieldBotUpdatesChannelID = "bot_updates_channel_id"
 	// FieldChannelID holds the string denoting the channelid field in the database.
-	FieldChannelID = "channelId"
+	FieldChannelID = "channel_id"
 	// FieldPingRoleID holds the string denoting the pingroleid field in the database.
-	FieldPingRoleID = "pingRoleId"
+	FieldPingRoleID = "ping_role_id"
 	// FieldPingOnlyNew holds the string denoting the pingonlynew field in the database.
-	FieldPingOnlyNew = "pingOnlyNew"
+	FieldPingOnlyNew = "ping_only_new"
 	// FieldMembersCanStart holds the string denoting the memberscanstart field in the database.
-	FieldMembersCanStart = "membersCanStart"
+	FieldMembersCanStart = "members_can_start"
 	// FieldCooldown holds the string denoting the cooldown field in the database.
 	FieldCooldown = "cooldown"
 	// FieldEnableBackToBackCooldown holds the string denoting the enablebacktobackcooldown field in the database.
-	FieldEnableBackToBackCooldown = "enableBackToBackCooldown"
+	FieldEnableBackToBackCooldown = "enable_back_to_back_cooldown"
 	// FieldBackToBackCooldown holds the string denoting the backtobackcooldown field in the database.
-	FieldBackToBackCooldown = "backToBackCooldown"
+	FieldBackToBackCooldown = "back_to_back_cooldown"
 	// FieldInformCooldownAfterGuess holds the string denoting the informcooldownafterguess field in the database.
-	FieldInformCooldownAfterGuess = "informCooldownAfterGuess"
+	FieldInformCooldownAfterGuess = "inform_cooldown_after_guess"
 	// FieldFrequency holds the string denoting the frequency field in the database.
 	FieldFrequency = "frequency"
 	// FieldTimeLimit holds the string denoting the timelimit field in the database.
-	FieldTimeLimit = "timeLimit"
+	FieldTimeLimit = "time_limit"
 	// FieldAutoStart holds the string denoting the autostart field in the database.
-	FieldAutoStart = "autoStart"
+	FieldAutoStart = "auto_start"
 	// FieldStartAfterFirstGuess holds the string denoting the startafterfirstguess field in the database.
-	FieldStartAfterFirstGuess = "startAfterFirstGuess"
+	FieldStartAfterFirstGuess = "start_after_first_guess"
 	// FieldHints holds the string denoting the hints field in the database.
 	FieldHints = "hints"
 	// FieldMaxHints holds the string denoting the maxhints field in the database.
-	FieldMaxHints = "maxHints"
+	FieldMaxHints = "max_hints"
 	// FieldHintsUsed holds the string denoting the hintsused field in the database.
-	FieldHintsUsed = "hintsUsed"
+	FieldHintsUsed = "hints_used"
 	// FieldCreatedAt holds the string denoting the createdat field in the database.
-	FieldCreatedAt = "createdAt"
+	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updatedat field in the database.
-	FieldUpdatedAt = "updatedAt"
+	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the settings in the database.
-	Table = "Settings"
+	Table = "settings"
 )
 
 // Columns holds all SQL columns for settings fields.
