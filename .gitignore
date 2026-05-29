@@ -5,3 +5,4 @@ dist/
 .claude/settings.local.json
 /.claude/worktrees
 /.vite/deps
+/apps/koto/scrape
