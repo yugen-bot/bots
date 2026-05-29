@@ -11,7 +11,8 @@ services:
     ports:
       - "$KAZU_API_LISTEN_PORT:$API_LISTEN_PORT"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
   kusari:
     build: .
     user: "1000:1000"
@@ -24,8 +25,10 @@ services:
     ports:
       - "$KUSARI_API_LISTEN_PORT:$API_LISTEN_PORT"
     depends_on:
-      - valkey
-      - db
+      valkey:
+        condition: service_started
+      db:
+        condition: service_healthy
   iro:
     build: .
     user: "1000:1000"
@@ -49,7 +52,8 @@ services:
     ports:
       - "$HOSHI_API_LISTEN_PORT:$API_LISTEN_PORT"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
   koto:
     build: .
     user: "1000:1000"
@@ -62,7 +66,8 @@ services:
     ports:
       - "$KOTO_API_LISTEN_PORT:$API_LISTEN_PORT"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   valkey:
     image: valkey/valkey:alpine
@@ -76,3 +81,8 @@ services:
       - "POSTGRES_MULTIPLE_DATABASES=$DATABASE_NAME"
     ports:
       - "$DATABASE_PORT:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $DATABASE_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

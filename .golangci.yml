@@ -45,22 +45,6 @@ linters:
     presets:
       - common-false-positives
     rules:
-      # Generated Prisma client — skip entirely
-      - path: "apps/.*/prisma/db/"
-        linters:
-          - govet
-          - errcheck
-          - staticcheck
-          - revive
-          - errorlint
-          - gocritic
-          - contextcheck
-          - nilerr
-          - gosec
-          - wrapcheck
-          - funlen
-          - gocognit
-          - wsl_v5
       # Allow ignoring Close/Sync error returns in defers
       - text: "Error return value of .*(Close|Sync)\\b"
         linters:
@@ -91,10 +75,6 @@ linters:
           - errcheck
       # errcheck: DeleteWithSubContainers in defers — error is unactionable
       - text: "Error return value of `.*DeleteWithSubContainers` is not checked"
-        linters:
-          - errcheck
-      # errcheck: prisma deleteMany fire-and-forget in background goroutines
-      - source: "\\.Delete\\(\\)\\.Exec\\("
         linters:
           - errcheck
       # gosec G104: duplicate of errcheck — already handled by errcheck exclusions above
@@ -129,10 +109,6 @@ linters:
       - text: "var-naming: var"
         linters:
           - revive
-      # wrapcheck: prisma Exec errors are wrapped at the service boundary
-      - text: "error returned from external package is unwrapped: sig: func.*\\.Exec\\("
-        linters:
-          - wrapcheck
       # wrapcheck: json.Unmarshal errors are context-local, wrapped above
       - text: "error returned from external package is unwrapped.*json\\.Unmarshal"
         linters:
