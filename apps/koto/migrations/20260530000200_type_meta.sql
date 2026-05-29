@@ -1,0 +1,3 @@
+-- No SQL change required.
+-- This migration updates the Go type for Game.meta and Guess.meta
+-- from map[string]any to typed structs. The database column (jsonb) is unchanged.
