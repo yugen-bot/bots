@@ -7,8 +7,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/services"
-	"jurien.dev/yugen/koto/prisma/db"
+	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -27,17 +28,25 @@ func GetSetRoleModule(container *di.Container) *SetRoleModule {
 func (m *SetRoleModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	role := ctx.Options["role"].RoleValue(ctx.Session, ctx.Interaction.GuildID)
+	guildID := ctx.Interaction.GuildID
+	role := ctx.Options["role"].RoleValue(ctx.Session, guildID)
 
-	params := []db.SettingsSetParam{db.Settings.PingRoleID.Set(role.ID)}
-	if opt, ok := ctx.Options["only-new"]; ok {
-		params = append(params, db.Settings.PingOnlyNew.Set(opt.BoolValue()))
+	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
+	if err != nil || existing == nil {
+		localUtils.ReplyNoSettings(ctx)
+		return
 	}
 
-	if _, err := m.settings.Set(
+	if _, err := m.settings.Update(
 		context.Background(),
-		ctx.Interaction.GuildID,
-		params...); err != nil {
+		existing.ID,
+		func(u *ent.SettingsUpdateOne) {
+			u.SetPingRoleID(role.ID)
+			if opt, ok := ctx.Options["only-new"]; ok {
+				u.SetPingOnlyNew(opt.BoolValue())
+			}
+		},
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

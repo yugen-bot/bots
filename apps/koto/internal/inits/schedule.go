@@ -2,22 +2,23 @@ package inits
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/koto/internal/ent"
+	entgame "jurien.dev/yugen/koto/internal/ent/game"
+	"jurien.dev/yugen/koto/internal/ent/guess"
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
-	"jurien.dev/yugen/koto/prisma/db"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 func InitSchedule(container *di.Container) {
 	c := container.Get(sharedStatic.DiCron).(*cron.Cron)
-	database := container.Get(sharedStatic.DiDatabase).(*db.PrismaClient)
+	database := container.Get(sharedStatic.DiDatabase).(*ent.Client)
 	bot := container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
 	gameSvc := container.Get(localStatic.DiGame).(*services.GameService)
 	settingsSvc := container.Get(sharedStatic.DiSettings).(*services.SettingsService)
@@ -30,28 +31,30 @@ func InitSchedule(container *di.Container) {
 		startedGames := 0
 
 		// 1. Find and end expired games
-		outOfTimeGames, err := database.Game.FindMany(
-			db.Game.Status.Equals(db.GameStatusInProgress),
-			db.Game.EndingAt.Lte(time.Now()),
-		).Exec(ctx)
-		if err != nil && !errors.Is(err, db.ErrNotFound) {
+		outOfTimeGames, err := database.Game.Query().
+			Where(
+				entgame.StatusEQ(entgame.StatusIN_PROGRESS),
+				entgame.EndingAtLTE(time.Now()),
+			).
+			All(ctx)
+		if err != nil && !ent.IsNotFound(err) {
 			utils.Logger.Warnf("schedule: find expired games: %v", err)
 		}
 
 		outOfTimeCount = len(outOfTimeGames)
-		for _, game := range outOfTimeGames {
+		for _, g := range outOfTimeGames {
 			if endErr := gameSvc.EndGame(
 				ctx,
-				game.ID,
-				db.GameStatusOutOfTime,
+				g.ID,
+				entgame.StatusOUT_OF_TIME,
 			); endErr != nil {
-				utils.Logger.Warnf("schedule: end game %d: %v", game.ID, endErr)
+				utils.Logger.Warnf("schedule: end game %d: %v", g.ID, endErr)
 				continue
 			}
 
 			// Auto-start if configured
-			settings, sErr := settingsSvc.GetByGuildID(ctx, game.GuildID)
-			if sErr != nil || settings == nil || !settings.AutoStart {
+			guildSettings, sErr := settingsSvc.GetByGuildID(ctx, g.GuildID)
+			if sErr != nil || guildSettings == nil || !guildSettings.AutoStart {
 				continue
 			}
 
@@ -59,7 +62,7 @@ func InitSchedule(container *di.Container) {
 
 			started, startErr := gameSvc.Start(
 				ctx,
-				game.GuildID,
+				g.GuildID,
 				false,
 				false,
 				"",
@@ -67,7 +70,7 @@ func InitSchedule(container *di.Container) {
 			if startErr != nil {
 				utils.Logger.Warnf(
 					"schedule: auto-start after end for %s: %v",
-					game.GuildID,
+					g.GuildID,
 					startErr,
 				)
 			}
@@ -78,14 +81,13 @@ func InitSchedule(container *di.Container) {
 		}
 
 		// 2. Check guilds with configured channels for scheduled starts
-		allSettings, err := database.Settings.FindMany().Exec(ctx)
-		if err != nil && !errors.Is(err, db.ErrNotFound) {
+		allSettings, err := database.Settings.Query().All(ctx)
+		if err != nil && !ent.IsNotFound(err) {
 			utils.Logger.Warnf("schedule: find all settings: %v", err)
 		}
 
 		for _, setting := range allSettings {
-			channelID, ok := setting.ChannelID()
-			if !ok || channelID == "" {
+			if setting.ChannelID == nil || *setting.ChannelID == "" {
 				continue
 			}
 
@@ -118,9 +120,9 @@ func InitSchedule(container *di.Container) {
 
 func checkAndStartGame(
 	ctx context.Context,
-	database *db.PrismaClient,
+	database *ent.Client,
 	gameSvc *services.GameService,
-	setting db.SettingsModel,
+	setting *ent.Settings,
 ) bool {
 	// Check if there's already an active game
 	currentGame, err := gameSvc.GetCurrentGame(ctx, setting.GuildID)
@@ -129,12 +131,14 @@ func checkAndStartGame(
 	}
 
 	// Get the last completed game
-	lastGames, err := database.Game.FindMany(
-		db.Game.GuildID.Equals(setting.GuildID),
-		db.Game.Status.Not(db.GameStatusInProgress),
-	).OrderBy(
-		db.Game.CreatedAt.Order(db.SortOrderDesc),
-	).Take(1).Exec(ctx)
+	lastGames, err := database.Game.Query().
+		Where(
+			entgame.GuildIDEQ(setting.GuildID),
+			entgame.StatusNEQ(entgame.StatusIN_PROGRESS),
+		).
+		Order(ent.Desc(entgame.FieldCreatedAt)).
+		Limit(1).
+		All(ctx)
 
 	if err != nil || len(lastGames) == 0 {
 		// No previous game → start immediately
@@ -164,11 +168,11 @@ func checkAndStartGame(
 	baseTime := lastGame.CreatedAt
 
 	if setting.StartAfterFirstGuess {
-		firstGuesses, gErr := database.Guess.FindMany(
-			db.Guess.GameID.Equals(lastGame.ID),
-		).OrderBy(
-			db.Guess.CreatedAt.Order(db.SortOrderAsc),
-		).Take(1).Exec(ctx)
+		firstGuesses, gErr := database.Guess.Query().
+			Where(guess.GameIDEQ(lastGame.ID)).
+			Order(ent.Asc(guess.FieldCreatedAt)).
+			Limit(1).
+			All(ctx)
 		if gErr == nil && len(firstGuesses) > 0 {
 			baseTime = firstGuesses[0].CreatedAt
 		}

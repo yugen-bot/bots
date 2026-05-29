@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/services"
-	"jurien.dev/yugen/kusari/prisma/db"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -29,7 +29,7 @@ func (m *SettingsChannelModule) set(ctx *discordgoplus.Ctx) {
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
 
-	settings, err := m.settings.GetByGuildId(
+	s, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)
@@ -38,10 +38,13 @@ func (m *SettingsChannelModule) set(ctx *discordgoplus.Ctx) {
 		return
 	}
 
+	channelID := string(channel.ID)
 	_, err = m.settings.Update(
 		context.Background(),
-		settings.ID,
-		db.Settings.ChannelID.Set(string(channel.ID)),
+		s.ID,
+		func(u *ent.SettingsUpdateOne) {
+			u.SetChannelID(channelID)
+		},
 	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)

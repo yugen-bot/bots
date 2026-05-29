@@ -2,26 +2,25 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/sarulabs/di/v2"
 	"golang.org/x/sync/errgroup"
-	"jurien.dev/yugen/koto/prisma/db"
+	"jurien.dev/yugen/koto/internal/ent"
+	"jurien.dev/yugen/koto/internal/ent/playerstats"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type PointsService struct {
-	database *db.PrismaClient
+	database *ent.Client
 }
 
 func CreatePointsService(container *di.Container) *PointsService {
 	utils.Logger.Info("Creating Points Service")
 
 	return &PointsService{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
+		database: container.Get(static.DiDatabase).(*ent.Client),
 	}
 }
 
@@ -32,25 +31,28 @@ func (s *PointsService) GetPlayer(
 	guildID string,
 	userID string,
 	setInGuild ...bool,
-) (*db.PlayerStatsModel, error) {
+) (*ent.PlayerStats, error) {
 	shouldSetInGuild := true
 	if len(setInGuild) > 0 {
 		shouldSetInGuild = setInGuild[0]
 	}
 
-	created := false
-	player, err := s.database.PlayerStats.FindFirst(
-		db.PlayerStats.UserID.Equals(userID),
-		db.PlayerStats.GuildID.Equals(guildID),
-	).Exec(ctx)
+	player, err := s.database.PlayerStats.Query().
+		Where(
+			playerstats.UserIDEQ(userID),
+			playerstats.GuildIDEQ(guildID),
+		).
+		First(ctx)
 
-	if errors.Is(err, db.ErrNotFound) {
+	created := false
+
+	if ent.IsNotFound(err) {
 		created = true
-		player, err = s.database.PlayerStats.CreateOne(
-			db.PlayerStats.UserID.Set(userID),
-			db.PlayerStats.GuildID.Set(guildID),
-			db.PlayerStats.InGuild.Set(true),
-		).Exec(ctx)
+		player, err = s.database.PlayerStats.Create().
+			SetUserID(userID).
+			SetGuildID(guildID).
+			SetInGuild(true).
+			Save(ctx)
 	}
 
 	if err != nil {
@@ -58,11 +60,9 @@ func (s *PointsService) GetPlayer(
 	}
 
 	if shouldSetInGuild && !created {
-		player, err = s.database.PlayerStats.FindUnique(
-			db.PlayerStats.ID.Equals(player.ID),
-		).Update(
-			db.PlayerStats.InGuild.Set(true),
-		).Exec(ctx)
+		player, err = s.database.PlayerStats.UpdateOneID(player.ID).
+			SetInGuild(true).
+			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("points: get player: set in guild: %w", err)
 		}
@@ -82,11 +82,9 @@ func (s *PointsService) RemovePlayerFromGuild(
 		return fmt.Errorf("points: remove player from guild: %w", err)
 	}
 
-	_, err = s.database.PlayerStats.FindUnique(
-		db.PlayerStats.ID.Equals(player.ID),
-	).Update(
-		db.PlayerStats.InGuild.Set(false),
-	).Exec(ctx)
+	_, err = s.database.PlayerStats.UpdateOneID(player.ID).
+		SetInGuild(false).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("points: remove player from guild: update: %w", err)
 	}
@@ -100,22 +98,18 @@ func (s *PointsService) ResetLeaderboard(
 	guildID string,
 	userID *string,
 ) error {
-	var err error
+	q := s.database.PlayerStats.Delete().
+		Where(playerstats.GuildIDEQ(guildID))
+
 	if userID != nil {
-		_, err = s.database.PlayerStats.FindMany(
-			db.PlayerStats.GuildID.Equals(guildID),
-			db.PlayerStats.UserID.Equals(*userID),
-		).Delete().Exec(ctx)
-	} else {
-		_, err = s.database.PlayerStats.FindMany(
-			db.PlayerStats.GuildID.Equals(guildID),
-		).Delete().Exec(ctx)
+		q = s.database.PlayerStats.Delete().
+			Where(
+				playerstats.GuildIDEQ(guildID),
+				playerstats.UserIDEQ(*userID),
+			)
 	}
 
-	if errors.Is(err, db.ErrNotFound) {
-		return nil
-	}
-
+	_, err := q.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("points: reset leaderboard: %w", err)
 	}
@@ -131,11 +125,11 @@ func (s *PointsService) GetLeaderboard(
 	guildID string,
 	leaderboardType string,
 	page int,
-) ([]db.PlayerStatsModel, int, error) {
+) ([]*ent.PlayerStats, int, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
 	var (
-		items []db.PlayerStatsModel
+		items []*ent.PlayerStats
 		total int
 	)
 
@@ -166,22 +160,25 @@ func (s *PointsService) getLeaderboardItems(
 	guildID string,
 	leaderboardType string,
 	page int,
-) ([]db.PlayerStatsModel, error) {
-	var orderBy db.PlayerStatsOrderByParam
+) ([]*ent.PlayerStats, error) {
+	q := s.database.PlayerStats.Query().
+		Where(
+			playerstats.GuildIDEQ(guildID),
+			playerstats.InGuildEQ(true),
+		).
+		Limit(10).
+		Offset((page - 1) * 10)
 
 	switch leaderboardType {
 	case "wins":
-		orderBy = db.PlayerStats.Wins.Order(db.DESC)
+		q = q.Order(ent.Desc(playerstats.FieldWins))
 	case "participated":
-		orderBy = db.PlayerStats.Participated.Order(db.DESC)
+		q = q.Order(ent.Desc(playerstats.FieldParticipated))
 	default:
-		orderBy = db.PlayerStats.Points.Order(db.DESC)
+		q = q.Order(ent.Desc(playerstats.FieldPoints))
 	}
 
-	items, err := s.database.PlayerStats.FindMany(
-		db.PlayerStats.GuildID.Equals(guildID),
-		db.PlayerStats.InGuild.Equals(true),
-	).OrderBy(orderBy).Take(10).Skip((page - 1) * 10).Exec(ctx)
+	items, err := q.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("points: get leaderboard items: %w", err)
 	}
@@ -193,27 +190,17 @@ func (s *PointsService) getLeaderboardTotal(
 	ctx context.Context,
 	guildID string,
 ) (int, error) {
-	var res []struct {
-		Count string `json:"count"`
-	}
-
-	if err := s.database.Prisma.QueryRaw(
-		`SELECT count(*) as count FROM "PlayerStats" WHERE "guildId" = $1 AND "inGuild" = true`,
-		guildID,
-	).Exec(ctx, &res); err != nil {
+	total, err := s.database.PlayerStats.Query().
+		Where(
+			playerstats.GuildIDEQ(guildID),
+			playerstats.InGuildEQ(true),
+		).
+		Count(ctx)
+	if err != nil {
 		return 0, fmt.Errorf("points: get leaderboard total: %w", err)
 	}
 
-	if len(res) == 0 {
-		return 0, nil
-	}
-
-	count, err := strconv.Atoi(res[0].Count)
-	if err != nil {
-		return 0, fmt.Errorf("points: parse leaderboard total: %w", err)
-	}
-
-	return count, nil
+	return total, nil
 }
 
 // ApplyPoints applies points to all players who participated in the game.
@@ -221,8 +208,8 @@ func (s *PointsService) getLeaderboardTotal(
 // For each unique user in guesses: sum their points + 2 participation bonus. Increment participated, wins (if winner), points.
 func (s *PointsService) ApplyPoints(
 	ctx context.Context,
-	game *db.GameModel,
-	guesses []db.GuessModel,
+	currentGame *ent.Game,
+	guesses []*ent.Guess,
 	winnerID string,
 ) error {
 	// Group guesses by userID, preserving insertion order for participation bonus
@@ -245,15 +232,15 @@ func (s *PointsService) ApplyPoints(
 
 		if err := s.applyPointsToPlayer(
 			ctx,
-			game.GuildID,
+			currentGame.GuildID,
 			userID,
 			totalPoints,
 			isWinner,
 		); err != nil {
 			utils.Logger.Warnw("points: apply: failed for user",
 				"error", err,
-				"guildID", game.GuildID,
-				"gameID", game.ID,
+				"guildID", currentGame.GuildID,
+				"gameID", currentGame.ID,
 				"userID", userID,
 			)
 		}
@@ -274,17 +261,15 @@ func (s *PointsService) applyPointsToPlayer(
 		return fmt.Errorf("points: apply to player: get player: %w", err)
 	}
 
-	updateParams := []db.PlayerStatsSetParam{
-		db.PlayerStats.Points.Increment(points),
-		db.PlayerStats.Participated.Increment(1),
-	}
+	upd := s.database.PlayerStats.UpdateOneID(player.ID).
+		AddPoints(points).
+		AddParticipated(1)
+
 	if isWinner {
-		updateParams = append(updateParams, db.PlayerStats.Wins.Increment(1))
+		upd = upd.AddWins(1)
 	}
 
-	_, err = s.database.PlayerStats.FindUnique(
-		db.PlayerStats.ID.Equals(player.ID),
-	).Update(updateParams...).Exec(ctx)
+	_, err = upd.Save(ctx)
 	if err != nil {
 		return fmt.Errorf("points: apply to player: update: %w", err)
 	}

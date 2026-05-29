@@ -59,7 +59,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	game, gameExists, err := m.game.GetCurrentGame(
+	gameResult, gameExists, err := m.game.GetCurrentGame(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)
@@ -78,7 +78,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 
 	history, historyExists, err := m.game.GetLastHistory(
 		context.Background(),
-		game,
+		gameResult,
 	)
 	if err != nil {
 		utils.Logger.Errorw(
@@ -122,17 +122,15 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 
 	onGoingGameText := "None"
 
-	channelId, ok := settings.ChannelID()
-	if gameExists && ok {
-		onGoingGameText = fmt.Sprintf("at <#%s>", channelId)
+	if gameExists && settings.ChannelID != nil {
+		onGoingGameText = fmt.Sprintf("at <#%s>", *settings.ChannelID)
 	}
 
 	highscoreDateText := ""
 
-	highscoreDate, ok := settings.HighscoreDate()
-	if ok {
+	if settings.HighscoreDate != nil {
 		highscoreDateText = " - " + hammertime.Format(
-			highscoreDate,
+			*settings.HighscoreDate,
 			hammertime.Span,
 		)
 	}
@@ -140,6 +138,11 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 	lastWordText := "-"
 	if historyExists && history.UserID != self.ID {
 		lastWordText = fmt.Sprintf("<@%s>", history.UserID)
+	}
+
+	lastWord := "-"
+	if history != nil {
+		lastWord = history.Word
 	}
 
 	embed := &discordgo.MessageEmbed{
@@ -160,7 +163,7 @@ Saves used: **%s**
 			onGoingGameText,
 			settings.Highscore,
 			highscoreDateText,
-			history.Word,
+			lastWord,
 			lastWordText,
 			strconv.FormatFloat(settings.Saves, 'f', -1, 64),
 			strconv.FormatFloat(settings.MaxSaves, 'f', -1, 64),

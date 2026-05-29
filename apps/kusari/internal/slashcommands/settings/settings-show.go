@@ -30,7 +30,7 @@ func GetSettingsShowModule(container *di.Container) *SettingsShowModule {
 func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildId(
+	s, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)
@@ -39,18 +39,16 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	channelID, channelIDOk := settings.ChannelID()
-	botUpdatesChannelID, botUpdatesChannelIDOk := settings.BotUpdatesChannelID()
-	cooldown := settings.Cooldown
+	cooldown := s.Cooldown
 
 	channelIDText := "-"
-	if channelIDOk {
-		channelIDText = fmt.Sprintf("<#%s>", channelID)
+	if s.ChannelID != nil {
+		channelIDText = fmt.Sprintf("<#%s>", *s.ChannelID)
 	}
 
 	botUpdatesChannelIDText := "-"
-	if botUpdatesChannelIDOk {
-		botUpdatesChannelIDText = fmt.Sprintf("<#%s>", botUpdatesChannelID)
+	if s.BotUpdatesChannelID != nil {
+		botUpdatesChannelIDText = fmt.Sprintf("<#%s>", *s.BotUpdatesChannelID)
 	}
 
 	cooldownText := fmt.Sprintf("%d seconds", cooldown)

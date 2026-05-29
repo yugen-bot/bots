@@ -30,9 +30,10 @@ func GetSettingsShowModule(container *di.Container) *SettingsShowModule {
 func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildID(
+	s, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
+		true,
 	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
@@ -40,15 +41,15 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	}
 
 	botUpdatesText := "-"
-	if bid, ok := settings.BotUpdatesChannelID(); ok && len(bid) > 0 {
-		botUpdatesText = fmt.Sprintf("<#%s>", bid)
+	if s.BotUpdatesChannelID != nil && len(*s.BotUpdatesChannelID) > 0 {
+		botUpdatesText = fmt.Sprintf("<#%s>", *s.BotUpdatesChannelID)
 	}
 
 	ignoredText := "-"
 
-	if len(settings.IgnoredChannelIds) > 0 {
-		mentions := make([]string, len(settings.IgnoredChannelIds))
-		for i, id := range settings.IgnoredChannelIds {
+	if len(s.IgnoredChannelIds) > 0 {
+		mentions := make([]string, len(s.IgnoredChannelIds))
+		for i, id := range s.IgnoredChannelIds {
 			mentions[i] = fmt.Sprintf("<#%s>", id)
 		}
 
@@ -70,11 +71,11 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Treshold",
-				Value:  fmt.Sprintf("%d", settings.Treshold),
+				Value:  fmt.Sprintf("%d", s.Treshold),
 				Inline: true,
 			},
 			{Name: "Author starring", Value: func() string {
-				if settings.Self {
+				if s.Self {
 					return "Allowed"
 				}
 

@@ -60,8 +60,7 @@ func (m *AdminRecreateModule) recreate(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	channelID, ok := settings.ChannelID()
-	if !ok || channelID == "" {
+	if settings.ChannelID == nil || *settings.ChannelID == "" {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Guild has no channel configured.",
 		}, true)
@@ -85,7 +84,7 @@ func (m *AdminRecreateModule) recreate(ctx *discordgoplus.Ctx) {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: fmt.Sprintf(
 				"A game has been recreated in <#%s>.",
-				channelID,
+				*settings.ChannelID,
 			),
 		}, true)
 	} else {

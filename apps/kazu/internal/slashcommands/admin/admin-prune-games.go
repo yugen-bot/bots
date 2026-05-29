@@ -44,9 +44,9 @@ func (m *AdminPruneGamesModule) run(ctx *discordgoplus.Ctx) {
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
 	var orphanGuildIDs []string
-	for _, row := range rows {
-		if !utils.IsBotInGuild(m.bot, row.GuildID) {
-			orphanGuildIDs = append(orphanGuildIDs, row.GuildID)
+	for _, guildID := range rows {
+		if !utils.IsBotInGuild(m.bot, guildID) {
+			orphanGuildIDs = append(orphanGuildIDs, guildID)
 		}
 	}
 

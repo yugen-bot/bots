@@ -21,7 +21,7 @@ func AddGuildListeners(container *di.Container) {
 	bot.AddHandler(func(s *discordgo.Session, event *discordgo.GuildCreate) {
 		ctx := context.Background()
 
-		settings, err := settingsSvc.GetByGuildID(
+		guildSettings, err := settingsSvc.GetByGuildID(
 			ctx,
 			event.ID,
 			false,
@@ -34,7 +34,7 @@ func AddGuildListeners(container *di.Container) {
 			)
 		}
 
-		if settings != nil {
+		if guildSettings != nil {
 			return
 		}
 

@@ -7,9 +7,10 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
+	"github.com/lib/pq"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/hoshi/internal/ent"
 	"jurien.dev/yugen/hoshi/internal/services"
-	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 )
@@ -39,34 +40,29 @@ func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
 	setting := ctx.Options["setting"].StringValue()
 
 	var (
-		param db.SettingsSetParam
+		apply func(*ent.SettingsUpdateOne)
 		value string
 	)
 
 	switch setting {
 	case "treshold":
-		param = db.Settings.Treshold.Set(3)
+		apply = func(u *ent.SettingsUpdateOne) { u.SetTreshold(3) }
 		value = "3"
 	case "self":
-		param = db.Settings.Self.Set(false)
+		apply = func(u *ent.SettingsUpdateOne) { u.SetSelf(false) }
 		value = "false"
 	case "botUpdatesChannelId":
-		param = db.Settings.BotUpdatesChannelID.SetOptional(nil)
+		apply = func(u *ent.SettingsUpdateOne) { u.ClearBotUpdatesChannelID() }
 		value = "-"
 	case "ignoredChannelIds":
-		param = db.Settings.IgnoredChannelIds.Set([]string{})
+		apply = func(u *ent.SettingsUpdateOne) { u.SetIgnoredChannelIds(pq.StringArray{}) }
 		value = "[]"
 	default:
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	_, err := m.settings.Set(
-		context.Background(),
-		ctx.Interaction.GuildID,
-		param,
-	)
-	if err != nil {
+	if err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, apply); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

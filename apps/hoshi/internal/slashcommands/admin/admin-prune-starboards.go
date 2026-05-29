@@ -53,8 +53,8 @@ func (m *AdminPruneStarboardsModule) run(ctx *discordgoplus.Ctx) {
 	var orphanGuildIDs []string
 
 	for _, row := range rows {
-		if !utils.IsBotInGuild(m.bot, row.GuildID) {
-			orphanGuildIDs = append(orphanGuildIDs, row.GuildID)
+		if !utils.IsBotInGuild(m.bot, row) {
+			orphanGuildIDs = append(orphanGuildIDs, row)
 		}
 	}
 

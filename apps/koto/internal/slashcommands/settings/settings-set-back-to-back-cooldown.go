@@ -6,8 +6,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/services"
-	"jurien.dev/yugen/koto/prisma/db"
+	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -28,22 +29,25 @@ func GetSetBackToBackCooldownModule(
 func (m *SetBackToBackCooldownModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
+	guildID := ctx.Interaction.GuildID
 	enable := ctx.Options["enabled"].BoolValue()
 
-	params := []db.SettingsSetParam{
-		db.Settings.EnableBackToBackCooldown.Set(enable),
-	}
-	if opt, ok := ctx.Options["seconds"]; ok {
-		params = append(
-			params,
-			db.Settings.BackToBackCooldown.Set(int(opt.IntValue())),
-		)
+	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
+	if err != nil || existing == nil {
+		localUtils.ReplyNoSettings(ctx)
+		return
 	}
 
-	if _, err := m.settings.Set(
+	if _, err := m.settings.Update(
 		context.Background(),
-		ctx.Interaction.GuildID,
-		params...); err != nil {
+		existing.ID,
+		func(u *ent.SettingsUpdateOne) {
+			u.SetEnableBackToBackCooldown(enable)
+			if opt, ok := ctx.Options["seconds"]; ok {
+				u.SetBackToBackCooldown(int(opt.IntValue()))
+			}
+		},
+	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return
 	}

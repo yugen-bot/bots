@@ -6,8 +6,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/services"
-	"jurien.dev/yugen/koto/prisma/db"
+	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -26,12 +27,19 @@ func GetSetAutoStartModule(container *di.Container) *SetAutoStartModule {
 func (m *SetAutoStartModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
+	guildID := ctx.Interaction.GuildID
 	enabled := ctx.Options["value"].BoolValue()
 
-	if _, err := m.settings.Set(
+	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
+	if err != nil || existing == nil {
+		localUtils.ReplyNoSettings(ctx)
+		return
+	}
+
+	if _, err := m.settings.Update(
 		context.Background(),
-		ctx.Interaction.GuildID,
-		db.Settings.AutoStart.Set(enabled),
+		existing.ID,
+		func(u *ent.SettingsUpdateOne) { u.SetAutoStart(enabled) },
 	); err != nil {
 		discordgoplus.InteractionError(ctx, true)
 		return

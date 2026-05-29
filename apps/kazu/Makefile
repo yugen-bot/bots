@@ -1,36 +1,38 @@
 # Simple Makefile for a Go project
 
-# Build the application
 all: build test
 
 build:
 	@echo "Building..."
-	@go generate ./cmd/bot/main.go
 	@go build -o dist/kazu cmd/bot/main.go
 
 build-prod:
 	@echo "Building..."
-	@go generate ./cmd/bot/main.go
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o dist/kazu cmd/bot/main.go
 
-migrate:
-	@go run github.com/steebchen/prisma-client-go migrate deploy
+ent-generate:
+	@GOWORK=off go generate ./internal/ent
 
-# Run the application
+migrate:
+	@atlas migrate apply --env local
+
+migrate-diff:
+	@atlas migrate diff $(name) --env local
+
+migrate-validate:
+	@atlas migrate validate --env local
+
 run:
 	@go run cmd/bot/main.go
 
-# Test the application
 test:
 	@echo "Testing..."
 	@go test ./... -v
 
-# Clean the binary
 clean:
 	@echo "Cleaning..."
 	@rm -f main
 
-# Live Reload
 watch:
 	@if command -v air > /dev/null; then \
             air; \
@@ -47,4 +49,4 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch
+.PHONY: all build build-prod ent-generate migrate migrate-diff migrate-validate run test clean watch

@@ -63,11 +63,10 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 	var gameLines []string
 
 	if currentGame != nil {
-		channelID, hasChannel := settings.ChannelID()
-		if hasChannel {
+		if settings.ChannelID != nil && *settings.ChannelID != "" {
 			gameLines = append(
 				gameLines,
-				fmt.Sprintf("Ongoing game: **at <#%s>**", channelID),
+				fmt.Sprintf("Ongoing game: **at <#%s>**", *settings.ChannelID),
 			)
 		}
 	} else {

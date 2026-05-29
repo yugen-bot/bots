@@ -2,12 +2,17 @@ package inits
 
 import (
 	"fmt"
+	"os"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
-	"jurien.dev/yugen/koto/prisma/db"
 	sharedInits "jurien.dev/yugen/shared/inits"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -72,20 +77,19 @@ Koto is a Wordle-style game! Guess the 6-letter word by typing words in the conf
 	diBuilder.Add(&di.Def{
 		Name: static.DiDatabase,
 		Build: func(ctn di.Container) (any, error) {
-			client := db.NewClient()
-			if connectErr := client.Prisma.Connect(); connectErr != nil {
-				return nil, fmt.Errorf("prisma connect: %w", connectErr)
+			cfg, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
+			if err != nil {
+				return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
 			}
 
-			return client, nil
+			db := stdlib.OpenDB(*cfg)
+			drv := entsql.OpenDB(dialect.Postgres, db)
+
+			return ent.NewClient(ent.Driver(drv)), nil
 		},
 		Close: func(obj any) error {
-			database := obj.(*db.PrismaClient)
-
 			utils.Logger.Info("Shutting down database connection...")
-			database.Disconnect()
-
-			return nil
+			return obj.(*ent.Client).Close()
 		},
 	})
 

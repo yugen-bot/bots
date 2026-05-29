@@ -8,8 +8,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
-	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -67,32 +67,32 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	}
 
 	var (
-		dbSetting db.SettingsSetParam
-		value     string
+		apply func(*ent.SettingsUpdateOne)
+		value string
 	)
 
 	switch setting {
 	case "channelID":
-		dbSetting = db.Settings.ChannelID.SetOptional(nil)
+		apply = func(u *ent.SettingsUpdateOne) { u.ClearChannelID() }
 		value = "unset"
 	case "botUpdatesChannelID":
-		dbSetting = db.Settings.BotUpdatesChannelID.SetOptional(nil)
+		apply = func(u *ent.SettingsUpdateOne) { u.ClearBotUpdatesChannelID() }
 		value = "unset"
 	case "cooldown":
-		dbSetting = db.Settings.Cooldown.Set(0)
+		apply = func(u *ent.SettingsUpdateOne) { u.SetCooldown(0) }
 		value = "0"
 	case "math":
-		dbSetting = db.Settings.Math.Set(true)
+		apply = func(u *ent.SettingsUpdateOne) { u.SetMath(true) }
 		value = "true"
 	case "shameRoleID":
-		dbSetting = db.Settings.ShameRoleID.SetOptional(nil)
+		apply = func(u *ent.SettingsUpdateOne) { u.ClearShameRoleID() }
 		value = "unset"
 	case "removeShameRoleAfterHighscore":
-		dbSetting = db.Settings.RemoveShameRoleAfterHighscore.Set(false)
+		apply = func(u *ent.SettingsUpdateOne) { u.SetRemoveShameRoleAfterHighscore(false) }
 		value = "false"
 	}
 
-	if dbSetting == nil {
+	if apply == nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
@@ -100,7 +100,7 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	_, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
-		dbSetting,
+		apply,
 	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)

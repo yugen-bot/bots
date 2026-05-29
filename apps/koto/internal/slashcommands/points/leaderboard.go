@@ -87,8 +87,7 @@ func (m *LeaderboardModule) showLeaderboard(
 		return
 	}
 
-	channelID, ok := settings.ChannelID()
-	if !ok || channelID == "" {
+	if settings.ChannelID == nil || *settings.ChannelID == "" {
 		localUtils.ReplyNoSettings(ctx)
 		return
 	}

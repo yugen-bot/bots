@@ -6,13 +6,14 @@ import (
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/hoshi/prisma/db"
+	"jurien.dev/yugen/hoshi/internal/ent"
+	"jurien.dev/yugen/hoshi/internal/ent/starboards"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type NotifyService struct {
-	database *db.PrismaClient
+	database *ent.Client
 	bot      *discordgoplus.Bot
 }
 
@@ -20,7 +21,7 @@ func CreateNotifyService(container *di.Container) *NotifyService {
 	utils.Logger.Info("Creating Notify Service")
 
 	return &NotifyService{
-		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
+		database: container.Get(sharedStatic.DiDatabase).(*ent.Client),
 		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
 	}
 }
@@ -29,30 +30,30 @@ func (s *NotifyService) SendNotification(
 	ctx context.Context,
 	content string,
 ) (int, int, int, error) {
-	settings, err := s.database.Settings.FindMany().Exec(ctx)
+	all, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("notify: find settings: %w", err)
 	}
 
-	total := len(settings)
+	total := len(all)
 	successByBotChannel := 0
 	successByStarboard := 0
 
-	for _, setting := range settings {
+	for _, setting := range all {
 		channelID := ""
 		usingStarboard := false
 
-		if bid, ok := setting.BotUpdatesChannelID(); ok && len(bid) > 0 {
-			channelID = bid
+		if setting.BotUpdatesChannelID != nil && len(*setting.BotUpdatesChannelID) > 0 {
+			channelID = *setting.BotUpdatesChannelID
 		} else {
-			starboard, sErr := s.database.Starboards.FindFirst(
-				db.Starboards.GuildID.Equals(setting.GuildID),
-			).Exec(ctx)
-			if sErr != nil || starboard == nil {
+			sb, sErr := s.database.Starboards.Query().
+				Where(starboards.GuildIDEQ(setting.GuildID)).
+				First(ctx)
+			if sErr != nil || sb == nil {
 				continue
 			}
 
-			channelID = starboard.TargetChannelID
+			channelID = sb.TargetChannelID
 			usingStarboard = true
 		}
 

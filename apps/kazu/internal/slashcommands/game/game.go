@@ -7,10 +7,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kazu/internal/ent/game"
 	"jurien.dev/yugen/kazu/internal/services"
 	local "jurien.dev/yugen/kazu/internal/static"
 	localUtils "jurien.dev/yugen/kazu/internal/utils"
-	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -41,8 +41,8 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 		return
 	}
 
-	channelId, ok := settings.ChannelID()
-	if !ok {
+	channelId := settings.ChannelID
+	if channelId == nil {
 		localUtils.NoSettingsReply(ctx, m.container, true)
 		return
 	}
@@ -58,7 +58,7 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 	_, started, err := m.game.Start(
 		context.Background(),
 		ctx.Interaction.GuildID,
-		db.GameTypeNormal,
+		game.TypeNORMAL,
 		startingNumber,
 		recreate,
 	)
@@ -72,8 +72,8 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 		respond = "There is already an ongoing game"
 	}
 
-	if channelId != ctx.Interaction.ChannelID {
-		respond = fmt.Sprintf("%s in the <#%s> channel.", respond, channelId)
+	if *channelId != ctx.Interaction.ChannelID {
+		respond = fmt.Sprintf("%s in the <#%s> channel.", respond, *channelId)
 	} else {
 		respond = respond + "."
 	}

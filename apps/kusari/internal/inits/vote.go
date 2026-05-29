@@ -93,9 +93,9 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 			return ""
 		}
 
-		lastVoteTime, ok := player.LastVoteTime()
-		if !ok {
-			lastVoteTime = time.Now().Add(-time.Hour * 24)
+		lastVoteTime := time.Now().Add(-time.Hour * 24)
+		if player.LastVoteTime != nil {
+			lastVoteTime = *player.LastVoteTime
 		}
 
 		voteTime := lastVoteTime.Add(time.Hour * 12)

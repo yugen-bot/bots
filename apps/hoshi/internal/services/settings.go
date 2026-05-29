@@ -5,14 +5,16 @@ import (
 	"fmt"
 
 	"github.com/jurienhamaker/discordgoplus"
+	"github.com/lib/pq"
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/hoshi/prisma/db"
+	"jurien.dev/yugen/hoshi/internal/ent"
+	"jurien.dev/yugen/hoshi/internal/ent/settings"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsService struct {
-	database *db.PrismaClient
+	database *ent.Client
 	bot      *discordgoplus.Bot
 }
 
@@ -20,7 +22,7 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	utils.Logger.Info("Creating Settings Service")
 
 	return &SettingsService{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
+		database: container.Get(static.DiDatabase).(*ent.Client),
 		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
 	}
 }
@@ -29,35 +31,36 @@ func (s *SettingsService) GetByGuildID(
 	ctx context.Context,
 	guildID string,
 	create ...bool,
-) (*db.SettingsModel, error) {
-	createBool := false
-	if len(create) > 0 {
-		createBool = create[0]
-	}
+) (*ent.Settings, error) {
+	createBool := len(create) > 0 && create[0]
 
-	settings, err := s.database.Settings.FindUnique(
-		db.Settings.GuildID.Equals(guildID),
-	).Exec(ctx)
-	if err != nil && !createBool {
+	result, err := s.database.Settings.Query().
+		Where(settings.GuildIDEQ(guildID)).
+		Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("settings: find by guild: %w", err)
 	}
 
-	if (err != nil || settings == nil) && createBool {
-		settings, err = s.database.Settings.CreateOne(
-			db.Settings.GuildID.Set(guildID),
-		).Exec(ctx)
+	if ent.IsNotFound(err) && createBool {
+		result, err = s.database.Settings.Create().SetGuildID(guildID).Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("settings: create: %w", err)
 		}
+
+		return result, nil
 	}
 
-	return settings, nil
+	if ent.IsNotFound(err) {
+		return nil, fmt.Errorf("settings: find by guild: %w", err)
+	}
+
+	return result, nil
 }
 
 func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
-	_, err := s.database.Settings.FindUnique(
-		db.Settings.GuildID.Equals(guildID),
-	).Delete().Exec(ctx)
+	_, err := s.database.Settings.Delete().
+		Where(settings.GuildIDEQ(guildID)).
+		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("settings: delete: %w", err)
 	}
@@ -68,25 +71,32 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 func (s *SettingsService) Set(
 	ctx context.Context,
 	guildID string,
-	params ...db.SettingsSetParam,
-) (*db.SettingsModel, error) {
-	result, err := s.database.Settings.FindUnique(
-		db.Settings.GuildID.Equals(guildID),
-	).Update(params...).Exec(ctx)
+	apply func(*ent.SettingsUpdateOne),
+) error {
+	existing, err := s.GetByGuildID(ctx, guildID)
 	if err != nil {
-		return nil, fmt.Errorf("settings: set: %w", err)
+		return fmt.Errorf("settings: set: %w", err)
 	}
 
-	return result, nil
+	upd := s.database.Settings.UpdateOneID(existing.ID)
+	apply(upd)
+
+	if err := upd.Exec(ctx); err != nil {
+		return fmt.Errorf("settings: set: %w", err)
+	}
+
+	return nil
 }
 
-func (s *SettingsService) FindAll(ctx context.Context) ([]db.SettingsModel, error) {
-	settings, err := s.database.Settings.FindMany().Exec(ctx)
+func (s *SettingsService) FindAll(
+	ctx context.Context,
+) ([]*ent.Settings, error) {
+	result, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: find all: %w", err)
 	}
 
-	return settings, nil
+	return result, nil
 }
 
 func (s *SettingsService) IgnoreChannel(
@@ -94,12 +104,12 @@ func (s *SettingsService) IgnoreChannel(
 	guildID, channelID string,
 	ignore bool,
 ) error {
-	settings, err := s.GetByGuildID(ctx, guildID)
+	existing, err := s.GetByGuildID(ctx, guildID)
 	if err != nil {
 		return err
 	}
 
-	ids := settings.IgnoredChannelIds
+	ids := []string(existing.IgnoredChannelIds)
 	idx := -1
 
 	for i, id := range ids {
@@ -115,10 +125,7 @@ func (s *SettingsService) IgnoreChannel(
 		ids = append(ids[:idx], ids[idx+1:]...)
 	}
 
-	_, err = s.Set(ctx, guildID, db.Settings.IgnoredChannelIds.Set(ids))
-	if err != nil {
-		return fmt.Errorf("settings: ignore channel: %w", err)
-	}
-
-	return nil
+	return s.Set(ctx, guildID, func(u *ent.SettingsUpdateOne) {
+		u.SetIgnoredChannelIds(pq.StringArray(ids))
+	})
 }

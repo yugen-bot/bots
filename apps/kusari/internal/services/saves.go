@@ -2,17 +2,18 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/kusari/prisma/db"
+	"jurien.dev/yugen/kusari/internal/ent"
+	"jurien.dev/yugen/kusari/internal/ent/playersaves"
+	"jurien.dev/yugen/kusari/internal/ent/settings"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type SavesService struct {
-	database *db.PrismaClient
+	database *ent.Client
 	settings *SettingsService
 }
 
@@ -25,7 +26,7 @@ func CreateSavesService(container *di.Container) *SavesService {
 	utils.Logger.Info("Creating Saves Service")
 
 	return &SavesService{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
+		database: container.Get(static.DiDatabase).(*ent.Client),
 		settings: container.Get(static.DiSettings).(*SettingsService),
 	}
 }
@@ -33,11 +34,11 @@ func CreateSavesService(container *di.Container) *SavesService {
 func (service *SavesService) GetPlayerSavesByUserID(
 	ctx context.Context,
 	userID string,
-) (*db.PlayerSavesModel, error) {
-	saves, err := service.database.PlayerSaves.FindFirst(
-		db.PlayerSaves.UserID.Equals(userID),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+) (*ent.PlayerSaves, error) {
+	saves, err := service.database.PlayerSaves.Query().
+		Where(playersaves.UserIDEQ(userID)).
+		First(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("saves: get player saves: %w", err)
 	}
 
@@ -45,9 +46,9 @@ func (service *SavesService) GetPlayerSavesByUserID(
 		return saves, nil
 	}
 
-	saves, err = service.database.PlayerSaves.CreateOne(
-		db.PlayerSaves.UserID.Set(userID),
-	).Exec(ctx)
+	saves, err = service.database.PlayerSaves.Create().
+		SetUserID(userID).
+		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("saves: create player saves: %w", err)
 	}
@@ -57,17 +58,17 @@ func (service *SavesService) GetPlayerSavesByUserID(
 
 func (service *SavesService) GetSaves(
 	ctx context.Context,
-	settings *db.SettingsModel,
+	s *ent.Settings,
 	userID string,
 ) (*GetSavesResult, error) {
 	player, err := service.GetPlayerSavesByUserID(ctx, userID)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("saves: get saves: %w", err)
 	}
 
 	result := &GetSavesResult{
 		player: int(player.Saves),
-		guild:  int(settings.Saves),
+		guild:  int(s.Saves),
 	}
 
 	return result, nil
@@ -89,11 +90,9 @@ func (service *SavesService) DeductSaveFromPlayer(
 		newSaves = 0
 	}
 
-	player, err = service.database.PlayerSaves.FindUnique(db.PlayerSaves.ID.Equals(player.ID)).
-		Update(
-			db.PlayerSaves.Saves.Set(newSaves),
-		).
-		Exec(ctx)
+	player, err = service.database.PlayerSaves.UpdateOneID(player.ID).
+		SetSaves(newSaves).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf(
 			"saves: deduct save from player: update: %w",
@@ -107,25 +106,33 @@ func (service *SavesService) DeductSaveFromPlayer(
 func (service *SavesService) DeductSaveFromGuild(
 	ctx context.Context,
 	guildID string,
-	settings *db.SettingsModel,
+	s *ent.Settings,
 	amount float64,
 ) (float64, float64, error) {
-	newSaves := utils.RoundTwo(settings.Saves - amount)
+	newSaves := utils.RoundTwo(s.Saves - amount)
 
 	if newSaves < 0 {
 		newSaves = 0
 	}
 
-	settings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).
-		Update(
-			db.Settings.Saves.Set(newSaves),
-		).
-		Exec(ctx)
+	n, err := service.database.Settings.Update().
+		Where(settings.IDEQ(s.ID)).
+		SetSaves(newSaves).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: deduct save from guild: %w", err)
 	}
 
-	return settings.Saves, settings.MaxSaves, nil
+	if n == 0 {
+		return 0, 0, fmt.Errorf("saves: deduct save from guild: no rows updated")
+	}
+
+	updated, err := service.database.Settings.Get(ctx, s.ID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("saves: deduct save from guild: reload: %w", err)
+	}
+
+	return updated.Saves, updated.MaxSaves, nil
 }
 
 func (service *SavesService) AddSaveToPlayer(
@@ -148,11 +155,9 @@ func (service *SavesService) AddSaveToPlayer(
 		newSaves = player.MaxSaves
 	}
 
-	player, err = service.database.PlayerSaves.FindUnique(db.PlayerSaves.ID.Equals(player.ID)).
-		Update(
-			db.PlayerSaves.Saves.Set(newSaves),
-		).
-		Exec(ctx)
+	player, err = service.database.PlayerSaves.UpdateOneID(player.ID).
+		SetSaves(newSaves).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to player: update: %w", err)
 	}
@@ -163,23 +168,31 @@ func (service *SavesService) AddSaveToPlayer(
 func (service *SavesService) AddSaveToGuild(
 	ctx context.Context,
 	guildID string,
-	settings *db.SettingsModel,
+	s *ent.Settings,
 	amount float64,
 ) (float64, float64, error) {
-	newSaves := utils.RoundTwo(settings.Saves + amount)
+	newSaves := utils.RoundTwo(s.Saves + amount)
 
-	if newSaves > settings.MaxSaves {
-		newSaves = settings.MaxSaves
+	if newSaves > s.MaxSaves {
+		newSaves = s.MaxSaves
 	}
 
-	settings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).
-		Update(
-			db.Settings.Saves.Set(newSaves),
-		).
-		Exec(ctx)
+	n, err := service.database.Settings.Update().
+		Where(settings.IDEQ(s.ID)).
+		SetSaves(newSaves).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to guild: %w", err)
 	}
 
-	return settings.Saves, settings.MaxSaves, nil
+	if n == 0 {
+		return 0, 0, fmt.Errorf("saves: add save to guild: no rows updated")
+	}
+
+	updated, err := service.database.Settings.Get(ctx, s.ID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("saves: add save to guild: reload: %w", err)
+	}
+
+	return updated.Saves, updated.MaxSaves, nil
 }

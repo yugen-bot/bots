@@ -43,8 +43,7 @@ func (m *PointsModule) points(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	channelID, ok := settings.ChannelID()
-	if !ok || channelID == "" {
+	if settings.ChannelID == nil || *settings.ChannelID == "" {
 		localUtils.ReplyNoSettings(ctx)
 		return
 	}

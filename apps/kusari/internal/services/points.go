@@ -2,26 +2,25 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/sarulabs/di/v2"
 	"golang.org/x/sync/errgroup"
-	"jurien.dev/yugen/kusari/prisma/db"
+	"jurien.dev/yugen/kusari/internal/ent"
+	"jurien.dev/yugen/kusari/internal/ent/playerstats"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type PointsService struct {
-	database *db.PrismaClient
+	database *ent.Client
 }
 
 func CreatePointsService(container *di.Container) *PointsService {
 	utils.Logger.Info("Creating Points Service")
 
 	return &PointsService{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
+		database: container.Get(static.DiDatabase).(*ent.Client),
 	}
 }
 
@@ -30,20 +29,22 @@ func (service *PointsService) GetPlayer(
 	guildID string,
 	userID string,
 	setInGuild bool,
-) (*db.PlayerStatsModel, error) {
+) (*ent.PlayerStats, error) {
 	created := false
-	player, err := service.database.PlayerStats.FindFirst(
-		db.PlayerStats.UserID.Equals(userID),
-		db.PlayerStats.GuildID.Equals(guildID),
-	).Exec(ctx)
+	player, err := service.database.PlayerStats.Query().
+		Where(
+			playerstats.UserIDEQ(userID),
+			playerstats.GuildIDEQ(guildID),
+		).
+		First(ctx)
 
-	if errors.Is(err, db.ErrNotFound) {
+	if ent.IsNotFound(err) {
 		created = true
-		player, err = service.database.PlayerStats.CreateOne(
-			db.PlayerStats.UserID.Set(userID),
-			db.PlayerStats.GuildID.Set(guildID),
-			db.PlayerStats.InGuild.Set(true),
-		).Exec(ctx)
+		player, err = service.database.PlayerStats.Create().
+			SetUserID(userID).
+			SetGuildID(guildID).
+			SetInGuild(true).
+			Save(ctx)
 	}
 
 	if err != nil {
@@ -51,11 +52,9 @@ func (service *PointsService) GetPlayer(
 	}
 
 	if setInGuild && !created {
-		player, err = service.database.PlayerStats.FindUnique(
-			db.PlayerStats.ID.Equals(player.ID),
-		).Update(
-			db.PlayerStats.InGuild.Set(true),
-		).Exec(ctx)
+		player, err = service.database.PlayerStats.UpdateOneID(player.ID).
+			SetInGuild(true).
+			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("points: get player: set in guild: %w", err)
 		}
@@ -75,11 +74,9 @@ func (service *PointsService) AddGamePoints(
 		return fmt.Errorf("points: add game points: %w", err)
 	}
 
-	_, err = service.database.PlayerStats.FindUnique(
-		db.PlayerStats.ID.Equals(player.ID),
-	).Update(
-		db.PlayerStats.Points.Increment(amount),
-	).Exec(ctx)
+	_, err = service.database.PlayerStats.UpdateOneID(player.ID).
+		AddPoints(amount).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("points: add game points: update: %w", err)
 	}
@@ -98,11 +95,9 @@ func (service *PointsService) RemoveGamePoints(
 		return fmt.Errorf("points: remove game points: %w", err)
 	}
 
-	_, err = service.database.PlayerStats.FindUnique(
-		db.PlayerStats.ID.Equals(player.ID),
-	).Update(
-		db.PlayerStats.Points.Decrement(amount),
-	).Exec(ctx)
+	_, err = service.database.PlayerStats.UpdateOneID(player.ID).
+		AddPoints(-amount).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("points: remove game points: update: %w", err)
 	}
@@ -114,15 +109,11 @@ func (service *PointsService) ResetLeaderboardByGuildID(
 	ctx context.Context,
 	guildID string,
 ) error {
-	_, err := service.database.PlayerStats.FindMany(
-		db.PlayerStats.GuildID.Equals(guildID),
-	).Delete().Exec(ctx)
+	_, err := service.database.PlayerStats.Delete().
+		Where(playerstats.GuildIDEQ(guildID)).
+		Exec(ctx)
 
-	if errors.Is(err, db.ErrNotFound) {
-		return nil
-	}
-
-	if err != nil {
+	if err != nil && !ent.IsNotFound(err) {
 		return fmt.Errorf("points: reset leaderboard by guild id: %w", err)
 	}
 
@@ -134,16 +125,14 @@ func (service *PointsService) ResetLeaderboardByGuildIDAndUserID(
 	guildID string,
 	userID string,
 ) error {
-	_, err := service.database.PlayerStats.FindMany(
-		db.PlayerStats.GuildID.Equals(guildID),
-		db.PlayerStats.UserID.Equals(userID),
-	).Delete().Exec(ctx)
+	_, err := service.database.PlayerStats.Delete().
+		Where(
+			playerstats.GuildIDEQ(guildID),
+			playerstats.UserIDEQ(userID),
+		).
+		Exec(ctx)
 
-	if errors.Is(err, db.ErrNotFound) {
-		return nil
-	}
-
-	if err != nil {
+	if err != nil && !ent.IsNotFound(err) {
 		return fmt.Errorf(
 			"points: reset leaderboard by guild id and user id: %w",
 			err,
@@ -157,11 +146,11 @@ func (service *PointsService) GetLeaderboardByGuildID(
 	ctx context.Context,
 	guildID string,
 	page int,
-) ([]db.PlayerStatsModel, int, error) {
+) ([]*ent.PlayerStats, int, error) {
 	g, gctx := errgroup.WithContext(ctx)
 
 	var (
-		items []db.PlayerStatsModel
+		items []*ent.PlayerStats
 		total int
 	)
 
@@ -191,13 +180,16 @@ func (service *PointsService) getLeaderboardItemsByGuildID(
 	ctx context.Context,
 	guildID string,
 	page int,
-) ([]db.PlayerStatsModel, error) {
-	items, err := service.database.PlayerStats.FindMany(
-		db.PlayerStats.GuildID.Equals(guildID),
-		db.PlayerStats.InGuild.Equals(true),
-	).OrderBy(
-		db.PlayerStats.Points.Order(db.DESC),
-	).Take(10).Skip((page - 1) * 10).Exec(ctx)
+) ([]*ent.PlayerStats, error) {
+	items, err := service.database.PlayerStats.Query().
+		Where(
+			playerstats.GuildIDEQ(guildID),
+			playerstats.InGuildEQ(true),
+		).
+		Order(ent.Desc(playerstats.FieldPoints)).
+		Limit(10).
+		Offset((page - 1) * 10).
+		All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("points: get leaderboard items: %w", err)
 	}
@@ -209,24 +201,14 @@ func (service *PointsService) getLeaderboardTotalByGuildID(
 	ctx context.Context,
 	guildID string,
 ) (int, error) {
-	var res []struct {
-		Count string `json:"count"`
-	}
-
-	if err := service.database.Prisma.QueryRaw(
-		`SELECT count(*) as count FROM "PlayerStats" WHERE "guildId" = $1 AND "inGuild" = true`,
-		guildID,
-	).Exec(ctx, &res); err != nil {
-		return 0, fmt.Errorf("points: get leaderboard total: %w", err)
-	}
-
-	if len(res) == 0 {
-		return 0, nil
-	}
-
-	count, err := strconv.Atoi(res[0].Count)
+	count, err := service.database.PlayerStats.Query().
+		Where(
+			playerstats.GuildIDEQ(guildID),
+			playerstats.InGuildEQ(true),
+		).
+		Count(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("points: parse leaderboard total: %w", err)
+		return 0, fmt.Errorf("points: get leaderboard total: %w", err)
 	}
 
 	return count, nil

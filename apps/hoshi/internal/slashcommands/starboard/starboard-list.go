@@ -140,8 +140,8 @@ func (m *StarboardListModule) showList(
 		}
 
 		src := "Anywhere"
-		if sid, ok := c.SourceChannelID(); ok {
-			src = fmt.Sprintf("<#%s>", sid)
+		if c.SourceChannelID != nil {
+			src = fmt.Sprintf("<#%s>", *c.SourceChannelID)
 		}
 
 		emojiSources[i] = fmt.Sprintf("%s | %s", emojiDisplay, src)

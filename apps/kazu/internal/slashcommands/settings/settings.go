@@ -59,26 +59,29 @@ func (m *SettingsModule) Show(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	channelID, channelIDOk := settings.ChannelID()
-	shameRoleID, shameRoleIDOk := settings.ShameRoleID()
-	botUpdatesChannelID, botUpdatesChannelIDOk := settings.BotUpdatesChannelID()
+	channelID := settings.ChannelID
+	channelIDOk := channelID != nil
+	shameRoleID := settings.ShameRoleID
+	shameRoleIDOk := shameRoleID != nil
+	botUpdatesChannelID := settings.BotUpdatesChannelID
+	botUpdatesChannelIDOk := botUpdatesChannelID != nil
 	removeShameRoleAfterHighscore := settings.RemoveShameRoleAfterHighscore
 	cooldown := settings.Cooldown
 	math := settings.Math
 
 	channelIDText := "-"
 	if channelIDOk {
-		channelIDText = fmt.Sprintf("<#%s>", channelID)
+		channelIDText = fmt.Sprintf("<#%s>", *channelID)
 	}
 
 	shameRoleIDText := "-"
 	if shameRoleIDOk {
-		shameRoleIDText = fmt.Sprintf("<@&%s>", shameRoleID)
+		shameRoleIDText = fmt.Sprintf("<@&%s>", *shameRoleID)
 	}
 
 	botUpdatesChannelIDText := "-"
 	if botUpdatesChannelIDOk {
-		botUpdatesChannelIDText = fmt.Sprintf("<#%s>", botUpdatesChannelID)
+		botUpdatesChannelIDText = fmt.Sprintf("<#%s>", *botUpdatesChannelID)
 	}
 
 	removeShameRoleAfterHighscoreText := "No"

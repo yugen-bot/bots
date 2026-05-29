@@ -33,14 +33,13 @@ func (m *GameResetModule) reset(ctx *discordgoplus.Ctx) {
 
 	guildID := ctx.Interaction.GuildID
 
-	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
-	if err != nil || settings == nil {
+	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
+	if err != nil || guildSettings == nil {
 		localUtils.ReplyNoSettings(ctx, true)
 		return
 	}
 
-	channelID, ok := settings.ChannelID()
-	if !ok || channelID == "" {
+	if guildSettings.ChannelID == nil || *guildSettings.ChannelID == "" {
 		localUtils.ReplyNoSettings(ctx, true)
 		return
 	}
@@ -48,7 +47,7 @@ func (m *GameResetModule) reset(ctx *discordgoplus.Ctx) {
 	started, err := m.game.Start(context.Background(), guildID, true, true, "")
 	if err != nil {
 		utils.Logger.Warnw("game: start: start failed: %w", err)
-		localUtils.HandleChannelInaccessible(ctx, channelID, err)
+		localUtils.HandleChannelInaccessible(ctx, *guildSettings.ChannelID, err)
 
 		return
 	}

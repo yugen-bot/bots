@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/hoshi/internal/ent"
 	"jurien.dev/yugen/hoshi/internal/services"
-	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 )
@@ -31,11 +31,12 @@ func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
+	id := channel.ID
 
-	_, err := m.settings.Set(
+	err := m.settings.Set(
 		context.Background(),
 		ctx.Interaction.GuildID,
-		db.Settings.BotUpdatesChannelID.Set(string(channel.ID)),
+		func(u *ent.SettingsUpdateOne) { u.SetBotUpdatesChannelID(id) },
 	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)
@@ -43,10 +44,7 @@ func (m *SettingsBotUpdatesModule) set(ctx *discordgoplus.Ctx) {
 	}
 
 	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf(
-			"Hoshi will send its updates to <#%s>!",
-			channel.ID,
-		),
+		Content: fmt.Sprintf("Hoshi will send its updates to <#%s>!", id),
 	}, true)
 }
 

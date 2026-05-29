@@ -6,13 +6,14 @@ import (
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/koto/prisma/db"
+	"jurien.dev/yugen/koto/internal/ent"
+	"jurien.dev/yugen/koto/internal/ent/settings"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type SettingsService struct {
-	database *db.PrismaClient
+	database *ent.Client
 	bot      *discordgoplus.Bot
 }
 
@@ -20,7 +21,7 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	utils.Logger.Info("Creating Settings Service")
 
 	return &SettingsService{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
+		database: container.Get(static.DiDatabase).(*ent.Client),
 		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
 	}
 }
@@ -30,36 +31,43 @@ func (s *SettingsService) GetByGuildID(
 	ctx context.Context,
 	guildID string,
 	create ...bool,
-) (*db.SettingsModel, error) {
+) (*ent.Settings, error) {
 	createBool := false
 	if len(create) > 0 {
 		createBool = create[0]
 	}
 
-	settings, err := s.database.Settings.FindUnique(
-		db.Settings.GuildID.Equals(guildID),
-	).Exec(ctx)
-	if err != nil && !createBool {
-		return nil, fmt.Errorf("settings: find by guild: %w", err)
-	}
+	guildSettings, err := s.database.Settings.Query().
+		Where(settings.GuildIDEQ(guildID)).
+		Only(ctx)
 
-	if (err != nil || settings == nil) && createBool {
-		settings, err = s.database.Settings.CreateOne(
-			db.Settings.GuildID.Set(guildID),
-		).Exec(ctx)
+	if ent.IsNotFound(err) {
+		if !createBool {
+			return nil, nil
+		}
+
+		guildSettings, err = s.database.Settings.Create().
+			SetGuildID(guildID).
+			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("settings: create: %w", err)
 		}
+
+		return guildSettings, nil
 	}
 
-	return settings, nil
+	if err != nil {
+		return nil, fmt.Errorf("settings: find by guild: %w", err)
+	}
+
+	return guildSettings, nil
 }
 
 // Delete removes settings for a guild (cascades to games via DB).
 func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
-	_, err := s.database.Settings.FindUnique(
-		db.Settings.GuildID.Equals(guildID),
-	).Delete().Exec(ctx)
+	_, err := s.database.Settings.Delete().
+		Where(settings.GuildIDEQ(guildID)).
+		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("settings: delete: %w", err)
 	}
@@ -67,26 +75,28 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 	return nil
 }
 
-func (s *SettingsService) FindAll(ctx context.Context) ([]db.SettingsModel, error) {
-	settings, err := s.database.Settings.FindMany().Exec(ctx)
+// FindAll returns all settings records.
+func (s *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
+	result, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: find all: %w", err)
 	}
 
-	return settings, nil
+	return result, nil
 }
 
-// Set updates specific settings fields.
-func (s *SettingsService) Set(
+// Update applies a closure to update specific settings fields.
+func (s *SettingsService) Update(
 	ctx context.Context,
-	guildID string,
-	params ...db.SettingsSetParam,
-) (*db.SettingsModel, error) {
-	result, err := s.database.Settings.FindUnique(
-		db.Settings.GuildID.Equals(guildID),
-	).Update(params...).Exec(ctx)
+	settingsID int,
+	apply func(*ent.SettingsUpdateOne),
+) (*ent.Settings, error) {
+	upd := s.database.Settings.UpdateOneID(settingsID)
+	apply(upd)
+
+	result, err := upd.Save(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("settings: set: %w", err)
+		return nil, fmt.Errorf("settings: update: %w", err)
 	}
 
 	return result, nil
@@ -98,64 +108,85 @@ func (s *SettingsService) Reset(
 	ctx context.Context,
 	guildID string,
 	fields []string,
-) (*db.SettingsModel, error) {
-	allParams := map[string][]db.SettingsSetParam{
-		"channel": {
-			db.Settings.ChannelID.SetOptional(nil),
+) (*ent.Settings, error) {
+	existing, err := s.GetByGuildID(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+
+	if existing == nil {
+		return nil, fmt.Errorf("settings: reset: not found for guild %s", guildID)
+	}
+
+	upd := s.database.Settings.UpdateOneID(existing.ID)
+
+	type resetFn func()
+
+	resetMap := map[string]resetFn{
+		"channel": func() {
+			upd.ClearChannelID()
 		},
-		"role": {
-			db.Settings.PingRoleID.SetOptional(nil),
-			db.Settings.PingOnlyNew.Set(true),
+		"role": func() {
+			upd.ClearPingRoleID()
+			upd.SetPingOnlyNew(true)
 		},
-		"frequency": {
-			db.Settings.Frequency.Set(60),
+		"frequency": func() {
+			upd.SetFrequency(60)
 		},
-		"time-limit": {
-			db.Settings.TimeLimit.Set(60),
+		"time-limit": func() {
+			upd.SetTimeLimit(60)
 		},
-		"cooldown": {
-			db.Settings.Cooldown.Set(600),
+		"cooldown": func() {
+			upd.SetCooldown(600)
 		},
-		"back-to-back-cooldown": {
-			db.Settings.EnableBackToBackCooldown.Set(false),
-			db.Settings.BackToBackCooldown.Set(600),
+		"back-to-back-cooldown": func() {
+			upd.SetEnableBackToBackCooldown(false)
+			upd.SetBackToBackCooldown(600)
 		},
-		"inform-cooldown": {
-			db.Settings.InformCooldownAfterGuess.Set(false),
+		"inform-cooldown": func() {
+			upd.SetInformCooldownAfterGuess(false)
 		},
-		"auto-start": {
-			db.Settings.AutoStart.Set(false),
+		"auto-start": func() {
+			upd.SetAutoStart(false)
 		},
-		"members-privilege": {
-			db.Settings.MembersCanStart.Set(false),
+		"members-privilege": func() {
+			upd.SetMembersCanStart(false)
 		},
-		"start-after-first-guess": {
-			db.Settings.StartAfterFirstGuess.Set(false),
+		"start-after-first-guess": func() {
+			upd.SetStartAfterFirstGuess(false)
 		},
-		"bot-updates-channel": {
-			db.Settings.BotUpdatesChannelID.SetOptional(nil),
+		"bot-updates-channel": func() {
+			upd.ClearBotUpdatesChannelID()
 		},
 	}
 
 	isAll := len(fields) == 1 && fields[0] == "all"
 
-	var params []db.SettingsSetParam
+	applied := false
 
 	if isAll {
-		for _, p := range allParams {
-			params = append(params, p...)
+		for _, fn := range resetMap {
+			fn()
 		}
+
+		applied = true
 	} else {
 		for _, field := range fields {
-			if p, ok := allParams[field]; ok {
-				params = append(params, p...)
+			if fn, ok := resetMap[field]; ok {
+				fn()
+				applied = true
 			}
 		}
 	}
 
-	if len(params) == 0 {
-		return s.GetByGuildID(ctx, guildID)
+	if !applied {
+		return existing, nil
 	}
 
-	return s.Set(ctx, guildID, params...)
+	result, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("settings: reset: %w", err)
+	}
+
+	return result, nil
 }

@@ -31,13 +31,13 @@ func AddMessageListeners(container *di.Container) {
 
 		ctx := context.Background()
 
-		settings, err := settingsSvc.GetByGuildID(ctx, event.GuildID)
-		if err != nil || settings == nil {
+		guildSettings, err := settingsSvc.GetByGuildID(ctx, event.GuildID)
+		if err != nil || guildSettings == nil {
 			return
 		}
 
-		channelID, ok := settings.ChannelID()
-		if !ok || channelID == "" || channelID != event.ChannelID {
+		if guildSettings.ChannelID == nil || *guildSettings.ChannelID == "" ||
+			*guildSettings.ChannelID != event.ChannelID {
 			return
 		}
 
@@ -78,7 +78,7 @@ func AddMessageListeners(container *di.Container) {
 			event.GuildID,
 			word,
 			event.Message,
-			settings,
+			guildSettings,
 		); err != nil {
 			utils.Logger.Warnf(
 				"message: guess failed for guild %s: %v",

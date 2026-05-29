@@ -7,15 +7,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
 	localStatic "jurien.dev/yugen/kazu/internal/static"
-	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type GameListener struct {
-	database *db.PrismaClient
 	settings *services.SettingsService
 	service  *services.GameService
 }
@@ -24,7 +23,6 @@ func GetGameListener(container *di.Container) *GameListener {
 	utils.Logger.Info("Creating Color Listener")
 
 	return &GameListener{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
 		settings: container.Get(static.DiSettings).(*services.SettingsService),
 		service:  container.Get(localStatic.DiGame).(*services.GameService),
 	}
@@ -113,7 +111,7 @@ func (listener *GameListener) MessageDeleteHandler(
 
 	go bot.ChannelMessageSend(
 		event.ChannelID,
-		fmt.Sprintf(`<@%s> just deleted their number 😒 
+		fmt.Sprintf(`<@%s> just deleted their number 😒
 Last number was **%d**!`, event.BeforeDelete.Author.ID, number),
 	)
 }
@@ -121,10 +119,10 @@ Last number was **%d**!`, event.BeforeDelete.Author.ID, number),
 func (listener *GameListener) getSettings(
 	guildID string,
 	channelID string,
-) (ok bool, settings *db.SettingsModel) {
+) (ok bool, s *ent.Settings) {
 	ok = false
 
-	settings, err := listener.settings.GetByGuildId(
+	s, err := listener.settings.GetByGuildId(
 		context.Background(),
 		guildID,
 	)
@@ -139,10 +137,12 @@ func (listener *GameListener) getSettings(
 		return
 	}
 
-	settingsChannelID, ok := settings.ChannelID()
-	if !ok || channelID != settingsChannelID {
+	settingsChannelID := s.ChannelID
+	if settingsChannelID == nil || channelID != *settingsChannelID {
 		ok = false
+		return
 	}
 
+	ok = true
 	return
 }

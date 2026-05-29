@@ -32,14 +32,13 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 
 	guildID := ctx.Interaction.GuildID
 
-	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
-	if err != nil || settings == nil {
+	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
+	if err != nil || guildSettings == nil {
 		localUtils.ReplyNoSettings(ctx, true)
 		return
 	}
 
-	channelID, ok := settings.ChannelID()
-	if !ok || channelID == "" {
+	if guildSettings.ChannelID == nil || *guildSettings.ChannelID == "" {
 		localUtils.ReplyNoSettings(ctx, true)
 		return
 	}
@@ -47,7 +46,7 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 	isModerator := ctx.Interaction.Member != nil &&
 		ctx.Interaction.Member.Permissions&discordgo.PermissionManageGuild != 0
 
-	if !settings.MembersCanStart && !isModerator {
+	if !guildSettings.MembersCanStart && !isModerator {
 		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
 			Content: "Only moderators can start games unless members privilege is enabled.",
 		}, true)
@@ -58,7 +57,7 @@ func (m *GameStartModule) start(ctx *discordgoplus.Ctx) {
 	started, err := m.game.Start(context.Background(), guildID, true, false, "")
 	if err != nil {
 		utils.Logger.Warnw("game: start: start failed: %w", err)
-		localUtils.HandleChannelInaccessible(ctx, channelID, err)
+		localUtils.HandleChannelInaccessible(ctx, *guildSettings.ChannelID, err)
 
 		return
 	}

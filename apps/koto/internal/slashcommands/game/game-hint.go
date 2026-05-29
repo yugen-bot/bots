@@ -47,8 +47,8 @@ func (m *GameHintModule) hint(ctx *discordgoplus.Ctx) {
 	guildID := ctx.Interaction.GuildID
 	userID := ctx.Interaction.Member.User.ID
 
-	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
-	if err != nil || settings == nil {
+	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
+	if err != nil || guildSettings == nil {
 		localUtils.ReplyNoSettings(ctx, true)
 		return
 	}
@@ -57,7 +57,7 @@ func (m *GameHintModule) hint(ctx *discordgoplus.Ctx) {
 		context.Background(),
 		gameID,
 		userID,
-		settings,
+		guildSettings,
 	)
 	if err != nil {
 		if errors.Is(err, services.ErrNoHints) {

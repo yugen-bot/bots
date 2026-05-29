@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/services"
-	"jurien.dev/yugen/kusari/prisma/db"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -34,7 +34,7 @@ func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 
 	seconds := ctx.Options["seconds"].IntValue()
 
-	settings, err := m.settings.GetByGuildId(
+	s, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)
@@ -45,8 +45,10 @@ func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 
 	_, err = m.settings.Update(
 		context.Background(),
-		settings.ID,
-		db.Settings.Cooldown.Set(int(seconds)),
+		s.ID,
+		func(u *ent.SettingsUpdateOne) {
+			u.SetCooldown(int(seconds))
+		},
 	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)

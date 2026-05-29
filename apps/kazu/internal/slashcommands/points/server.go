@@ -122,35 +122,39 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 
 	onGoingGameText := "None"
 
-	channelId, ok := settings.ChannelID()
-	if gameExists && ok {
-		onGoingGameText = fmt.Sprintf("at <#%s>", channelId)
+	channelID := settings.ChannelID
+	if gameExists && channelID != nil {
+		onGoingGameText = fmt.Sprintf("at <#%s>", *channelID)
 	}
 
 	highscoreDateText := ""
 
-	highscoreDate, ok := settings.HighscoreDate()
-	if ok {
+	highscoreDate := settings.HighscoreDate
+	if highscoreDate != nil {
 		highscoreDateText = " - " + hammertime.Format(
-			highscoreDate,
+			*highscoreDate,
 			hammertime.Span,
 		)
 	}
 
+	lastNumber := 0
 	lastCountedText := "-"
-	if historyExists && history.UserID != self.ID {
-		lastCountedText = fmt.Sprintf("<@%s>", history.UserID)
+	if historyExists && history != nil {
+		lastNumber = history.Number
+		if history.UserID != self.ID {
+			lastCountedText = fmt.Sprintf("<@%s>", history.UserID)
+		}
 	}
 
 	lastShamedText := "\n"
 
-	_, ok = settings.ShameRoleID()
-	if ok {
-		lastShameUserID, ok := settings.LastShameUserID()
+	shameRoleID := settings.ShameRoleID
+	if shameRoleID != nil {
+		lastShameUserID := settings.LastShameUserID
 
 		userText := "-"
-		if ok {
-			userText = fmt.Sprintf("<@%s>", lastShameUserID)
+		if lastShameUserID != nil {
+			userText = fmt.Sprintf("<@%s>", *lastShameUserID)
 		}
 
 		lastShamedText = fmt.Sprintf("Last shamed user: **%s**\n", userText)
@@ -174,7 +178,7 @@ Saves used: **%s**
 			onGoingGameText,
 			settings.Highscore,
 			highscoreDateText,
-			history.Number,
+			lastNumber,
 			lastCountedText,
 			lastShamedText,
 			strconv.FormatFloat(settings.Saves, 'f', -1, 64),

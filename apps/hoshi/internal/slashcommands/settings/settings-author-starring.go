@@ -6,8 +6,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/hoshi/internal/ent"
 	"jurien.dev/yugen/hoshi/internal/services"
-	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 )
@@ -31,10 +31,10 @@ func (m *SettingsAuthorStarringModule) set(ctx *discordgoplus.Ctx) {
 
 	allowed := ctx.Options["allowed"].BoolValue()
 
-	_, err := m.settings.Set(
+	err := m.settings.Set(
 		context.Background(),
 		ctx.Interaction.GuildID,
-		db.Settings.Self.Set(allowed),
+		func(u *ent.SettingsUpdateOne) { u.SetSelf(allowed) },
 	)
 	if err != nil {
 		discordgoplus.InteractionError(ctx, true)

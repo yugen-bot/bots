@@ -7,10 +7,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kusari/internal/ent/game"
 	"jurien.dev/yugen/kusari/internal/services"
 	local "jurien.dev/yugen/kusari/internal/static"
 	localUtils "jurien.dev/yugen/kusari/internal/utils"
-	"jurien.dev/yugen/kusari/prisma/db"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -41,11 +41,12 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 		return
 	}
 
-	channelId, ok := settings.ChannelID()
-	if !ok {
+	if settings.ChannelID == nil {
 		localUtils.NoSettingsReply(ctx, m.container, true)
 		return
 	}
+
+	channelId := *settings.ChannelID
 
 	startingWord := ""
 
@@ -58,7 +59,7 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 	_, started, err := m.game.Start(
 		context.Background(),
 		ctx.Interaction.GuildID,
-		db.GameTypeNormal,
+		game.TypeNORMAL,
 		startingWord,
 		recreate,
 	)

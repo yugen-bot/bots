@@ -2,7 +2,7 @@ services:
   kazu:
     build: .
     user: "1000:1000"
-    command: "make kazu"
+    command: "kazu"
     env_file:
       - .env
       - ./apps/kazu/.env
@@ -15,7 +15,7 @@ services:
   kusari:
     build: .
     user: "1000:1000"
-    command: "make kusari"
+    command: "kusari"
     env_file:
       - .env
       - ./apps/kusari/.env
@@ -29,7 +29,7 @@ services:
   iro:
     build: .
     user: "1000:1000"
-    command: "make iro"
+    command: "iro"
     env_file:
       - .env
       - ./apps/iro/.env
@@ -40,7 +40,7 @@ services:
   hoshi:
     build: .
     user: "1000:1000"
-    command: "make hoshi"
+    command: "hoshi"
     env_file:
       - .env
       - ./apps/hoshi/.env
@@ -53,7 +53,7 @@ services:
   koto:
     build: .
     user: "1000:1000"
-    command: "make koto"
+    command: "koto"
     env_file:
       - .env
       - ./apps/koto/.env

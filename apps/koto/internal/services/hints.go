@@ -2,17 +2,17 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/koto/prisma/db"
+	"jurien.dev/yugen/koto/internal/ent"
+	"jurien.dev/yugen/koto/internal/ent/playerhints"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type HintsService struct {
-	database *db.PrismaClient
+	database *ent.Client
 	settings *SettingsService
 }
 
@@ -25,7 +25,7 @@ func CreateHintsService(container *di.Container) *HintsService {
 	utils.Logger.Info("Creating Hints Service")
 
 	return &HintsService{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
+		database: container.Get(static.DiDatabase).(*ent.Client),
 		settings: container.Get(static.DiSettings).(*SettingsService),
 	}
 }
@@ -33,41 +33,41 @@ func CreateHintsService(container *di.Container) *HintsService {
 func (service *HintsService) GetPlayerHintsByUserID(
 	ctx context.Context,
 	userID string,
-) (*db.PlayerHintsModel, error) {
-	hints, err := service.database.PlayerHints.FindFirst(
-		db.PlayerHints.UserID.Equals(userID),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+) (*ent.PlayerHints, error) {
+	player, err := service.database.PlayerHints.Query().
+		Where(playerhints.UserIDEQ(userID)).
+		First(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("hints: get player hints: %w", err)
 	}
 
-	if hints != nil {
-		return hints, nil
+	if player != nil {
+		return player, nil
 	}
 
-	hints, err = service.database.PlayerHints.CreateOne(
-		db.PlayerHints.UserID.Set(userID),
-	).Exec(ctx)
+	player, err = service.database.PlayerHints.Create().
+		SetUserID(userID).
+		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("hints: create player hints: %w", err)
 	}
 
-	return hints, nil
+	return player, nil
 }
 
 func (service *HintsService) GetHints(
 	ctx context.Context,
-	settings *db.SettingsModel,
+	guildSettings *ent.Settings,
 	userID string,
 ) (*GetHintsResult, error) {
 	player, err := service.GetPlayerHintsByUserID(ctx, userID)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	if err != nil {
 		return nil, fmt.Errorf("hints: get hints: %w", err)
 	}
 
 	return &GetHintsResult{
 		player: int(player.Hints),
-		guild:  int(settings.Hints),
+		guild:  int(guildSettings.Hints),
 	}, nil
 }
 
@@ -87,11 +87,9 @@ func (service *HintsService) DeductHintFromPlayer(
 		newHints = 0
 	}
 
-	player, err = service.database.PlayerHints.FindUnique(db.PlayerHints.ID.Equals(player.ID)).
-		Update(
-			db.PlayerHints.Hints.Set(newHints),
-		).
-		Exec(ctx)
+	player, err = service.database.PlayerHints.UpdateOneID(player.ID).
+		SetHints(newHints).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("hints: deduct hint from player: update: %w", err)
 	}
@@ -102,21 +100,19 @@ func (service *HintsService) DeductHintFromPlayer(
 func (service *HintsService) DeductHintFromGuild(
 	ctx context.Context,
 	guildID string,
-	settings *db.SettingsModel,
+	guildSettings *ent.Settings,
 	amount float64,
 ) (float64, float64, error) {
-	newHints := utils.RoundTwo(settings.Hints - amount)
+	newHints := utils.RoundTwo(guildSettings.Hints - amount)
 
 	if newHints < 0 {
 		newHints = 0
 	}
 
-	updatedSettings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).
-		Update(
-			db.Settings.Hints.Set(newHints),
-			db.Settings.HintsUsed.Set(utils.RoundTwo(settings.HintsUsed+amount)),
-		).
-		Exec(ctx)
+	updatedSettings, err := service.database.Settings.UpdateOneID(guildSettings.ID).
+		SetHints(newHints).
+		SetHintsUsed(utils.RoundTwo(guildSettings.HintsUsed + amount)).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("hints: deduct hint from guild: %w", err)
 	}
@@ -144,11 +140,9 @@ func (service *HintsService) AddHintToPlayer(
 		newHints = player.MaxHints
 	}
 
-	player, err = service.database.PlayerHints.FindUnique(db.PlayerHints.ID.Equals(player.ID)).
-		Update(
-			db.PlayerHints.Hints.Set(newHints),
-		).
-		Exec(ctx)
+	player, err = service.database.PlayerHints.UpdateOneID(player.ID).
+		SetHints(newHints).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("hints: add hint to player: update: %w", err)
 	}
@@ -159,20 +153,18 @@ func (service *HintsService) AddHintToPlayer(
 func (service *HintsService) AddHintToGuild(
 	ctx context.Context,
 	guildID string,
-	settings *db.SettingsModel,
+	guildSettings *ent.Settings,
 	amount float64,
 ) (float64, float64, error) {
-	newHints := utils.RoundTwo(settings.Hints + amount)
+	newHints := utils.RoundTwo(guildSettings.Hints + amount)
 
-	if newHints > settings.MaxHints {
-		newHints = settings.MaxHints
+	if newHints > guildSettings.MaxHints {
+		newHints = guildSettings.MaxHints
 	}
 
-	updatedSettings, err := service.database.Settings.FindUnique(db.Settings.ID.Equals(settings.ID)).
-		Update(
-			db.Settings.Hints.Set(newHints),
-		).
-		Exec(ctx)
+	updatedSettings, err := service.database.Settings.UpdateOneID(guildSettings.ID).
+		SetHints(newHints).
+		Save(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("hints: add hint to guild: %w", err)
 	}

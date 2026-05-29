@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -10,15 +9,17 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/hoshi/internal/ent"
+	"jurien.dev/yugen/hoshi/internal/ent/starboardlog"
+	"jurien.dev/yugen/hoshi/internal/ent/starboards"
 	"jurien.dev/yugen/hoshi/internal/static"
-	"jurien.dev/yugen/hoshi/prisma/db"
 	"jurien.dev/yugen/shared/config"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type StarboardService struct {
-	database *db.PrismaClient
+	database *ent.Client
 	settings *SettingsService
 	bot      *discordgoplus.Bot
 	cfg      *config.Config
@@ -28,7 +29,7 @@ func CreateStarboardService(container *di.Container) *StarboardService {
 	utils.Logger.Info("Creating Starboard Service")
 
 	return &StarboardService{
-		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
+		database: container.Get(sharedStatic.DiDatabase).(*ent.Client),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
 		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
 		cfg:      container.Get(sharedStatic.DiConfig).(*config.Config),
@@ -39,15 +40,13 @@ func (s *StarboardService) CheckReaction(
 	ctx context.Context,
 	channelID, messageID, guildID, emojiID, emojiName string,
 ) {
-	settings, err := s.settings.GetByGuildID(ctx, guildID)
+	sett, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
-		if !errors.Is(err, db.ErrNotFound) {
+		if !ent.IsNotFound(err) {
 			utils.Logger.Errorw(
 				"starboard: check reaction: get settings failed",
-				"error",
-				err,
-				"guildID",
-				guildID,
+				"error", err,
+				"guildID", guildID,
 			)
 		}
 
@@ -64,12 +63,12 @@ func (s *StarboardService) CheckReaction(
 		sourceChannelID = ch.ParentID
 	}
 
-	if slices.Contains(settings.IgnoredChannelIds, sourceChannelID) {
+	if slices.Contains([]string(sett.IgnoredChannelIds), sourceChannelID) {
 		return
 	}
 
 	isTarget, err := s.getLogByMessageID(ctx, messageID)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	if err != nil && !ent.IsNotFound(err) {
 		utils.Logger.Errorw(
 			"starboard: check reaction: get log by message id failed",
 			"error", err,
@@ -90,27 +89,23 @@ func (s *StarboardService) CheckReaction(
 		reactionEmoji = emojiName
 	}
 
-	configurations, err := s.database.Starboards.FindMany(
-		db.Starboards.GuildID.Equals(guildID),
-		db.Starboards.SourceEmoji.Equals(reactionEmoji),
-		db.Starboards.Or(
-			db.Starboards.And(
-				db.Starboards.SourceChannelID.Equals(sourceChannelID),
-			),
-			db.Starboards.And(
-				db.Starboards.SourceChannelID.IsNull(),
-			),
+	configurations, err := s.database.Starboards.Query().Where(
+		starboards.GuildIDEQ(guildID),
+		starboards.SourceEmojiEQ(reactionEmoji),
+		starboards.Or(
+			starboards.SourceChannelIDEQ(sourceChannelID),
+			starboards.SourceChannelIDIsNil(),
 		),
-	).Exec(ctx)
+	).All(ctx)
 
 	if err != nil || len(configurations) == 0 {
 		return
 	}
 
-	config := configurations[0]
+	cfg := configurations[0]
 	for _, c := range configurations {
-		if sID, ok := c.SourceChannelID(); ok && sID == sourceChannelID {
-			config = c
+		if c.SourceChannelID != nil && *c.SourceChannelID == sourceChannelID {
+			cfg = c
 			break
 		}
 	}
@@ -131,14 +126,10 @@ func (s *StarboardService) CheckReaction(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: check reaction: get message reactions failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"channelID",
-			channelID,
-			"messageID",
-			messageID,
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
 		)
 
 		return
@@ -148,20 +139,16 @@ func (s *StarboardService) CheckReaction(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: check reaction: get channel message failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"channelID",
-			channelID,
-			"messageID",
-			messageID,
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
 		)
 
 		return
 	}
 
-	allowSelf := settings.Self
+	allowSelf := sett.Self
 
 	authorID := ""
 	if msg.Author != nil {
@@ -183,7 +170,7 @@ func (s *StarboardService) CheckReaction(
 	}
 
 	log, err := s.getLogByOriginalID(ctx, messageID)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	if err != nil && !ent.IsNotFound(err) {
 		utils.Logger.Errorw(
 			"starboard: check reaction: get log by original id failed",
 			"error", err,
@@ -200,7 +187,7 @@ func (s *StarboardService) CheckReaction(
 		return
 	}
 
-	if count < settings.Treshold {
+	if count < sett.Treshold {
 		return
 	}
 
@@ -224,7 +211,7 @@ func (s *StarboardService) CheckReaction(
 		messageID,
 		msg,
 		guildID,
-		config.TargetChannelID,
+		cfg.TargetChannelID,
 		emojiName,
 		emojiID,
 	)
@@ -233,10 +220,10 @@ func (s *StarboardService) CheckReaction(
 func (s *StarboardService) getLogByOriginalID(
 	ctx context.Context,
 	id string,
-) (*db.LogModel, error) {
-	result, err := s.database.Log.FindUnique(
-		db.Log.OriginalMessageID.Equals(id),
-	).Exec(ctx)
+) (*ent.StarboardLog, error) {
+	result, err := s.database.StarboardLog.Query().
+		Where(starboardlog.OriginalMessageIDEQ(id)).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starboard: get log by original id: %w", err)
 	}
@@ -247,10 +234,10 @@ func (s *StarboardService) getLogByOriginalID(
 func (s *StarboardService) getLogByMessageID(
 	ctx context.Context,
 	id string,
-) (*db.LogModel, error) {
-	result, err := s.database.Log.FindUnique(
-		db.Log.MessageID.Equals(id),
-	).Exec(ctx)
+) (*ent.StarboardLog, error) {
+	result, err := s.database.StarboardLog.Query().
+		Where(starboardlog.MessageIDEQ(id)).
+		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starboard: get log by message id: %w", err)
 	}
@@ -262,24 +249,20 @@ func (s *StarboardService) GetStarboardBySourceIDAndEmoji(
 	ctx context.Context,
 	guildID, sourceEmoji string,
 	sourceChannelID *string,
-) (*db.StarboardsModel, error) {
-	var params []db.StarboardsWhereParam
-
-	params = append(params,
-		db.Starboards.GuildID.Equals(guildID),
-		db.Starboards.SourceEmoji.Equals(sourceEmoji),
+) (*ent.Starboards, error) {
+	q := s.database.Starboards.Query().Where(
+		starboards.GuildIDEQ(guildID),
+		starboards.SourceEmojiEQ(sourceEmoji),
 	)
+
 	if sourceChannelID != nil {
-		params = append(
-			params,
-			db.Starboards.SourceChannelID.Equals(*sourceChannelID),
-		)
+		q = q.Where(starboards.SourceChannelIDEQ(*sourceChannelID))
 	} else {
-		params = append(params, db.Starboards.SourceChannelID.IsNull())
+		q = q.Where(starboards.SourceChannelIDIsNil())
 	}
 
-	result, err := s.database.Starboards.FindFirst(params...).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	result, err := q.First(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("starboard: get by source and emoji: %w", err)
 	}
 
@@ -290,24 +273,25 @@ func (s *StarboardService) GetStarboards(
 	ctx context.Context,
 	guildID string,
 	page int,
-) ([]db.StarboardsModel, int, error) {
-	where := []db.StarboardsWhereParam{db.Starboards.GuildID.Equals(guildID)}
+) ([]*ent.Starboards, int, error) {
+	where := starboards.GuildIDEQ(guildID)
 	skip := (page - 1) * 10
 
-	items, err := s.database.Starboards.FindMany(where...).
-		Skip(skip).
-		Take(10).
-		Exec(ctx)
+	items, err := s.database.Starboards.Query().
+		Where(where).
+		Offset(skip).
+		Limit(10).
+		All(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("starboard: get starboards page: %w", err)
 	}
 
-	total, err := s.database.Starboards.FindMany(where...).Exec(ctx)
+	total, err := s.database.Starboards.Query().Where(where).Count(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("starboard: get starboards total: %w", err)
 	}
 
-	return items, len(total), nil
+	return items, total, nil
 }
 
 func (s *StarboardService) AddStarboard(
@@ -315,22 +299,17 @@ func (s *StarboardService) AddStarboard(
 	guildID, sourceEmoji string,
 	sourceChannelID *string,
 	targetChannelID string,
-) (*db.StarboardsModel, error) {
-	optional := []db.StarboardsSetParam{
-		db.Starboards.SourceEmoji.Set(sourceEmoji),
-	}
+) (*ent.Starboards, error) {
+	c := s.database.Starboards.Create().
+		SetGuildID(guildID).
+		SetTargetChannelID(targetChannelID).
+		SetSourceEmoji(sourceEmoji)
+
 	if sourceChannelID != nil {
-		optional = append(
-			optional,
-			db.Starboards.SourceChannelID.Set(*sourceChannelID),
-		)
+		c = c.SetSourceChannelID(*sourceChannelID)
 	}
 
-	result, err := s.database.Starboards.CreateOne(
-		db.Starboards.GuildID.Set(guildID),
-		db.Starboards.TargetChannelID.Set(targetChannelID),
-		optional...,
-	).Exec(ctx)
+	result, err := c.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("starboard: add starboard: %w", err)
 	}
@@ -342,27 +321,24 @@ func (s *StarboardService) RemoveStarboardByID(
 	ctx context.Context,
 	guildID string,
 	id int,
-) (*db.StarboardsModel, error) {
-	config, err := s.database.Starboards.FindFirst(
-		db.Starboards.GuildID.Equals(guildID),
-		db.Starboards.ID.Equals(id),
-	).Exec(ctx)
+) (*ent.Starboards, error) {
+	sb, err := s.database.Starboards.Query().Where(
+		starboards.GuildIDEQ(guildID),
+		starboards.IDEQ(id),
+	).Only(ctx)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, nil
+		}
+
 		return nil, fmt.Errorf("starboard: remove by id find: %w", err)
 	}
 
-	if config == nil {
-		return nil, nil
-	}
-
-	_, err = s.database.Starboards.FindUnique(
-		db.Starboards.ID.Equals(config.ID),
-	).Delete().Exec(ctx)
-	if err != nil {
+	if err := s.database.Starboards.DeleteOneID(sb.ID).Exec(ctx); err != nil {
 		return nil, fmt.Errorf("starboard: remove by id delete: %w", err)
 	}
 
-	return config, nil
+	return sb, nil
 }
 
 func (s *StarboardService) createEmbeds(
@@ -376,10 +352,8 @@ func (s *StarboardService) createEmbeds(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: createEmbeds: ShardByGuild failed",
-			"error",
-			err,
-			"guildID",
-			msg.GuildID,
+			"error", err,
+			"guildID", msg.GuildID,
 		)
 
 		return nil
@@ -476,10 +450,8 @@ func (s *StarboardService) createStarboard(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: createStarboard: ShardByGuild failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
+			"error", err,
+			"guildID", guildID,
 		)
 
 		return
@@ -488,30 +460,18 @@ func (s *StarboardService) createStarboard(
 	sent, err := b.ChannelMessageSendComplex(
 		targetChannelID,
 		&discordgo.MessageSend{
-			Content: s.createContentString(
-				count,
-				guildID,
-				emojiName,
-				emojiID,
-				msg,
-			),
-			Embeds: embeds,
+			Content: s.createContentString(count, guildID, emojiName, emojiID, msg),
+			Embeds:  embeds,
 		},
 	)
 	if err != nil {
-
 		utils.Logger.Errorw(
 			"starboard: create starboard: send message failed",
-			"error",
-			err,
-			"guildID",
-			msg.GuildID,
-			"channelID",
-			msg.ChannelID,
-			"messageID",
-			msg.ID,
-			"targetChannelID",
-			targetChannelID,
+			"error", err,
+			"guildID", msg.GuildID,
+			"channelID", msg.ChannelID,
+			"messageID", msg.ID,
+			"targetChannelID", targetChannelID,
 		)
 
 		var errorType string
@@ -524,16 +484,14 @@ func (s *StarboardService) createStarboard(
 		}
 
 		if errorType != "" {
-			originalMessage, err := b.ChannelMessage(
-				sourceChannelID,
-				originalMessageID,
-			)
+			originalMessage, err := b.ChannelMessage(sourceChannelID, originalMessageID)
 			if err != nil {
 				utils.Logger.Errorw(
 					"starboard: create starboard: failed to retrieve original message",
 					sourceChannelID,
 					originalMessageID,
 				)
+
 				return
 			}
 
@@ -554,8 +512,7 @@ func (s *StarboardService) createStarboard(
 			if err != nil {
 				utils.Logger.Errorw(
 					"starboard: create starboard: failed to send message",
-					"error",
-					err,
+					"error", err,
 				)
 			}
 		}
@@ -563,12 +520,12 @@ func (s *StarboardService) createStarboard(
 		return
 	}
 
-	result, err := s.database.Log.CreateOne(
-		db.Log.GuildID.Set(msg.GuildID),
-		db.Log.ChannelID.Set(targetChannelID),
-		db.Log.MessageID.Set(sent.ID),
-		db.Log.OriginalMessageID.Set(msg.ID),
-	).Exec(ctx)
+	result, err := s.database.StarboardLog.Create().
+		SetGuildID(msg.GuildID).
+		SetChannelID(targetChannelID).
+		SetMessageID(sent.ID).
+		SetOriginalMessageID(msg.ID).
+		Save(ctx)
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: create log entry failed",
@@ -585,11 +542,7 @@ func (s *StarboardService) createStarboard(
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		b.MessageReactionAdd(
-			targetChannelID,
-			sent.ID,
-			emojiAPIFormat(emojiName, emojiID),
-		),
+		b.MessageReactionAdd(targetChannelID, sent.ID, emojiAPIFormat(emojiName, emojiID)),
 	)
 	utils.LogIfErr(
 		utils.Logger,
@@ -599,14 +552,10 @@ func (s *StarboardService) createStarboard(
 
 	utils.Logger.Infow(
 		"starboard: create starboard: created new starboard entry",
-		"starboardID",
-		result.ID,
-		"guildID",
-		guildID,
-		"channelID",
-		targetChannelID,
-		"messageID",
-		sent.ID,
+		"starboardID", result.ID,
+		"guildID", guildID,
+		"channelID", targetChannelID,
+		"messageID", sent.ID,
 	)
 }
 
@@ -616,16 +565,14 @@ func (s *StarboardService) updateStarboard(
 	msg *discordgo.Message,
 	guildID string,
 	emojiName, emojiID string,
-	log *db.LogModel,
+	log *ent.StarboardLog,
 ) {
 	b, err := s.bot.ShardByChannel(log.ChannelID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: updateStarboard: ShardByChannel failed",
-			"error",
-			err,
-			"channelID",
-			log.ChannelID,
+			"error", err,
+			"channelID", log.ChannelID,
 		)
 
 		return
@@ -642,42 +589,32 @@ func (s *StarboardService) updateStarboard(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: update starboard: edit message failed",
-			"error",
-			err,
-			"guildID",
-			msg.GuildID,
-			"channelID",
-			log.ChannelID,
-			"messageID",
-			log.MessageID,
+			"error", err,
+			"guildID", msg.GuildID,
+			"channelID", log.ChannelID,
+			"messageID", log.MessageID,
 		)
 	}
 
 	utils.Logger.Infow(
 		"starboard: update starboard: updated starboard entry",
-		"starboardID",
-		log.ID,
-		"guildID",
-		guildID,
-		"channelID",
-		log.ChannelID,
-		"messageID",
-		log.MessageID,
+		"starboardID", log.ID,
+		"guildID", guildID,
+		"channelID", log.ChannelID,
+		"messageID", log.MessageID,
 	)
 }
 
 func (s *StarboardService) deleteStarboard(
 	ctx context.Context,
-	log *db.LogModel,
+	log *ent.StarboardLog,
 ) {
 	b, err := s.bot.ShardByChannel(log.ChannelID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: deleteStarboard: ShardByChannel failed",
-			"error",
-			err,
-			"channelID",
-			log.ChannelID,
+			"error", err,
+			"channelID", log.ChannelID,
 		)
 
 		return
@@ -687,22 +624,18 @@ func (s *StarboardService) deleteStarboard(
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: delete starboard: delete message failed",
-			"error",
-			err,
-			"guildID",
-			log.GuildID,
-			"channelID",
-			log.ChannelID,
-			"messageID",
-			log.MessageID,
+			"error", err,
+			"guildID", log.GuildID,
+			"channelID", log.ChannelID,
+			"messageID", log.MessageID,
 		)
 
 		return
 	}
 
-	_, err = s.database.Log.FindUnique(
-		db.Log.MessageID.Equals(log.MessageID),
-	).Delete().Exec(ctx)
+	_, err = s.database.StarboardLog.Delete().
+		Where(starboardlog.MessageIDEQ(log.MessageID)).
+		Exec(ctx)
 	if err != nil {
 		utils.Logger.Errorw(
 			"starboard: delete log entry failed",
@@ -714,31 +647,26 @@ func (s *StarboardService) deleteStarboard(
 	}
 }
 
-type GuildIDRow struct {
-	GuildID string `json:"guildId"`
-}
-
-func (s *StarboardService) FindAllGuildIDs(
-	ctx context.Context,
-) ([]GuildIDRow, error) {
-	var rows []GuildIDRow
-	if err := s.database.Prisma.QueryRaw(
-		`SELECT DISTINCT "guildId" FROM "Starboards"`,
-	).Exec(ctx, &rows); err != nil {
+func (s *StarboardService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
+	guildIDs, err := s.database.Starboards.Query().
+		Unique(true).
+		Select(starboards.FieldGuildID).
+		Strings(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("starboard: find distinct guild ids: %w", err)
 	}
 
-	return rows, nil
+	return guildIDs, nil
 }
 
 func (s *StarboardService) FindByGuildIDs(
 	ctx context.Context,
 	guildIDs []string,
-) ([]db.StarboardsModel, error) {
-	result, err := s.database.Starboards.FindMany(
-		db.Starboards.GuildID.In(guildIDs),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+) ([]*ent.Starboards, error) {
+	result, err := s.database.Starboards.Query().
+		Where(starboards.GuildIDIn(guildIDs...)).
+		All(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("starboard: find by guild ids: %w", err)
 	}
 
@@ -749,12 +677,12 @@ func (s *StarboardService) DeleteByGuildIDs(
 	ctx context.Context,
 	guildIDs []string,
 ) (int, error) {
-	result, err := s.database.Starboards.FindMany(
-		db.Starboards.GuildID.In(guildIDs),
-	).Delete().Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	n, err := s.database.Starboards.Delete().
+		Where(starboards.GuildIDIn(guildIDs...)).
+		Exec(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return 0, fmt.Errorf("starboard: delete by guild ids: %w", err)
 	}
 
-	return result.Count, nil
+	return n, nil
 }

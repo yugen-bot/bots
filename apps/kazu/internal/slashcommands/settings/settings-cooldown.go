@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
-	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -43,7 +43,7 @@ func (m *SettingsCooldownModule) set(ctx *discordgoplus.Ctx) {
 	_, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
-		db.Settings.Cooldown.Set(int(seconds)),
+		func(u *ent.SettingsUpdateOne) { u.SetCooldown(int(seconds)) },
 	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)

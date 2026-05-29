@@ -5,16 +5,23 @@ all: build test
 
 build:
 	@echo "Building..."
-	@go generate ./cmd/bot/main.go
 	@go build -o dist/hoshi cmd/bot/main.go
 
 build-prod:
 	@echo "Building..."
-	@go generate ./cmd/bot/main.go
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o dist/hoshi cmd/bot/main.go
 
+ent-generate:
+	@GOWORK=off go generate ./internal/ent
+
 migrate:
-	@go run github.com/steebchen/prisma-client-go migrate deploy
+	@atlas migrate apply --env local
+
+migrate-diff:
+	@atlas migrate diff $(name) --env local
+
+migrate-validate:
+	@atlas migrate validate --env local
 
 # Run the application
 run:
@@ -47,4 +54,4 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch
+.PHONY: all build run test clean watch ent-generate migrate migrate-diff migrate-validate

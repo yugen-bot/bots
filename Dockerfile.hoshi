@@ -16,12 +16,13 @@ RUN make build-hoshi
 
 
 # Production
-FROM scratch
+FROM arigaio/atlas:latest-alpine
 
 WORKDIR /opt/app
 
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-# We transport the binary to our deployable image
-COPY --from=build /opt/app/apps/hoshi/dist/hoshi /opt/app/
+COPY --from=build /opt/app/apps/hoshi/dist/hoshi /opt/app/hoshi
+COPY --from=build /opt/app/apps/hoshi/atlas.hcl /opt/app/atlas.hcl
+COPY --from=build /opt/app/apps/hoshi/migrations /opt/app/migrations
 
-CMD ["/opt/app/hoshi"]
+ENTRYPOINT ["/bin/sh", "-c", "atlas migrate apply --env production && exec /opt/app/hoshi"]

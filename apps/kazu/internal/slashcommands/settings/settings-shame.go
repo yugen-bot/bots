@@ -7,8 +7,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
-	"jurien.dev/yugen/kazu/prisma/db"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -41,7 +41,7 @@ func (m *SettingsShameModule) setRole(ctx *discordgoplus.Ctx) {
 	_, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
-		db.Settings.ShameRoleID.Set(role.ID),
+		func(u *ent.SettingsUpdateOne) { u.SetShameRoleID(role.ID) },
 	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)
@@ -73,7 +73,7 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *discordgoplus.Ctx) {
 	_, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
-		db.Settings.RemoveShameRoleAfterHighscore.Set(remove),
+		func(u *ent.SettingsUpdateOne) { u.SetRemoveShameRoleAfterHighscore(remove) },
 	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)

@@ -8,9 +8,9 @@ import (
 	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/shared/utils"
 
+	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/services"
 	local "jurien.dev/yugen/kusari/internal/static"
-	"jurien.dev/yugen/kusari/prisma/db"
 )
 
 type LeaderboardModule struct {
@@ -39,7 +39,7 @@ func (m *LeaderboardModule) getItems(
 }
 
 func (m *LeaderboardModule) formatItem(_ *discordgoplus.Ctx, item any) string {
-	parsed := item.(db.PlayerStatsModel)
+	parsed := item.(*ent.PlayerStats)
 	return fmt.Sprintf("<@%s>: **%d**", parsed.UserID, parsed.Points)
 }
 

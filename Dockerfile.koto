@@ -16,12 +16,13 @@ RUN make build-koto
 
 
 # Production
-FROM scratch
+FROM arigaio/atlas:latest-alpine
 
 WORKDIR /opt/app
 
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-# We transport the binary to our deployable image
-COPY --from=build /opt/app/apps/koto/dist/koto /opt/app/
+COPY --from=build /opt/app/apps/koto/dist/koto /opt/app/koto
+COPY --from=build /opt/app/apps/koto/atlas.hcl /opt/app/atlas.hcl
+COPY --from=build /opt/app/apps/koto/migrations /opt/app/migrations
 
-CMD ["/opt/app/koto"]
+ENTRYPOINT ["/bin/sh", "-c", "atlas migrate apply --env production && exec /opt/app/koto"]

@@ -8,8 +8,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/services"
-	"jurien.dev/yugen/kusari/prisma/db"
 	"jurien.dev/yugen/shared/static"
 )
 
@@ -45,7 +45,7 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 
 	setting := ctx.Options["setting"].StringValue()
 
-	settings, err := m.settings.GetByGuildId(
+	s, err := m.settings.GetByGuildId(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)
@@ -55,31 +55,31 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	}
 
 	var (
-		dbSetting db.SettingsSetParam
-		value     string
+		apply func(*ent.SettingsUpdateOne)
+		value string
 	)
 
 	switch setting {
 	case "channelID":
-		dbSetting = db.Settings.ChannelID.SetOptional(nil)
+		apply = func(u *ent.SettingsUpdateOne) { u.ClearChannelID() }
 		value = "unset"
 	case "botUpdatesChannelID":
-		dbSetting = db.Settings.BotUpdatesChannelID.SetOptional(nil)
+		apply = func(u *ent.SettingsUpdateOne) { u.ClearBotUpdatesChannelID() }
 		value = "unset"
 	case "cooldown":
-		dbSetting = db.Settings.Cooldown.Set(0)
+		apply = func(u *ent.SettingsUpdateOne) { u.SetCooldown(0) }
 		value = "0"
 	}
 
-	if dbSetting == nil {
+	if apply == nil {
 		discordgoplus.ErrorResponse(ctx, true)
 		return
 	}
 
 	_, err = m.settings.Update(
 		context.Background(),
-		settings.ID,
-		dbSetting,
+		s.ID,
+		apply,
 	)
 	if err != nil {
 		discordgoplus.ErrorResponse(ctx, true)

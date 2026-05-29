@@ -40,18 +40,18 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 	}
 
 	channelIDText := "-"
-	if channelID, ok := s.ChannelID(); ok && channelID != "" {
-		channelIDText = fmt.Sprintf("<#%s>", channelID)
+	if s.ChannelID != nil && *s.ChannelID != "" {
+		channelIDText = fmt.Sprintf("<#%s>", *s.ChannelID)
 	}
 
 	botUpdatesText := "-"
-	if botID, ok := s.BotUpdatesChannelID(); ok && botID != "" {
-		botUpdatesText = fmt.Sprintf("<#%s>", botID)
+	if s.BotUpdatesChannelID != nil && *s.BotUpdatesChannelID != "" {
+		botUpdatesText = fmt.Sprintf("<#%s>", *s.BotUpdatesChannelID)
 	}
 
 	pingRoleText := "-"
-	if roleID, ok := s.PingRoleID(); ok && roleID != "" {
-		pingRoleText = fmt.Sprintf("<@&%s>", roleID)
+	if s.PingRoleID != nil && *s.PingRoleID != "" {
+		pingRoleText = fmt.Sprintf("<@&%s>", *s.PingRoleID)
 	}
 
 	pingTypeText := "Every change"

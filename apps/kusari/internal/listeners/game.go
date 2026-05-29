@@ -7,15 +7,15 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/services"
 	localStatic "jurien.dev/yugen/kusari/internal/static"
-	"jurien.dev/yugen/kusari/prisma/db"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 type GameListener struct {
-	database *db.PrismaClient
+	database *ent.Client
 	settings *services.SettingsService
 	service  *services.GameService
 }
@@ -24,7 +24,7 @@ func GetGameListener(container *di.Container) *GameListener {
 	utils.Logger.Info("Creating Color Listener")
 
 	return &GameListener{
-		database: container.Get(static.DiDatabase).(*db.PrismaClient),
+		database: container.Get(static.DiDatabase).(*ent.Client),
 		settings: container.Get(static.DiSettings).(*services.SettingsService),
 		service:  container.Get(localStatic.DiGame).(*services.GameService),
 	}
@@ -125,7 +125,7 @@ Last word was **%s**!`, event.BeforeDelete.Author.ID, word),
 func (listener *GameListener) getSettings(
 	guildID string,
 	channelID string,
-) (ok bool, settings *db.SettingsModel) {
+) (ok bool, settings *ent.Settings) {
 	ok = false
 
 	settings, err := listener.settings.GetByGuildId(
@@ -144,10 +144,12 @@ func (listener *GameListener) getSettings(
 		return
 	}
 
-	settingsChannelID, ok := settings.ChannelID()
-	if !ok || channelID != settingsChannelID {
+	if settings.ChannelID == nil || channelID != *settings.ChannelID {
 		ok = false
+		return
 	}
+
+	ok = true
 
 	return
 }

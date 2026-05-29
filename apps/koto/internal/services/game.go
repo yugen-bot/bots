@@ -13,9 +13,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+	"jurien.dev/yugen/koto/internal/ent"
+	entgame "jurien.dev/yugen/koto/internal/ent/game"
+	"jurien.dev/yugen/koto/internal/ent/guess"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
-	"jurien.dev/yugen/koto/prisma/db"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -28,7 +30,7 @@ type cooldownResult struct {
 }
 
 type GameService struct {
-	database *db.PrismaClient
+	database *ent.Client
 	settings *SettingsService
 	words    *WordsService
 	message  *MessageService
@@ -48,7 +50,7 @@ func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 
 	return &GameService{
-		database: container.Get(sharedStatic.DiDatabase).(*db.PrismaClient),
+		database: container.Get(sharedStatic.DiDatabase).(*ent.Client),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
 		words:    container.Get(localStatic.DiWords).(*WordsService),
 		message:  container.Get(localStatic.DiGameMessage).(*MessageService),
@@ -92,7 +94,7 @@ func (s *GameService) Start(
 	}
 
 	currentGame, err := s.GetCurrentGame(ctx, guildID)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	if err != nil {
 		return false, err
 	}
 
@@ -110,7 +112,7 @@ func (s *GameService) Start(
 		if endErr := s.EndGame(
 			ctx,
 			currentGame.ID,
-			db.GameStatusFailed,
+			entgame.StatusFAILED,
 		); endErr != nil {
 			utils.Logger.Warnw("game: start: end current failed",
 				"error", endErr,
@@ -123,15 +125,12 @@ func (s *GameService) Start(
 	}
 
 	// Get past 50 games to avoid repeating words
-	pastGames, err := s.database.Game.FindMany(
-		db.Game.GuildID.Equals(guildID),
-	).Select(
-		db.Game.Word.Field(),
-		db.Game.Number.Field(),
-	).OrderBy(
-		db.Game.CreatedAt.Order(db.SortOrderDesc),
-	).Take(50).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	pastGames, err := s.database.Game.Query().
+		Where(entgame.GuildIDEQ(guildID)).
+		Order(ent.Desc(entgame.FieldCreatedAt)).
+		Limit(50).
+		All(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return false, fmt.Errorf("game: start: find past games: %w", err)
 	}
 
@@ -156,18 +155,18 @@ func (s *GameService) Start(
 		)
 	}
 
-	settings, err := s.settings.GetByGuildID(ctx, guildID)
+	guildSettings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
 		return false, fmt.Errorf("game: start: get settings: %w", err)
 	}
 
 	var endingAt time.Time
-	if settings.StartAfterFirstGuess {
+	if guildSettings.StartAfterFirstGuess {
 		// Year-3000 sentinel: timer doesn't start until first guess
 		endingAt = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
 	} else {
 		endingAt = roundToNearestMinute(
-			time.Now().Add(time.Duration(settings.TimeLimit) * time.Minute),
+			time.Now().Add(time.Duration(guildSettings.TimeLimit) * time.Minute),
 		)
 	}
 
@@ -178,46 +177,46 @@ func (s *GameService) Start(
 		return false, fmt.Errorf("game: start: marshal meta: %w", err)
 	}
 
-	game, err := s.database.Game.CreateOne(
-		db.Game.Settings.Link(db.Settings.GuildID.Equals(guildID)),
-		db.Game.Word.Set(word),
-		db.Game.EndingAt.Set(endingAt),
-		db.Game.ScheduleStarted.Set(schedule),
-		db.Game.Meta.Set(metaJSON),
-		db.Game.Number.Set(lastNumber+1),
-	).Exec(ctx)
+	newGame, err := s.database.Game.Create().
+		SetGuildID(guildID).
+		SetWord(word).
+		SetEndingAt(endingAt).
+		SetScheduleStarted(schedule).
+		SetMeta(metaJSON).
+		SetNumber(lastNumber + 1).
+		Save(ctx)
 	if err != nil {
 		return false, fmt.Errorf("game: start: create game: %w", err)
 	}
 
-	if err := s.message.Create(ctx, game, []db.GuessModel{}, true); err != nil {
+	if err := s.message.Create(ctx, newGame, []*ent.Guess{}, true); err != nil {
 		utils.Logger.Warnw("game: start: create message failed",
 			"error", err,
 			"guildID", guildID,
-			"gameID", game.ID,
+			"gameID", newGame.ID,
 		)
 
 		// if we fail to send the message because the channel is not found or inaccessible, reset channel.
 		if strings.Contains(err.Error(), "404 Not Found") ||
 			strings.Contains(err.Error(), "403 Forbidden") {
-			if _, err := s.settings.Set(
+			if _, updateErr := s.settings.Update(
 				context.Background(),
-				guildID,
-				db.Settings.ChannelID.SetOptional(nil),
-			); err != nil {
+				guildSettings.ID,
+				func(u *ent.SettingsUpdateOne) { u.ClearChannelID() },
+			); updateErr != nil {
 				utils.Logger.Warnw("game: start: reset channel failed",
-					"error", err)
+					"error", updateErr)
 			}
 
 			if endErr := s.EndGame(
 				ctx,
-				game.ID,
-				db.GameStatusFailed,
+				newGame.ID,
+				entgame.StatusFAILED,
 			); endErr != nil {
 				utils.Logger.Warnw("game: start: end current failed",
 					"error", endErr,
 					"guildID", guildID,
-					"gameID", currentGame.ID,
+					"gameID", newGame.ID,
 				)
 			}
 
@@ -239,14 +238,14 @@ func (s *GameService) Guess(
 	guildID string,
 	word string,
 	message *discordgo.Message,
-	settings *db.SettingsModel,
+	guildSettings *ent.Settings,
 ) error {
-	game, err := s.GetCurrentGame(ctx, guildID)
+	currentGame, err := s.GetCurrentGame(ctx, guildID)
 	if err != nil {
 		return fmt.Errorf("game: guess: get current game: %w", err)
 	}
 
-	if game == nil {
+	if currentGame == nil {
 		return nil
 	}
 
@@ -272,18 +271,17 @@ func (s *GameService) Guess(
 		utils.Logger.Warnw("game: guess: get player failed",
 			"error", pErr,
 			"guildID", guildID,
-			"gameID", game.ID,
+			"gameID", currentGame.ID,
 			"userID", message.Author.ID,
 		)
 	}
 
 	// Fetch guesses
-	guesses, err := s.database.Guess.FindMany(
-		db.Guess.GameID.Equals(game.ID),
-	).OrderBy(
-		db.Guess.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	guesses, err := s.database.Guess.Query().
+		Where(guess.GameIDEQ(currentGame.ID)).
+		Order(ent.Desc(guess.FieldCreatedAt)).
+		All(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return fmt.Errorf("game: guess: find guesses: %w", err)
 	}
 
@@ -303,7 +301,7 @@ func (s *GameService) Guess(
 	}
 
 	// Cooldown check
-	cooldown := s.checkCooldown(message.Author.ID, guesses, settings)
+	cooldown := s.checkCooldown(message.Author.ID, guesses, guildSettings)
 	if cooldown.Hit || cooldown.RepeatHit {
 		b.MessageReactionAdd(
 			message.ChannelID,
@@ -339,14 +337,14 @@ func (s *GameService) Guess(
 	}
 
 	// Parse current game meta
-	gameMeta, err := localUtils.ParseGameMeta(json.RawMessage(game.Meta))
+	gameMeta, err := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
 	if err != nil {
 		return fmt.Errorf("game: guess: parse meta: %w", err)
 	}
 
 	// Score the guess
 	guessMeta, guessed, points, updatedGameMeta := s.checkWord(
-		game.Word,
+		currentGame.Word,
 		word,
 		gameMeta,
 	)
@@ -357,28 +355,28 @@ func (s *GameService) Guess(
 		return fmt.Errorf("game: guess: marshal guess meta: %w", err)
 	}
 
-	createdGuess, err := s.database.Guess.CreateOne(
-		db.Guess.UserID.Set(message.Author.ID),
-		db.Guess.Game.Link(db.Game.ID.Equals(game.ID)),
-		db.Guess.Word.Set(word),
-		db.Guess.Points.Set(points),
-		db.Guess.Meta.Set(guessMetaJSON),
-	).Exec(ctx)
+	createdGuess, err := s.database.Guess.Create().
+		SetUserID(message.Author.ID).
+		SetGameID(currentGame.ID).
+		SetWord(word).
+		SetPoints(points).
+		SetMeta(guessMetaJSON).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("game: guess: create guess: %w", err)
 	}
 
 	// Determine new game status
-	newStatus := game.Status
+	newStatus := currentGame.Status
 	if guessed {
-		newStatus = db.GameStatusCompleted
+		newStatus = entgame.StatusCOMPLETED
 	} else if len(guesses)+1 >= localStatic.MaxGuesses {
-		newStatus = db.GameStatusFailed
+		newStatus = entgame.StatusFAILED
 	}
 
 	// Recompute hint availability after scoring
 	updatedGameMeta.CanHint = localUtils.ComputeCanHint(
-		game.Word,
+		currentGame.Word,
 		updatedGameMeta,
 	)
 
@@ -388,21 +386,19 @@ func (s *GameService) Guess(
 		return fmt.Errorf("game: guess: marshal game meta: %w", err)
 	}
 
-	updateParams := []db.GameSetParam{
-		db.Game.Status.Set(newStatus),
-		db.Game.Meta.Set(updatedMetaJSON),
-	}
+	upd := s.database.Game.UpdateOneID(currentGame.ID).
+		SetStatus(newStatus).
+		SetMeta(updatedMetaJSON)
+
 	// If startAfterFirstGuess and this is the first guess, set real endingAt
-	if settings.StartAfterFirstGuess && len(guesses) == 0 {
+	if guildSettings.StartAfterFirstGuess && len(guesses) == 0 {
 		realEndingAt := roundToNearestMinute(
-			time.Now().Add(time.Duration(settings.TimeLimit) * time.Minute),
+			time.Now().Add(time.Duration(guildSettings.TimeLimit) * time.Minute),
 		)
-		updateParams = append(updateParams, db.Game.EndingAt.Set(realEndingAt))
+		upd = upd.SetEndingAt(realEndingAt)
 	}
 
-	updatedGame, err := s.database.Game.FindUnique(
-		db.Game.ID.Equals(game.ID),
-	).Update(updateParams...).Exec(ctx)
+	updatedGame, err := upd.Save(ctx)
 	if err != nil {
 		return fmt.Errorf("game: guess: update game: %w", err)
 	}
@@ -419,11 +415,10 @@ func (s *GameService) Guess(
 	}
 
 	// Fetch updated guesses list (with new guess)
-	allGuesses, _ := s.database.Guess.FindMany(
-		db.Guess.GameID.Equals(game.ID),
-	).OrderBy(
-		db.Guess.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(ctx)
+	allGuesses, _ := s.database.Guess.Query().
+		Where(guess.GameIDEQ(currentGame.ID)).
+		Order(ent.Desc(guess.FieldCreatedAt)).
+		All(ctx)
 
 	// Apply points if won
 	if guessed {
@@ -437,34 +432,34 @@ func (s *GameService) Guess(
 				utils.Logger.Warnw("game: guess: apply points failed",
 					"error", applyErr,
 					"guildID", guildID,
-					"gameID", game.ID,
+					"gameID", currentGame.ID,
 				)
 			}
 		}()
 	}
 
 	// Inform cooldown
-	if newStatus != db.GameStatusCompleted &&
-		settings.InformCooldownAfterGuess {
+	if newStatus != entgame.StatusCOMPLETED &&
+		guildSettings.InformCooldownAfterGuess {
 		go func() {
 			backToBackPart := ""
-			if settings.EnableBackToBackCooldown {
+			if guildSettings.EnableBackToBackCooldown {
 				backToBackPart = fmt.Sprintf(
 					"<t:%d:R> on your own or ",
-					createdGuess.CreatedAt.Add(time.Duration(settings.BackToBackCooldown)*time.Second).
+					createdGuess.CreatedAt.Add(time.Duration(guildSettings.BackToBackCooldown)*time.Second).
 						Unix(),
 				)
 			}
 
 			afterPart := ""
-			if settings.EnableBackToBackCooldown {
+			if guildSettings.EnableBackToBackCooldown {
 				afterPart = " after a guess from another player"
 			}
 
 			msg := fmt.Sprintf(
 				"You are now on a cooldown. You can guess again %s<t:%d:R>%s.",
 				backToBackPart,
-				createdGuess.CreatedAt.Add(time.Duration(settings.Cooldown)*time.Second).
+				createdGuess.CreatedAt.Add(time.Duration(guildSettings.Cooldown)*time.Second).
 					Unix(),
 				afterPart,
 			)
@@ -488,19 +483,24 @@ func (s *GameService) Guess(
 			utils.Logger.Warnw("game: guess: recreate message failed",
 				"error", msgErr,
 				"guildID", guildID,
-				"gameID", game.ID,
+				"gameID", currentGame.ID,
 			)
 		}
 	}()
 
 	// Handle terminal status
-	if newStatus != db.GameStatusInProgress {
+	if newStatus != entgame.StatusIN_PROGRESS {
 		// Delete guesses for privacy; keep the solving guess for completed games.
-		delFilters := []db.GuessWhereParam{db.Guess.GameID.Equals(updatedGame.ID)}
-		if newStatus == db.GameStatusCompleted {
-			delFilters = append(delFilters, db.Guess.Word.NotIn([]string{updatedGame.Word}))
+		delQuery := s.database.Guess.Delete().
+			Where(guess.GameIDEQ(updatedGame.ID))
+		if newStatus == entgame.StatusCOMPLETED {
+			delQuery = s.database.Guess.Delete().
+				Where(
+					guess.GameIDEQ(updatedGame.ID),
+					guess.WordNotIn(updatedGame.Word),
+				)
 		}
-		if _, delErr := s.database.Guess.FindMany(delFilters...).Delete().Exec(context.Background()); delErr != nil {
+		if _, delErr := delQuery.Exec(context.Background()); delErr != nil {
 			utils.Logger.Warnw(
 				"game: guess: delete guesses failed",
 				"error", delErr,
@@ -510,7 +510,7 @@ func (s *GameService) Guess(
 		}
 
 		// Auto-start if configured
-		if settings.AutoStart {
+		if guildSettings.AutoStart {
 			time.Sleep(500 * time.Millisecond)
 
 			go func() {
@@ -538,62 +538,65 @@ func (s *GameService) Guess(
 func (s *GameService) EndGame(
 	ctx context.Context,
 	gameID int,
-	status db.GameStatus,
+	status entgame.Status,
 ) error {
-	game, err := s.database.Game.FindUnique(
-		db.Game.ID.Equals(gameID),
-	).Update(
-		db.Game.Status.Set(status),
-	).Exec(ctx)
+	endedGame, err := s.database.Game.UpdateOneID(gameID).
+		SetStatus(status).
+		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("game: end: update: %w", err)
 	}
 
-	b, err := s.bot.ShardByGuild(game.GuildID)
+	b, err := s.bot.ShardByGuild(endedGame.GuildID)
 	if err != nil {
 		utils.Logger.Debugf(
 			"Skipping end message, ShardByGuild failed for guild %s: %v",
-			game.GuildID,
+			endedGame.GuildID,
 			err,
 		)
 
 		return nil
 	}
 
-	if _, gErr := b.State.Guild(game.GuildID); gErr != nil {
-		if _, gErr2 := b.Guild(game.GuildID); gErr2 != nil {
+	if _, gErr := b.State.Guild(endedGame.GuildID); gErr != nil {
+		if _, gErr2 := b.Guild(endedGame.GuildID); gErr2 != nil {
 			utils.Logger.Debugf(
 				"Skipping end message, bot not in guild %s",
-				game.GuildID,
+				endedGame.GuildID,
 			)
 
 			return nil
 		}
 	}
 
-	guesses, _ := s.database.Guess.FindMany(
-		db.Guess.GameID.Equals(game.ID),
-	).Exec(ctx)
+	guesses, _ := s.database.Guess.Query().
+		Where(guess.GameIDEQ(endedGame.ID)).
+		All(ctx)
 
-	if msgErr := s.message.Create(ctx, game, guesses, false); msgErr != nil {
+	if msgErr := s.message.Create(ctx, endedGame, guesses, false); msgErr != nil {
 		utils.Logger.Warnw("game: end: create message failed",
 			"error", msgErr,
-			"guildID", game.GuildID,
-			"gameID", game.ID,
+			"guildID", endedGame.GuildID,
+			"gameID", endedGame.ID,
 		)
 	}
 
 	// Delete guesses for privacy; keep the solving guess for completed games.
-	deleteFilters := []db.GuessWhereParam{db.Guess.GameID.Equals(game.ID)}
-	if status == db.GameStatusCompleted {
-		deleteFilters = append(deleteFilters, db.Guess.Word.NotIn([]string{game.Word}))
+	delQuery := s.database.Guess.Delete().
+		Where(guess.GameIDEQ(endedGame.ID))
+	if status == entgame.StatusCOMPLETED {
+		delQuery = s.database.Guess.Delete().
+			Where(
+				guess.GameIDEQ(endedGame.ID),
+				guess.WordNotIn(endedGame.Word),
+			)
 	}
-	if _, delErr := s.database.Guess.FindMany(deleteFilters...).Delete().Exec(ctx); delErr != nil {
+	if _, delErr := delQuery.Exec(ctx); delErr != nil {
 		utils.Logger.Warnw(
 			"game: end: delete guesses failed",
 			"error", delErr,
-			"guildID", game.GuildID,
-			"gameID", game.ID,
+			"guildID", endedGame.GuildID,
+			"gameID", endedGame.ID,
 		)
 	}
 
@@ -602,7 +605,7 @@ func (s *GameService) EndGame(
 
 // LastSolvedGame holds the last completed game and the userID of whoever solved it.
 type LastSolvedGame struct {
-	Game   *db.GameModel
+	Game   *ent.Game
 	Solver string // userID; empty if unknown
 }
 
@@ -613,14 +616,15 @@ func (s *GameService) GetLastSolvedGame(
 	ctx context.Context,
 	guildID string,
 ) (*LastSolvedGame, error) {
-	game, err := s.database.Game.FindFirst(
-		db.Game.GuildID.Equals(guildID),
-		db.Game.Status.Equals(db.GameStatusCompleted),
-	).OrderBy(
-		db.Game.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(ctx)
+	lastGame, err := s.database.Game.Query().
+		Where(
+			entgame.GuildIDEQ(guildID),
+			entgame.StatusEQ(entgame.StatusCOMPLETED),
+		).
+		Order(ent.Desc(entgame.FieldCreatedAt)).
+		First(ctx)
 
-	if errors.Is(err, db.ErrNotFound) {
+	if ent.IsNotFound(err) {
 		return nil, nil
 	}
 
@@ -628,14 +632,16 @@ func (s *GameService) GetLastSolvedGame(
 		return nil, fmt.Errorf("game: last solved: %w", err)
 	}
 
-	result := &LastSolvedGame{Game: game}
+	result := &LastSolvedGame{Game: lastGame}
 
-	guess, gErr := s.database.Guess.FindFirst(
-		db.Guess.GameID.Equals(game.ID),
-		db.Guess.Word.Equals(game.Word),
-	).Exec(ctx)
+	solverGuess, gErr := s.database.Guess.Query().
+		Where(
+			guess.GameIDEQ(lastGame.ID),
+			guess.WordEQ(lastGame.Word),
+		).
+		First(ctx)
 	if gErr == nil {
-		result.Solver = guess.UserID
+		result.Solver = solverGuess.UserID
 	}
 
 	return result, nil
@@ -645,20 +651,21 @@ func (s *GameService) GetLastSolvedGame(
 func (s *GameService) GetCurrentGame(
 	ctx context.Context,
 	guildID string,
-) (*db.GameModel, error) {
-	game, err := s.database.Game.FindFirst(
-		db.Game.GuildID.Equals(guildID),
-		db.Game.Status.Equals(db.GameStatusInProgress),
-		db.Game.EndingAt.After(time.Now()),
-	).OrderBy(
-		db.Game.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(ctx)
+) (*ent.Game, error) {
+	currentGame, err := s.database.Game.Query().
+		Where(
+			entgame.GuildIDEQ(guildID),
+			entgame.StatusEQ(entgame.StatusIN_PROGRESS),
+			entgame.EndingAtGT(time.Now()),
+		).
+		Order(ent.Desc(entgame.FieldCreatedAt)).
+		First(ctx)
 
-	if errors.Is(err, db.ErrNotFound) {
+	if ent.IsNotFound(err) {
 		return nil, nil
 	}
 
-	return game, err
+	return currentGame, err
 }
 
 // GetNextGameStart computes when the next scheduled game will start for the guild.
@@ -666,16 +673,18 @@ func (s *GameService) GetCurrentGame(
 func (s *GameService) GetNextGameStart(
 	ctx context.Context,
 	guildID string,
-	settings *db.SettingsModel,
+	guildSettings *ent.Settings,
 ) (*time.Time, error) {
-	lastGames, err := s.database.Game.FindMany(
-		db.Game.GuildID.Equals(guildID),
-		db.Game.Status.Not(db.GameStatusInProgress),
-	).OrderBy(
-		db.Game.CreatedAt.Order(db.SortOrderDesc),
-	).Take(1).Exec(ctx)
+	lastGames, err := s.database.Game.Query().
+		Where(
+			entgame.GuildIDEQ(guildID),
+			entgame.StatusNEQ(entgame.StatusIN_PROGRESS),
+		).
+		Order(ent.Desc(entgame.FieldCreatedAt)).
+		Limit(1).
+		All(ctx)
 
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("game: next start: %w", err)
 	}
 
@@ -686,18 +695,18 @@ func (s *GameService) GetNextGameStart(
 	lastGame := lastGames[0]
 	baseTime := lastGame.CreatedAt
 
-	if settings.StartAfterFirstGuess {
-		firstGuesses, gErr := s.database.Guess.FindMany(
-			db.Guess.GameID.Equals(lastGame.ID),
-		).OrderBy(
-			db.Guess.CreatedAt.Order(db.SortOrderAsc),
-		).Take(1).Exec(ctx)
+	if guildSettings.StartAfterFirstGuess {
+		firstGuesses, gErr := s.database.Guess.Query().
+			Where(guess.GameIDEQ(lastGame.ID)).
+			Order(ent.Asc(guess.FieldCreatedAt)).
+			Limit(1).
+			All(ctx)
 		if gErr == nil && len(firstGuesses) > 0 {
 			baseTime = firstGuesses[0].CreatedAt
 		}
 	}
 
-	nextStart := baseTime.Add(time.Duration(settings.Frequency) * time.Minute)
+	nextStart := baseTime.Add(time.Duration(guildSettings.Frequency) * time.Minute)
 	return &nextStart, nil
 }
 
@@ -705,15 +714,15 @@ func (s *GameService) GetNextGameStart(
 // Returns: per-letter meta, guessed(bool), total points, updated game meta.
 func (s *GameService) checkWord(
 	word string,
-	guess string,
+	guessWord string,
 	state *localUtils.GameMeta,
 ) (localUtils.GuessMetaSlice, bool, int, *localUtils.GameMeta) {
-	meta := make(localUtils.GuessMetaSlice, len(guess))
+	meta := make(localUtils.GuessMetaSlice, len(guessWord))
 	unmatched := map[rune]int{}   // unmatched word letters
 	letterCount := map[rune]int{} // matched count per letter
 
 	wordRunes := []rune(word)
-	guessRunes := []rune(guess)
+	guessRunes := []rune(guessWord)
 
 	// Pass 1: find exact matches (CORRECT)
 	for i, letter := range wordRunes {
@@ -813,27 +822,27 @@ func (s *GameService) checkWord(
 		totalPoints += m.Points
 	}
 
-	return meta, word == guess, totalPoints, state
+	return meta, word == guessWord, totalPoints, state
 }
 
 // checkCooldown returns cooldown status for a user.
 func (s *GameService) checkCooldown(
 	userID string,
-	guesses []db.GuessModel,
-	settings *db.SettingsModel,
+	guesses []*ent.Guess,
+	guildSettings *ent.Settings,
 ) cooldownResult {
 	if len(guesses) == 0 {
 		return cooldownResult{}
 	}
 
 	// guesses are ordered desc by createdAt from the query
-	lastGuess := &guesses[0]
+	lastGuess := guesses[0]
 
-	var lastGuessByUser *db.GuessModel
+	var lastGuessByUser *ent.Guess
 
 	for i := range guesses {
 		if guesses[i].UserID == userID {
-			lastGuessByUser = &guesses[i]
+			lastGuessByUser = guesses[i]
 			break
 		}
 	}
@@ -843,13 +852,13 @@ func (s *GameService) checkCooldown(
 	}
 
 	now := time.Now()
-	backToBackHit := settings.EnableBackToBackCooldown &&
+	backToBackHit := guildSettings.EnableBackToBackCooldown &&
 		lastGuessByUser.CreatedAt.After(
-			now.Add(-time.Duration(settings.BackToBackCooldown)*time.Second),
+			now.Add(-time.Duration(guildSettings.BackToBackCooldown)*time.Second),
 		) &&
 		userID == lastGuess.UserID
 	cooldownHit := lastGuessByUser.CreatedAt.After(
-		now.Add(-time.Duration(settings.Cooldown) * time.Second),
+		now.Add(-time.Duration(guildSettings.Cooldown) * time.Second),
 	)
 
 	if backToBackHit || cooldownHit {
@@ -857,10 +866,10 @@ func (s *GameService) checkCooldown(
 			Hit:       cooldownHit,
 			RepeatHit: backToBackHit,
 			Result: lastGuessByUser.CreatedAt.Add(
-				time.Duration(settings.Cooldown) * time.Second,
+				time.Duration(guildSettings.Cooldown) * time.Second,
 			),
 			RepeatResult: lastGuessByUser.CreatedAt.Add(
-				time.Duration(settings.BackToBackCooldown) * time.Second,
+				time.Duration(guildSettings.BackToBackCooldown) * time.Second,
 			),
 		}
 	}
@@ -908,20 +917,18 @@ func (s *GameService) UseHint(
 	ctx context.Context,
 	gameID int,
 	userID string,
-	settings *db.SettingsModel,
+	guildSettings *ent.Settings,
 ) (string, error) {
-	game, err := s.database.Game.FindUnique(
-		db.Game.ID.Equals(gameID),
-	).Exec(ctx)
+	currentGame, err := s.database.Game.Get(ctx, gameID)
 	if err != nil {
 		return "", fmt.Errorf("game: hint: find game: %w", err)
 	}
 
-	if game.Status != db.GameStatusInProgress {
+	if currentGame.Status != entgame.StatusIN_PROGRESS {
 		return "", ErrHintUnavailable
 	}
 
-	gameMeta, err := localUtils.ParseGameMeta(json.RawMessage(game.Meta))
+	gameMeta, err := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
 	if err != nil {
 		return "", fmt.Errorf("game: hint: parse meta: %w", err)
 	}
@@ -930,12 +937,11 @@ func (s *GameService) UseHint(
 		return "", ErrHintUnavailable
 	}
 
-	guesses, err := s.database.Guess.FindMany(
-		db.Guess.GameID.Equals(game.ID),
-	).OrderBy(
-		db.Guess.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	guesses, err := s.database.Guess.Query().
+		Where(guess.GameIDEQ(currentGame.ID)).
+		Order(ent.Desc(guess.FieldCreatedAt)).
+		All(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return "", fmt.Errorf("game: hint: find guesses: %w", err)
 	}
 
@@ -943,7 +949,7 @@ func (s *GameService) UseHint(
 		return "", ErrHintUnavailable
 	}
 
-	hintsResult, err := s.hints.GetHints(ctx, settings, userID)
+	hintsResult, err := s.hints.GetHints(ctx, guildSettings, userID)
 	if err != nil {
 		return "", fmt.Errorf("game: hint: get hints: %w", err)
 	}
@@ -963,8 +969,8 @@ func (s *GameService) UseHint(
 	} else if hintsResult.guild >= 1 {
 		leftover, maxHints, err = s.hints.DeductHintFromGuild(
 			ctx,
-			game.GuildID,
-			settings,
+			currentGame.GuildID,
+			guildSettings,
 			1,
 		)
 		if err != nil {
@@ -975,7 +981,7 @@ func (s *GameService) UseHint(
 	}
 
 	hintMeta, updatedGameMeta, description, computeErr := s.computeHint(
-		game.Word,
+		currentGame.Word,
 		gameMeta,
 	)
 	if computeErr != nil {
@@ -987,19 +993,19 @@ func (s *GameService) UseHint(
 		return "", fmt.Errorf("game: hint: marshal hint meta: %w", err)
 	}
 
-	_, err = s.database.Guess.CreateOne(
-		db.Guess.UserID.Set(userID),
-		db.Guess.Game.Link(db.Game.ID.Equals(game.ID)),
-		db.Guess.Word.Set(""),
-		db.Guess.Points.Set(0),
-		db.Guess.Meta.Set(hintMetaJSON),
-	).Exec(ctx)
+	_, err = s.database.Guess.Create().
+		SetUserID(userID).
+		SetGameID(currentGame.ID).
+		SetWord("").
+		SetPoints(0).
+		SetMeta(hintMetaJSON).
+		Save(ctx)
 	if err != nil {
 		return "", fmt.Errorf("game: hint: create guess: %w", err)
 	}
 
 	updatedGameMeta.CanHint = localUtils.ComputeCanHint(
-		game.Word,
+		currentGame.Word,
 		updatedGameMeta,
 	)
 
@@ -1008,20 +1014,17 @@ func (s *GameService) UseHint(
 		return "", fmt.Errorf("game: hint: marshal game meta: %w", err)
 	}
 
-	updatedGame, err := s.database.Game.FindUnique(
-		db.Game.ID.Equals(game.ID),
-	).Update(
-		db.Game.Meta.Set(updatedMetaJSON),
-	).Exec(ctx)
+	updatedGame, err := s.database.Game.UpdateOneID(currentGame.ID).
+		SetMeta(updatedMetaJSON).
+		Save(ctx)
 	if err != nil {
 		return "", fmt.Errorf("game: hint: update game: %w", err)
 	}
 
-	allGuesses, _ := s.database.Guess.FindMany(
-		db.Guess.GameID.Equals(game.ID),
-	).OrderBy(
-		db.Guess.CreatedAt.Order(db.SortOrderDesc),
-	).Exec(ctx)
+	allGuesses, _ := s.database.Guess.Query().
+		Where(guess.GameIDEQ(currentGame.ID)).
+		Order(ent.Desc(guess.FieldCreatedAt)).
+		All(ctx)
 
 	go func() {
 		if msgErr := s.message.Create(
@@ -1032,8 +1035,8 @@ func (s *GameService) UseHint(
 		); msgErr != nil {
 			utils.Logger.Warnw("game: hint: recreate message failed",
 				"error", msgErr,
-				"guildID", game.GuildID,
-				"gameID", game.ID,
+				"guildID", currentGame.GuildID,
+				"gameID", currentGame.ID,
 			)
 		}
 	}()
@@ -1055,11 +1058,6 @@ func (s *GameService) UseHint(
 
 // computeHint applies hints in priority order and returns the row meta, updated
 // state, and a human-readable description. Caller must verify state.CanHint.
-//
-// Priority:
-//  1. ALMOST letter with unsolved position → upgrade to CORRECT (safe: nonCorrect ≥ 2).
-//  2. Undiscovered letter occurrence → mark ALMOST (no position solve).
-//  3. All letters discovered → solve the first unsolved position (nonCorrect ≥ 2).
 func (s *GameService) computeHint(
 	word string,
 	state *localUtils.GameMeta,
@@ -1170,8 +1168,6 @@ func (s *GameService) computeHint(
 	}
 
 	// Collect ALMOST letters with multiplicity, deduped by unique letter.
-	// For ALMOST keyboard: show Discovery.Almost count.
-	// For CORRECT keyboard: show any extra undiscovered occurrences (Almost - Correct).
 	var almostLetters []string
 	seenLetters := map[string]bool{}
 	for _, r := range wordRunes {
@@ -1226,43 +1222,65 @@ func (s *GameService) computeHint(
 func (s *GameService) CountByGuildIDs(
 	ctx context.Context,
 	guildIDs []string,
-) (games int, guesses int, err error) {
-	gameResult, err := s.database.Game.FindMany(
-		db.Game.GuildID.In(guildIDs),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+) (int, int, error) {
+	gameCount, err := s.database.Game.Query().
+		Where(entgame.GuildIDIn(guildIDs...)).
+		Count(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return 0, 0, fmt.Errorf("game: count by guild ids: games: %w", err)
 	}
 
-	guessResult, err := s.database.Guess.FindMany(
-		db.Guess.Game.Where(db.Game.GuildID.In(guildIDs)),
-	).Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
-		return 0, 0, fmt.Errorf("game: count by guild ids: guesses: %w", err)
+	// Get game IDs for the guilds
+	gameIDs, err := s.database.Game.Query().
+		Where(entgame.GuildIDIn(guildIDs...)).
+		IDs(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return 0, 0, fmt.Errorf("game: count by guild ids: game ids: %w", err)
 	}
 
-	return len(gameResult), len(guessResult), nil
+	guessCount := 0
+	if len(gameIDs) > 0 {
+		guessCount, err = s.database.Guess.Query().
+			Where(guess.GameIDIn(gameIDs...)).
+			Count(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return 0, 0, fmt.Errorf("game: count by guild ids: guesses: %w", err)
+		}
+	}
+
+	return gameCount, guessCount, nil
 }
 
 func (s *GameService) DeleteByGuildIDs(
 	ctx context.Context,
 	guildIDs []string,
-) (games int, guesses int, err error) {
-	guessResult, gErr := s.database.Guess.FindMany(
-		db.Guess.Game.Where(db.Game.GuildID.In(guildIDs)),
-	).Delete().Exec(ctx)
-	if gErr != nil && !errors.Is(gErr, db.ErrNotFound) {
-		return 0, 0, fmt.Errorf("game: delete by guild ids: guesses: %w", gErr)
+) (int, int, error) {
+	// Get game IDs first so we can delete guesses
+	gameIDs, err := s.database.Game.Query().
+		Where(entgame.GuildIDIn(guildIDs...)).
+		IDs(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return 0, 0, fmt.Errorf("game: delete by guild ids: game ids: %w", err)
 	}
 
-	gameResult, err := s.database.Game.FindMany(
-		db.Game.GuildID.In(guildIDs),
-	).Delete().Exec(ctx)
-	if err != nil && !errors.Is(err, db.ErrNotFound) {
+	guessCount := 0
+	if len(gameIDs) > 0 {
+		guessCount, err = s.database.Guess.Delete().
+			Where(guess.GameIDIn(gameIDs...)).
+			Exec(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return 0, 0, fmt.Errorf("game: delete by guild ids: guesses: %w", err)
+		}
+	}
+
+	gameCount, err := s.database.Game.Delete().
+		Where(entgame.GuildIDIn(guildIDs...)).
+		Exec(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return 0, 0, fmt.Errorf("game: delete by guild ids: games: %w", err)
 	}
 
-	return gameResult.Count, guessResult.Count, nil
+	return gameCount, guessCount, nil
 }
 
 type GuildIDRow struct {
@@ -1272,12 +1290,21 @@ type GuildIDRow struct {
 func (s *GameService) FindAllGuildIDs(
 	ctx context.Context,
 ) ([]GuildIDRow, error) {
-	var rows []GuildIDRow
-	if err := s.database.Prisma.QueryRaw(
-		`SELECT DISTINCT "guildId" FROM "Game"`,
-	).Exec(ctx, &rows); err != nil {
+	guildIDs, err := s.database.Game.Query().
+		Where(entgame.StatusEQ(entgame.StatusIN_PROGRESS)).
+		GroupBy(entgame.FieldGuildID).
+		Strings(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("game: find distinct guild ids: %w", err)
+	}
+
+	rows := make([]GuildIDRow, len(guildIDs))
+	for i, id := range guildIDs {
+		rows[i] = GuildIDRow{GuildID: id}
 	}
 
 	return rows, nil
 }
+
+// suppress unused import warning - errors package used in original but not needed now
+var _ = errors.New
