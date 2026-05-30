@@ -33,24 +33,16 @@ git clone git@github.com:jurienhamaker/yugen.git
 ### Running the app
 
 ```bash
-docker-compose up -d db
 docker-compose up iro
-```
-
-### Running migrations
-
-```bash
-docker-compose exec -it koto make iro-migrate
 ```
 
 ---
 
-### NodeJS
+### Go
 
 #### Prerequisite
 
 - [go 1.25](https://go.dev/doc/install)
-- [PostgresDB](https://www.postgresql.org/)
 
 ### Building the bot & running the bot
 
@@ -61,13 +53,6 @@ $ make iro
 # production mode
 $ make iro-build
 $ ./dist/iro
-```
-
-### Running migrations (Development)
-
-```bash
-# development
-$ make iro-migrate
 ```
 
 ---

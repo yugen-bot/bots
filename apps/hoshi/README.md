@@ -32,25 +32,28 @@ git clone git@github.com:jurienhamaker/yugen.git
 
 ### Running the app
 
+Migrations will automatically run when the bot starts.
+
 ```bash
 docker-compose up -d db
 docker-compose up hoshi
 ```
 
-### Running migrations
+### Running migrations separately
 
 ```bash
-docker-compose exec -it koto make hoshi-migrate
+docker-compose exec -it hoshi make hoshi-migrate
 ```
 
 ---
 
-### NodeJS
+### Go
 
 #### Prerequisite
 
 - [go 1.25](https://go.dev/doc/install)
 - [PostgresDB](https://www.postgresql.org/)
+- [Atlas CLI](https://atlasgo.io/docs#installation)
 
 ### Building the bot & running the bot
 
@@ -63,11 +66,25 @@ $ make hoshi-build
 $ ./dist/hoshi
 ```
 
-### Running migrations (Development)
+### Running migrations
+
+Migrations use [Ent](https://entgo.io/) for the ORM and [Atlas](https://atlasgo.io/) for schema migrations.
 
 ```bash
-# development
+# Apply pending migrations
 $ make hoshi-migrate
+
+# Move to hoshi directory
+$ cd apps/hoshi
+
+# Generate a new migration after schema changes
+$ make migrate-diff name=<migration_name>
+
+# Validate migration checksums
+$ make migrate-validate
+
+# Regenerate Ent code after schema changes
+$ make ent-generate
 ```
 
 ---
