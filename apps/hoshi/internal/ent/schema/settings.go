@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
-	"github.com/lib/pq"
 )
 
 type Settings struct{ ent.Schema }
@@ -21,9 +20,8 @@ func (Settings) Fields() []ent.Field {
 			Default(3),
 		field.Bool("self").
 			Default(false),
-		field.Other("ignoredChannelIds", pq.StringArray{}).
-			SchemaType(map[string]string{"postgres": "text[]"}).
-			Default(pq.StringArray{}),
+		field.JSON("ignoredChannelIds", []string{}).
+			Default([]string{}),
 		field.Time("createdAt").
 			Default(time.Now).
 			Immutable(),

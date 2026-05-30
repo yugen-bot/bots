@@ -5,7 +5,6 @@ package ent
 import (
 	"time"
 
-	"github.com/lib/pq"
 	"jurien.dev/yugen/hoshi/internal/ent/schema"
 	"jurien.dev/yugen/hoshi/internal/ent/settings"
 	"jurien.dev/yugen/hoshi/internal/ent/starboardlog"
@@ -29,7 +28,7 @@ func init() {
 	// settingsDescIgnoredChannelIds is the schema descriptor for ignoredChannelIds field.
 	settingsDescIgnoredChannelIds := settingsFields[4].Descriptor()
 	// settings.DefaultIgnoredChannelIds holds the default value on creation for the ignoredChannelIds field.
-	settings.DefaultIgnoredChannelIds = settingsDescIgnoredChannelIds.Default.(pq.StringArray)
+	settings.DefaultIgnoredChannelIds = settingsDescIgnoredChannelIds.Default.([]string)
 	// settingsDescCreatedAt is the schema descriptor for createdAt field.
 	settingsDescCreatedAt := settingsFields[5].Descriptor()
 	// settings.DefaultCreatedAt holds the default value on creation for the createdAt field.

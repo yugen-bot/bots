@@ -11,7 +11,6 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 	"jurien.dev/yugen/hoshi/internal/ent/predicate"
 	"jurien.dev/yugen/hoshi/internal/ent/settings"
 	"jurien.dev/yugen/hoshi/internal/ent/starboardlog"
@@ -35,21 +34,22 @@ const (
 // SettingsMutation represents an operation that mutates the Settings nodes in the graph.
 type SettingsMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *int
-	guildID             *string
-	botUpdatesChannelID *string
-	treshold            *int
-	addtreshold         *int
-	self                *bool
-	ignoredChannelIds   *pq.StringArray
-	createdAt           *time.Time
-	updatedAt           *time.Time
-	clearedFields       map[string]struct{}
-	done                bool
-	oldValue            func(context.Context) (*Settings, error)
-	predicates          []predicate.Settings
+	op                      Op
+	typ                     string
+	id                      *int
+	guildID                 *string
+	botUpdatesChannelID     *string
+	treshold                *int
+	addtreshold             *int
+	self                    *bool
+	ignoredChannelIds       *[]string
+	appendignoredChannelIds []string
+	createdAt               *time.Time
+	updatedAt               *time.Time
+	clearedFields           map[string]struct{}
+	done                    bool
+	oldValue                func(context.Context) (*Settings, error)
+	predicates              []predicate.Settings
 }
 
 var _ ent.Mutation = (*SettingsMutation)(nil)
@@ -328,12 +328,13 @@ func (m *SettingsMutation) ResetSelf() {
 }
 
 // SetIgnoredChannelIds sets the "ignoredChannelIds" field.
-func (m *SettingsMutation) SetIgnoredChannelIds(pa pq.StringArray) {
-	m.ignoredChannelIds = &pa
+func (m *SettingsMutation) SetIgnoredChannelIds(s []string) {
+	m.ignoredChannelIds = &s
+	m.appendignoredChannelIds = nil
 }
 
 // IgnoredChannelIds returns the value of the "ignoredChannelIds" field in the mutation.
-func (m *SettingsMutation) IgnoredChannelIds() (r pq.StringArray, exists bool) {
+func (m *SettingsMutation) IgnoredChannelIds() (r []string, exists bool) {
 	v := m.ignoredChannelIds
 	if v == nil {
 		return
@@ -344,7 +345,7 @@ func (m *SettingsMutation) IgnoredChannelIds() (r pq.StringArray, exists bool) {
 // OldIgnoredChannelIds returns the old "ignoredChannelIds" field's value of the Settings entity.
 // If the Settings object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SettingsMutation) OldIgnoredChannelIds(ctx context.Context) (v pq.StringArray, err error) {
+func (m *SettingsMutation) OldIgnoredChannelIds(ctx context.Context) (v []string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldIgnoredChannelIds is only allowed on UpdateOne operations")
 	}
@@ -358,9 +359,23 @@ func (m *SettingsMutation) OldIgnoredChannelIds(ctx context.Context) (v pq.Strin
 	return oldValue.IgnoredChannelIds, nil
 }
 
+// AppendIgnoredChannelIds adds s to the "ignoredChannelIds" field.
+func (m *SettingsMutation) AppendIgnoredChannelIds(s []string) {
+	m.appendignoredChannelIds = append(m.appendignoredChannelIds, s...)
+}
+
+// AppendedIgnoredChannelIds returns the list of values that were appended to the "ignoredChannelIds" field in this mutation.
+func (m *SettingsMutation) AppendedIgnoredChannelIds() ([]string, bool) {
+	if len(m.appendignoredChannelIds) == 0 {
+		return nil, false
+	}
+	return m.appendignoredChannelIds, true
+}
+
 // ResetIgnoredChannelIds resets all changes to the "ignoredChannelIds" field.
 func (m *SettingsMutation) ResetIgnoredChannelIds() {
 	m.ignoredChannelIds = nil
+	m.appendignoredChannelIds = nil
 }
 
 // SetCreatedAt sets the "createdAt" field.
@@ -574,7 +589,7 @@ func (m *SettingsMutation) SetField(name string, value ent.Value) error {
 		m.SetSelf(v)
 		return nil
 	case settings.FieldIgnoredChannelIds:
-		v, ok := value.(pq.StringArray)
+		v, ok := value.([]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

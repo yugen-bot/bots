@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 	"jurien.dev/yugen/hoshi/internal/ent/predicate"
 )
 
@@ -73,11 +72,6 @@ func Treshold(v int) predicate.Settings {
 // Self applies equality check predicate on the "self" field. It's identical to SelfEQ.
 func Self(v bool) predicate.Settings {
 	return predicate.Settings(sql.FieldEQ(FieldSelf, v))
-}
-
-// IgnoredChannelIds applies equality check predicate on the "ignoredChannelIds" field. It's identical to IgnoredChannelIdsEQ.
-func IgnoredChannelIds(v pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldEQ(FieldIgnoredChannelIds, v))
 }
 
 // CreatedAt applies equality check predicate on the "createdAt" field. It's identical to CreatedAtEQ.
@@ -278,46 +272,6 @@ func SelfEQ(v bool) predicate.Settings {
 // SelfNEQ applies the NEQ predicate on the "self" field.
 func SelfNEQ(v bool) predicate.Settings {
 	return predicate.Settings(sql.FieldNEQ(FieldSelf, v))
-}
-
-// IgnoredChannelIdsEQ applies the EQ predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsEQ(v pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldEQ(FieldIgnoredChannelIds, v))
-}
-
-// IgnoredChannelIdsNEQ applies the NEQ predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsNEQ(v pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldNEQ(FieldIgnoredChannelIds, v))
-}
-
-// IgnoredChannelIdsIn applies the In predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsIn(vs ...pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldIn(FieldIgnoredChannelIds, vs...))
-}
-
-// IgnoredChannelIdsNotIn applies the NotIn predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsNotIn(vs ...pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldNotIn(FieldIgnoredChannelIds, vs...))
-}
-
-// IgnoredChannelIdsGT applies the GT predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsGT(v pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldGT(FieldIgnoredChannelIds, v))
-}
-
-// IgnoredChannelIdsGTE applies the GTE predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsGTE(v pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldGTE(FieldIgnoredChannelIds, v))
-}
-
-// IgnoredChannelIdsLT applies the LT predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsLT(v pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldLT(FieldIgnoredChannelIds, v))
-}
-
-// IgnoredChannelIdsLTE applies the LTE predicate on the "ignoredChannelIds" field.
-func IgnoredChannelIdsLTE(v pq.StringArray) predicate.Settings {
-	return predicate.Settings(sql.FieldLTE(FieldIgnoredChannelIds, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "createdAt" field.

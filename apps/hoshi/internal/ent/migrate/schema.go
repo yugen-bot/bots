@@ -15,7 +15,7 @@ var (
 		{Name: "bot_updates_channel_id", Type: field.TypeString, Nullable: true},
 		{Name: "treshold", Type: field.TypeInt, Default: 3},
 		{Name: "self", Type: field.TypeBool, Default: false},
-		{Name: "ignored_channel_ids", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "text[]"}},
+		{Name: "ignored_channel_ids", Type: field.TypeJSON},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}

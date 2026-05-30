@@ -460,8 +460,14 @@ func (s *StarboardService) createStarboard(
 	sent, err := b.ChannelMessageSendComplex(
 		targetChannelID,
 		&discordgo.MessageSend{
-			Content: s.createContentString(count, guildID, emojiName, emojiID, msg),
-			Embeds:  embeds,
+			Content: s.createContentString(
+				count,
+				guildID,
+				emojiName,
+				emojiID,
+				msg,
+			),
+			Embeds: embeds,
 		},
 	)
 	if err != nil {
@@ -484,7 +490,10 @@ func (s *StarboardService) createStarboard(
 		}
 
 		if errorType != "" {
-			originalMessage, err := b.ChannelMessage(sourceChannelID, originalMessageID)
+			originalMessage, err := b.ChannelMessage(
+				sourceChannelID,
+				originalMessageID,
+			)
 			if err != nil {
 				utils.Logger.Errorw(
 					"starboard: create starboard: failed to retrieve original message",
@@ -542,7 +551,11 @@ func (s *StarboardService) createStarboard(
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		b.MessageReactionAdd(targetChannelID, sent.ID, emojiAPIFormat(emojiName, emojiID)),
+		b.MessageReactionAdd(
+			targetChannelID,
+			sent.ID,
+			emojiAPIFormat(emojiName, emojiID),
+		),
 	)
 	utils.LogIfErr(
 		utils.Logger,
@@ -647,7 +660,9 @@ func (s *StarboardService) deleteStarboard(
 	}
 }
 
-func (s *StarboardService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
+func (s *StarboardService) FindAllGuildIDs(
+	ctx context.Context,
+) ([]string, error) {
 	guildIDs, err := s.database.Starboards.Query().
 		Unique(true).
 		Select(starboards.FieldGuildID).

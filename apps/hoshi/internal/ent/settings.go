@@ -3,13 +3,13 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 	"jurien.dev/yugen/hoshi/internal/ent/settings"
 )
 
@@ -27,7 +27,7 @@ type Settings struct {
 	// Self holds the value of the "self" field.
 	Self bool `json:"self,omitempty"`
 	// IgnoredChannelIds holds the value of the "ignoredChannelIds" field.
-	IgnoredChannelIds pq.StringArray `json:"ignoredChannelIds,omitempty"`
+	IgnoredChannelIds []string `json:"ignoredChannelIds,omitempty"`
 	// CreatedAt holds the value of the "createdAt" field.
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	// UpdatedAt holds the value of the "updatedAt" field.
@@ -41,7 +41,7 @@ func (*Settings) scanValues(columns []string) ([]any, error) {
 	for i := range columns {
 		switch columns[i] {
 		case settings.FieldIgnoredChannelIds:
-			values[i] = new(pq.StringArray)
+			values[i] = new([]byte)
 		case settings.FieldSelf:
 			values[i] = new(sql.NullBool)
 		case settings.FieldID, settings.FieldTreshold:
@@ -97,10 +97,12 @@ func (s *Settings) assignValues(columns []string, values []any) error {
 				s.Self = value.Bool
 			}
 		case settings.FieldIgnoredChannelIds:
-			if value, ok := values[i].(*pq.StringArray); !ok {
+			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field ignoredChannelIds", values[i])
-			} else if value != nil {
-				s.IgnoredChannelIds = *value
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &s.IgnoredChannelIds); err != nil {
+					return fmt.Errorf("unmarshal field ignoredChannelIds: %w", err)
+				}
 			}
 		case settings.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

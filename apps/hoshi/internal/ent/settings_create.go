@@ -10,7 +10,6 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/lib/pq"
 	"jurien.dev/yugen/hoshi/internal/ent/settings"
 )
 
@@ -70,8 +69,8 @@ func (sc *SettingsCreate) SetNillableSelf(b *bool) *SettingsCreate {
 }
 
 // SetIgnoredChannelIds sets the "ignoredChannelIds" field.
-func (sc *SettingsCreate) SetIgnoredChannelIds(pa pq.StringArray) *SettingsCreate {
-	sc.mutation.SetIgnoredChannelIds(pa)
+func (sc *SettingsCreate) SetIgnoredChannelIds(s []string) *SettingsCreate {
+	sc.mutation.SetIgnoredChannelIds(s)
 	return sc
 }
 
@@ -223,7 +222,7 @@ func (sc *SettingsCreate) createSpec() (*Settings, *sqlgraph.CreateSpec) {
 		_node.Self = value
 	}
 	if value, ok := sc.mutation.IgnoredChannelIds(); ok {
-		_spec.SetField(settings.FieldIgnoredChannelIds, field.TypeOther, value)
+		_spec.SetField(settings.FieldIgnoredChannelIds, field.TypeJSON, value)
 		_node.IgnoredChannelIds = value
 	}
 	if value, ok := sc.mutation.CreatedAt(); ok {

@@ -27,7 +27,7 @@ func (d *reactionDebouncer) onReaction(
 		existing.(*time.Timer).Stop()
 	}
 
-	t := time.AfterFunc(500*time.Millisecond, func() {
+	t := time.AfterFunc(250*time.Millisecond, func() {
 		d.timers.Delete(messageID)
 		d.svc.CheckReaction(
 			context.Background(),

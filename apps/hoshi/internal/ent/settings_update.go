@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
-	"github.com/lib/pq"
 	"jurien.dev/yugen/hoshi/internal/ent/predicate"
 	"jurien.dev/yugen/hoshi/internal/ent/settings"
 )
@@ -99,8 +99,14 @@ func (su *SettingsUpdate) SetNillableSelf(b *bool) *SettingsUpdate {
 }
 
 // SetIgnoredChannelIds sets the "ignoredChannelIds" field.
-func (su *SettingsUpdate) SetIgnoredChannelIds(pa pq.StringArray) *SettingsUpdate {
-	su.mutation.SetIgnoredChannelIds(pa)
+func (su *SettingsUpdate) SetIgnoredChannelIds(s []string) *SettingsUpdate {
+	su.mutation.SetIgnoredChannelIds(s)
+	return su
+}
+
+// AppendIgnoredChannelIds appends s to the "ignoredChannelIds" field.
+func (su *SettingsUpdate) AppendIgnoredChannelIds(s []string) *SettingsUpdate {
+	su.mutation.AppendIgnoredChannelIds(s)
 	return su
 }
 
@@ -179,7 +185,12 @@ func (su *SettingsUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.SetField(settings.FieldSelf, field.TypeBool, value)
 	}
 	if value, ok := su.mutation.IgnoredChannelIds(); ok {
-		_spec.SetField(settings.FieldIgnoredChannelIds, field.TypeOther, value)
+		_spec.SetField(settings.FieldIgnoredChannelIds, field.TypeJSON, value)
+	}
+	if value, ok := su.mutation.AppendedIgnoredChannelIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, settings.FieldIgnoredChannelIds, value)
+		})
 	}
 	if value, ok := su.mutation.UpdatedAt(); ok {
 		_spec.SetField(settings.FieldUpdatedAt, field.TypeTime, value)
@@ -274,8 +285,14 @@ func (suo *SettingsUpdateOne) SetNillableSelf(b *bool) *SettingsUpdateOne {
 }
 
 // SetIgnoredChannelIds sets the "ignoredChannelIds" field.
-func (suo *SettingsUpdateOne) SetIgnoredChannelIds(pa pq.StringArray) *SettingsUpdateOne {
-	suo.mutation.SetIgnoredChannelIds(pa)
+func (suo *SettingsUpdateOne) SetIgnoredChannelIds(s []string) *SettingsUpdateOne {
+	suo.mutation.SetIgnoredChannelIds(s)
+	return suo
+}
+
+// AppendIgnoredChannelIds appends s to the "ignoredChannelIds" field.
+func (suo *SettingsUpdateOne) AppendIgnoredChannelIds(s []string) *SettingsUpdateOne {
+	suo.mutation.AppendIgnoredChannelIds(s)
 	return suo
 }
 
@@ -384,7 +401,12 @@ func (suo *SettingsUpdateOne) sqlSave(ctx context.Context) (_node *Settings, err
 		_spec.SetField(settings.FieldSelf, field.TypeBool, value)
 	}
 	if value, ok := suo.mutation.IgnoredChannelIds(); ok {
-		_spec.SetField(settings.FieldIgnoredChannelIds, field.TypeOther, value)
+		_spec.SetField(settings.FieldIgnoredChannelIds, field.TypeJSON, value)
+	}
+	if value, ok := suo.mutation.AppendedIgnoredChannelIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, settings.FieldIgnoredChannelIds, value)
+		})
 	}
 	if value, ok := suo.mutation.UpdatedAt(); ok {
 		_spec.SetField(settings.FieldUpdatedAt, field.TypeTime, value)

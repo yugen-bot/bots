@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 )
 
 const (
@@ -60,7 +59,7 @@ var (
 	// DefaultSelf holds the default value on creation for the "self" field.
 	DefaultSelf bool
 	// DefaultIgnoredChannelIds holds the default value on creation for the "ignoredChannelIds" field.
-	DefaultIgnoredChannelIds pq.StringArray
+	DefaultIgnoredChannelIds []string
 	// DefaultCreatedAt holds the default value on creation for the "createdAt" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updatedAt" field.
@@ -95,11 +94,6 @@ func ByTreshold(opts ...sql.OrderTermOption) OrderOption {
 // BySelf orders the results by the self field.
 func BySelf(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSelf, opts...).ToFunc()
-}
-
-// ByIgnoredChannelIds orders the results by the ignoredChannelIds field.
-func ByIgnoredChannelIds(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIgnoredChannelIds, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the createdAt field.

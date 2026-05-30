@@ -1,4 +1,5 @@
-h1:xUxMc6F1LkboQkbK6K3sA/M6D1ZG9OgdcE+U6038v+w=
+h1:mgCVr4I+pypJQAsujIaM66vC9tncmMSOEoWhfZIQBW0=
 20260530000000_initial.sql h1:GzrPi7SVo2idCOuwXvEQ6dqfFUS/FMtvb4Kye4Mf8KM=
 20260530000100_rename_snake.sql h1:D1kv71ET88fQlzqavUdmEe1Cm5fxOecPO0twMRK6Y20=
 20260530000200_array_to_jsonb.sql h1:cfNFBnFopiiszArAVls13faMj+ezzG3uhbY76VIavlw=
+20260530000300_rename_starboard_logs.sql h1:xTNzyqRXe+3FVleCPhsskjXNqjIDototH+d6jvhtEbg=
