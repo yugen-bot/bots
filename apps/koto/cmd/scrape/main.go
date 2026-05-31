@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+
 	"jurien.dev/yugen/shared/utils"
 )
 

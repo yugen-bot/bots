@@ -6,6 +6,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/koto/internal/ent"
 	entgame "jurien.dev/yugen/koto/internal/ent/game"
 	"jurien.dev/yugen/koto/internal/ent/guess"

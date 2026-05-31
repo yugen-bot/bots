@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
 	"jurien.dev/yugen/shared/config"
+
+	"github.com/jurienhamaker/discordgoplus"
 )
 
 func SyncCommands(
@@ -13,12 +14,12 @@ func SyncCommands(
 	if cfg.SyncCommands {
 		Logger.Infof("Syncing commands of %d modules", amount)
 
-		var developmentGuildId string
+		var developmentGuildID string
 		if cfg.Env != productionEnv {
-			developmentGuildId = cfg.DiscordDevelopmentGuild
+			developmentGuildID = cfg.DiscordDevelopmentGuild
 		}
 
-		err = bot.Router.Sync(bot.Session, cfg.DiscordAppID, developmentGuildId)
+		err = bot.Router.Sync(bot.Session, cfg.DiscordAppID, developmentGuildID)
 	}
 
 	return

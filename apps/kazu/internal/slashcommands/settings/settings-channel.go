@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/shared/static"
@@ -29,7 +30,7 @@ func (m *SettingsChannelModule) set(ctx *discordgoplus.Ctx) {
 
 	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
 
-	settings, err := m.settings.GetByGuildId(
+	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)

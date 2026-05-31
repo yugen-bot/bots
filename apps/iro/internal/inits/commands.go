@@ -3,6 +3,7 @@ package inits
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"

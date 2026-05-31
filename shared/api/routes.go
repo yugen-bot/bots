@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/shared/api/handlers"
 )
 

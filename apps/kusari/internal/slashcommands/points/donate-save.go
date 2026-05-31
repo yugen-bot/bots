@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/shared/static"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -42,7 +43,7 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	settings, err := m.settings.GetByGuildId(
+	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)

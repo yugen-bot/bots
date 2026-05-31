@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jurienhamaker/discordgoplus"
-	"github.com/sarulabs/di/v2"
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/ent/settings"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
+
+	"github.com/jurienhamaker/discordgoplus"
+	"github.com/sarulabs/di/v2"
 )
 
 type SettingsService struct {
@@ -27,16 +28,16 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	}
 }
 
-func (service *SettingsService) GetByGuildId(
+func (s *SettingsService) GetByGuildID(
 	ctx context.Context,
 	guildID string,
 ) (*ent.Settings, error) {
-	guildSettings, err := service.database.Settings.Query().
+	guildSettings, err := s.database.Settings.Query().
 		Where(settings.GuildIDEQ(guildID)).
 		Only(ctx)
 
 	if ent.IsNotFound(err) {
-		guildSettings, err = service.database.Settings.Create().
+		guildSettings, err = s.database.Settings.Create().
 			SetGuildID(guildID).
 			Save(ctx)
 		if err != nil {
@@ -52,13 +53,13 @@ func (service *SettingsService) GetByGuildId(
 	return guildSettings, nil
 }
 
-func (service *SettingsService) SetHighscoreByGuildID(
+func (s *SettingsService) SetHighscoreByGuildID(
 	ctx context.Context,
 	guildID string,
 	highscore int,
 ) (*ent.Settings, error) {
 	now := time.Now()
-	_, err := service.database.Settings.Update().
+	_, err := s.database.Settings.Update().
 		Where(settings.GuildIDEQ(guildID)).
 		SetHighscore(highscore).
 		SetHighscoreDate(now).
@@ -67,36 +68,36 @@ func (service *SettingsService) SetHighscoreByGuildID(
 		return nil, fmt.Errorf("settings: set highscore by guild id: %w", err)
 	}
 
-	return service.GetByGuildId(ctx, guildID)
+	return s.GetByGuildID(ctx, guildID)
 }
 
-func (service *SettingsService) ResetShame(
+func (s *SettingsService) ResetShame(
 	ctx context.Context,
 	guildID string,
 ) error {
-	s, err := service.GetByGuildId(ctx, guildID)
+	settings, err := s.GetByGuildID(ctx, guildID)
 	if err != nil {
 		return fmt.Errorf("settings: reset shame: %w", err)
 	}
 
-	if s.ShameRoleID == nil {
+	if settings.ShameRoleID == nil {
 		return nil
 	}
 
-	if s.LastShameUserID == nil {
+	if settings.LastShameUserID == nil {
 		return nil
 	}
 
-	b, err := service.bot.ShardByGuild(guildID)
+	b, err := s.bot.ShardByGuild(guildID)
 	if err != nil {
-		b = service.bot
+		b = s.bot
 	}
 
-	return b.GuildMemberRoleRemove(guildID, *s.LastShameUserID, *s.ShameRoleID)
+	return b.GuildMemberRoleRemove(guildID, *settings.LastShameUserID, *settings.ShameRoleID)
 }
 
-func (service *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
-	result, err := service.database.Settings.Query().All(ctx)
+func (s *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
+	result, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: find all: %w", err)
 	}
@@ -104,8 +105,8 @@ func (service *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, e
 	return result, nil
 }
 
-func (service *SettingsService) Delete(ctx context.Context, guildID string) error {
-	_, err := service.database.Settings.Delete().
+func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
+	_, err := s.database.Settings.Delete().
 		Where(settings.GuildIDEQ(guildID)).
 		Exec(ctx)
 	if err != nil {
@@ -115,12 +116,12 @@ func (service *SettingsService) Delete(ctx context.Context, guildID string) erro
 	return nil
 }
 
-func (service *SettingsService) Update(
+func (s *SettingsService) Update(
 	ctx context.Context,
 	settingsID int,
 	apply func(*ent.SettingsUpdateOne),
 ) (*ent.Settings, error) {
-	upd := service.database.Settings.UpdateOneID(settingsID)
+	upd := s.database.Settings.UpdateOneID(settingsID)
 	apply(upd)
 
 	result, err := upd.Save(ctx)

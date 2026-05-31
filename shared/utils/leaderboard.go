@@ -5,11 +5,12 @@ import (
 	"math"
 	"strconv"
 
+	"jurien.dev/yugen/shared/config"
+	"jurien.dev/yugen/shared/static"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
-	"jurien.dev/yugen/shared/config"
-	"jurien.dev/yugen/shared/static"
 )
 
 type leaderboardSourceType string

@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	"jurien.dev/yugen/shared/static"

@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	sharedStatic "jurien.dev/yugen/shared/static"
 	sharedUtils "jurien.dev/yugen/shared/utils"
 )

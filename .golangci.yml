@@ -197,5 +197,8 @@ formatters:
   exclusions:
     generated: lax
   settings:
+    goimports:
+      local-prefixes:
+        - jurien.dev/yugen
     golines:
       max-len: 80

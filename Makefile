@@ -57,4 +57,8 @@ build-koto:
 	cd apps/koto && make build-prod
 
 
-.PHONY: iro kazu kusari hoshi koto
+lint:
+	@echo "Running linter..."
+	golangci-lint run
+
+.PHONY: iro kazu kusari hoshi koto lint

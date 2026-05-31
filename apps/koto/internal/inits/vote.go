@@ -9,6 +9,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
+
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	"jurien.dev/yugen/shared/static"

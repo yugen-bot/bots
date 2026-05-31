@@ -7,6 +7,7 @@ import (
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/ent/settings"
 	"jurien.dev/yugen/shared/static"
@@ -27,16 +28,16 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 	}
 }
 
-func (service *SettingsService) GetByGuildId(
+func (s *SettingsService) GetByGuildID(
 	ctx context.Context,
 	guildID string,
 ) (*ent.Settings, error) {
-	guildSettings, err := service.database.Settings.Query().
+	guildSettings, err := s.database.Settings.Query().
 		Where(settings.GuildIDEQ(guildID)).
 		Only(ctx)
 
 	if ent.IsNotFound(err) {
-		guildSettings, err = service.database.Settings.Create().
+		guildSettings, err = s.database.Settings.Create().
 			SetGuildID(guildID).
 			Save(ctx)
 		if err != nil {
@@ -52,13 +53,13 @@ func (service *SettingsService) GetByGuildId(
 	return guildSettings, nil
 }
 
-func (service *SettingsService) SetHighscoreByGuildID(
+func (s *SettingsService) SetHighscoreByGuildID(
 	ctx context.Context,
 	guildID string,
 	highscore int,
 ) (*ent.Settings, error) {
 	now := time.Now()
-	_, err := service.database.Settings.Update().
+	_, err := s.database.Settings.Update().
 		Where(settings.GuildIDEQ(guildID)).
 		SetHighscore(highscore).
 		SetHighscoreDate(now).
@@ -67,11 +68,11 @@ func (service *SettingsService) SetHighscoreByGuildID(
 		return nil, fmt.Errorf("settings: set highscore by guild id: %w", err)
 	}
 
-	return service.GetByGuildId(ctx, guildID)
+	return s.GetByGuildID(ctx, guildID)
 }
 
-func (service *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
-	result, err := service.database.Settings.Query().All(ctx)
+func (s *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
+	result, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: find all: %w", err)
 	}
@@ -79,8 +80,8 @@ func (service *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, e
 	return result, nil
 }
 
-func (service *SettingsService) Delete(ctx context.Context, guildID string) error {
-	_, err := service.database.Settings.Delete().
+func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
+	_, err := s.database.Settings.Delete().
 		Where(settings.GuildIDEQ(guildID)).
 		Exec(ctx)
 	if err != nil {
@@ -90,12 +91,12 @@ func (service *SettingsService) Delete(ctx context.Context, guildID string) erro
 	return nil
 }
 
-func (service *SettingsService) Update(
+func (s *SettingsService) Update(
 	ctx context.Context,
 	settingsID int,
 	apply func(*ent.SettingsUpdateOne),
 ) (*ent.Settings, error) {
-	upd := service.database.Settings.UpdateOneID(settingsID)
+	upd := s.database.Settings.UpdateOneID(settingsID)
 	apply(upd)
 
 	result, err := upd.Save(ctx)

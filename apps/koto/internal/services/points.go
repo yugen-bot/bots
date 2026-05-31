@@ -6,6 +6,7 @@ import (
 
 	"github.com/sarulabs/di/v2"
 	"golang.org/x/sync/errgroup"
+
 	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/ent/playerstats"
 	"jurien.dev/yugen/shared/static"

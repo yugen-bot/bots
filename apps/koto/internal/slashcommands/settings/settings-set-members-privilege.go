@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/services"
 	localUtils "jurien.dev/yugen/koto/internal/utils"

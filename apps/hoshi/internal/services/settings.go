@@ -7,6 +7,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/lib/pq"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/hoshi/internal/ent"
 	"jurien.dev/yugen/hoshi/internal/ent/settings"
 	"jurien.dev/yugen/shared/static"

@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/services"
 	localStatic "jurien.dev/yugen/kusari/internal/static"
@@ -128,7 +129,7 @@ func (listener *GameListener) getSettings(
 ) (ok bool, settings *ent.Settings) {
 	ok = false
 
-	settings, err := listener.settings.GetByGuildId(
+	settings, err := listener.settings.GetByGuildID(
 		context.Background(),
 		guildID,
 	)

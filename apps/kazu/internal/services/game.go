@@ -6,11 +6,14 @@ import (
 	"strconv"
 	"time"
 
+	"errors"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/expr-lang/expr"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
+
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/ent/game"
 	"jurien.dev/yugen/kazu/internal/ent/history"
@@ -18,7 +21,6 @@ import (
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
-	"errors"
 )
 
 var (
@@ -59,7 +61,7 @@ type ShameOptions struct {
 	settings *ent.Settings
 }
 
-func (service *GameService) Start(
+func (s *GameService) Start(
 	ctx context.Context,
 	guildID string,
 	gameType game.Type,
@@ -69,7 +71,7 @@ func (service *GameService) Start(
 ) (g *ent.Game, started bool, err error) {
 	utils.Logger.Infof("Trying to start a game for %s", guildID)
 
-	currentGame, exists, err := service.GetCurrentGame(ctx, guildID)
+	currentGame, exists, err := s.GetCurrentGame(ctx, guildID)
 	if err != nil && !ent.IsNotFound(err) {
 		utils.Logger.Errorw(
 			"game: start: get current game failed",
@@ -81,7 +83,7 @@ func (service *GameService) Start(
 		return g, started, err
 	}
 
-	s, err := service.settings.GetByGuildId(ctx, guildID)
+	s, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: start: get settings failed",
@@ -106,7 +108,7 @@ func (service *GameService) Start(
 		return g, started, err
 	}
 
-	channel, err := service.bot.Channel(*channelID)
+	channel, err := s.bot.Channel(*channelID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: start: get channel failed",
@@ -125,7 +127,7 @@ func (service *GameService) Start(
 	}
 
 	if (exists && recreate) || (exists && currentGame.Type != gameType) {
-		if _, endErr := service.End(
+		if _, endErr := s.End(
 			ctx,
 			currentGame.ID,
 			game.StatusFAILED,
@@ -142,7 +144,7 @@ func (service *GameService) Start(
 	started = true
 	number := startingNumber - 1
 
-	g, err = service.database.Game.Create().
+	g, err = s.database.Game.Create().
 		SetGuildID(guildID).
 		SetType(gameType).
 		Save(ctx)
@@ -157,7 +159,7 @@ func (service *GameService) Start(
 		return g, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
-	b, err := service.bot.ShardByGuild(guildID)
+	b, err := s.bot.ShardByGuild(guildID)
 	if err != nil {
 		utils.Logger.Warnw("game: start: ShardByGuild failed", "error", err, "guildID", guildID)
 		return g, started, fmt.Errorf("game: start: ShardByGuild: %w", err)
@@ -169,7 +171,7 @@ func (service *GameService) Start(
 		number = 0
 	}
 
-	_, err = service.database.History.Create().
+	_, err = s.database.History.Create().
 		SetUserID(self.ID).
 		SetGameID(g.ID).
 		SetNumber(number).
@@ -194,7 +196,7 @@ Start the count from **%d**`, number+1),
 	return g, started, err
 }
 
-func (service *GameService) End(
+func (s *GameService) End(
 	ctx context.Context,
 	gameID int,
 	status game.Status,
@@ -202,7 +204,7 @@ func (service *GameService) End(
 ) (g *ent.Game, err error) {
 	hasShame := len(shame) > 0
 
-	g, err = service.database.Game.UpdateOneID(gameID).
+	g, err = s.database.Game.UpdateOneID(gameID).
 		SetStatus(status).
 		Save(ctx)
 	if err != nil {
@@ -217,10 +219,10 @@ func (service *GameService) End(
 		lastShameUserID := s.settings.LastShameUserID
 		okLastShameUserID := lastShameUserID != nil
 
-		shameBot, shameErr := service.bot.ShardByGuild(s.settings.GuildID)
+		shameBot, shameErr := s.bot.ShardByGuild(s.settings.GuildID)
 		if shameErr != nil {
 			utils.Logger.Warnw("game: end: ShardByGuild failed for shame", "error", shameErr, "guildID", s.settings.GuildID)
-			shameBot = service.bot
+			shameBot = s.bot
 		}
 
 		if okLastShameUserID && okRoleID {
@@ -251,7 +253,7 @@ func (service *GameService) End(
 			}()
 		}
 
-		_, err = service.settings.Update(
+		_, err = s.settings.Update(
 			ctx,
 			s.settings.ID,
 			func(u *ent.SettingsUpdateOne) {
@@ -277,7 +279,7 @@ func (service *GameService) End(
 	return g, err
 }
 
-func (service *GameService) ParseNumber(
+func (s *GameService) ParseNumber(
 	ctx context.Context,
 	message *discordgo.Message,
 	math bool,
@@ -337,14 +339,14 @@ func (service *GameService) ParseNumber(
 	return i, err
 }
 
-func (service *GameService) AddNumber(
+func (s *GameService) AddNumber(
 	ctx context.Context,
 	guildID string,
 	number int,
 	message *discordgo.Message,
 	s *ent.Settings,
 ) {
-	g, exists, err := service.GetCurrentGame(ctx, guildID)
+	g, exists, err := s.GetCurrentGame(ctx, guildID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: add number: get current game failed",
@@ -360,7 +362,7 @@ func (service *GameService) AddNumber(
 		return
 	}
 
-	h, _, err := service.GetLastHistory(ctx, g)
+	h, _, err := s.GetLastHistory(ctx, g)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: add number: get last history failed",
@@ -374,7 +376,7 @@ func (service *GameService) AddNumber(
 		return
 	}
 
-	b, shardErr := service.bot.ShardByGuild(guildID)
+	b, shardErr := s.bot.ShardByGuild(guildID)
 	if shardErr != nil {
 		utils.Logger.Errorw("game: add number: ShardByGuild failed", "error", shardErr, "guildID", guildID)
 		return
@@ -382,7 +384,7 @@ func (service *GameService) AddNumber(
 
 	isNextNumber := number == h.Number+1
 	isSameUser := message.Author.ID == h.UserID &&
-		service.cfg.Env != "development"
+		s.cfg.Env != "development"
 
 	if !isNextNumber || isSameUser {
 		// Build failure reason
@@ -400,7 +402,7 @@ func (service *GameService) AddNumber(
 			b.MessageReactionAdd(message.ChannelID, message.ID, "❌"),
 		)
 
-		saves, err := service.saves.GetSaves(ctx, s, message.Author.ID)
+		saves, err := s.saves.GetSaves(ctx, s, message.Author.ID)
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add number: get saves failed",
@@ -417,7 +419,7 @@ func (service *GameService) AddNumber(
 		}
 
 		if saves.player >= 1 {
-			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromPlayer(
+			leftoverSaves, maxSaves, err := s.saves.DeductSaveFromPlayer(
 				ctx,
 				message.Author.ID,
 				1,
@@ -458,7 +460,7 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 		}
 
 		if saves.guild >= 1 {
-			leftoverSaves, maxSaves, err := service.saves.DeductSaveFromGuild(
+			leftoverSaves, maxSaves, err := s.saves.DeductSaveFromGuild(
 				ctx,
 				message.GuildID,
 				s,
@@ -496,7 +498,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			return
 		}
 
-		isHighscore, _, err := service.checkStreak(ctx, s, g, number)
+		isHighscore, _, err := s.checkStreak(ctx, s, g, number)
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add number: check streak failed",
@@ -522,7 +524,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			utils.LogIfErr(
 				utils.Logger,
 				"remove-game-points",
-				service.points.RemoveGamePoints(
+				s.points.RemoveGamePoints(
 					ctx,
 					guildID,
 					message.Author.ID,
@@ -568,7 +570,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			message:  message,
 			settings: s,
 		}
-		if _, _, startErr := service.Start(
+		if _, _, startErr := s.Start(
 			ctx,
 			guildID,
 			game.TypeNORMAL,
@@ -587,7 +589,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
-	cooldown, err := service.checkCooldown(ctx,
+	cooldown, err := s.checkCooldown(ctx,
 		message.Author.ID,
 		g.ID,
 		s.Cooldown,
@@ -608,7 +610,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 
 	if cooldown.After(time.Now()) {
-		go service.replyAndDelete(
+		go s.replyAndDelete(
 			message,
 			fmt.Sprintf(
 				"You're on a cooldown, you can try again %s",
@@ -626,11 +628,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		utils.LogIfErr(
 			utils.Logger,
 			"add-game-points",
-			service.points.AddGamePoints(ctx, guildID, message.Author.ID, 1),
+			s.points.AddGamePoints(ctx, guildID, message.Author.ID, 1),
 		)
 	}()
 
-	_, err = service.database.History.Create().
+	_, err = s.database.History.Create().
 		SetUserID(message.Author.ID).
 		SetGameID(g.ID).
 		SetNumber(number).
@@ -654,7 +656,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 
 	// Check streak and react
-	isHighscore, isGameHighscored, err := service.checkStreak(
+	isHighscore, isGameHighscored, err := s.checkStreak(
 		ctx,
 		s,
 		g,
@@ -682,7 +684,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			utils.LogIfErr(
 				utils.Logger,
 				"reset-shame",
-				service.settings.ResetShame(ctx, guildID),
+				s.settings.ResetShame(ctx, guildID),
 			)
 		}()
 	}
@@ -697,10 +699,10 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		"message-reaction-add",
 		b.MessageReactionAdd(message.ChannelID, message.ID, emoji),
 	)
-	service.checkSpecialReactions(message, number)
+	s.checkSpecialReactions(message, number)
 }
 
-func (service *GameService) IsEqualToLast(
+func (s *GameService) IsEqualToLast(
 	ctx context.Context,
 	message *discordgo.Message,
 	s *ent.Settings,
@@ -713,13 +715,13 @@ func (service *GameService) IsEqualToLast(
 		return ok, number
 	}
 
-	g, exists, err := service.GetCurrentGame(ctx, message.GuildID)
+	g, exists, err := s.GetCurrentGame(ctx, message.GuildID)
 	if err != nil || !exists {
 		utils.Logger.Info("Couldnt find game", err)
 		return ok, number
 	}
 
-	h, _, err := service.GetLastHistory(ctx, g)
+	h, _, err := s.GetLastHistory(ctx, g)
 	if err != nil {
 		utils.Logger.Info("Couldnt find last history", err)
 		return ok, number
@@ -740,7 +742,7 @@ func (service *GameService) IsEqualToLast(
 		return ok, number
 	}
 
-	parsedNumber, err := service.ParseNumber(ctx, message, s.Math)
+	parsedNumber, err := s.ParseNumber(ctx, message, s.Math)
 	if err != nil {
 		ok = false
 		return ok, number
@@ -755,12 +757,12 @@ func (service *GameService) IsEqualToLast(
 	return ok, number
 }
 
-func (service *GameService) GetCurrentGame(
+func (s *GameService) GetCurrentGame(
 	ctx context.Context,
 	guildID string,
 ) (g *ent.Game, exists bool, err error) {
 	exists = true
-	g, err = service.database.Game.Query().
+	g, err = s.database.Game.Query().
 		Where(
 			game.GuildIDEQ(guildID),
 			game.StatusEQ(game.StatusIN_PROGRESS),
@@ -782,7 +784,7 @@ func (service *GameService) GetCurrentGame(
 	return g, exists, err
 }
 
-func (service *GameService) GetLastHistory(
+func (s *GameService) GetLastHistory(
 	ctx context.Context,
 	g *ent.Game,
 ) (h *ent.History, exists bool, err error) {
@@ -792,7 +794,7 @@ func (service *GameService) GetLastHistory(
 	}
 
 	exists = true
-	h, err = service.database.History.Query().
+	h, err = s.database.History.Query().
 		Where(history.GameIDEQ(g.ID)).
 		Order(ent.Desc(history.FieldCreatedAt)).
 		First(ctx)
@@ -811,7 +813,7 @@ func (service *GameService) GetLastHistory(
 	return h, exists, err
 }
 
-func (service *GameService) checkStreak(
+func (s *GameService) checkStreak(
 	ctx context.Context,
 	s *ent.Settings,
 	g *ent.Game,
@@ -823,7 +825,7 @@ func (service *GameService) checkStreak(
 
 	isHighscore = true
 
-	go service.settings.SetHighscoreByGuildID(ctx, s.GuildID, number) //nolint:errcheck
+	go s.settings.SetHighscoreByGuildID(ctx, s.GuildID, number) //nolint:errcheck
 
 	if g.IsHighscored {
 		return isHighscore, false, nil
@@ -831,14 +833,14 @@ func (service *GameService) checkStreak(
 
 	isGameHighscored = true
 
-	go service.database.Game.UpdateOneID(g.ID). //nolint:errcheck
+	go s.database.Game.UpdateOneID(g.ID). //nolint:errcheck
 						SetIsHighscored(true).
 						Save(ctx)
 
 	return isHighscore, isGameHighscored, nil
 }
 
-func (service *GameService) checkCooldown(
+func (s *GameService) checkCooldown(
 	ctx context.Context,
 	userID string,
 	gameID int,
@@ -850,7 +852,7 @@ func (service *GameService) checkCooldown(
 	}
 
 	seconds := -time.Second * time.Duration(settingsCooldown)
-	lastHistory, err := service.database.History.Query().
+	lastHistory, err := s.database.History.Query().
 		Where(
 			history.UserIDEQ(userID),
 			history.GameIDEQ(gameID),
@@ -876,13 +878,13 @@ func (service *GameService) checkCooldown(
 	return cooldown, err
 }
 
-func (service *GameService) replyAndDelete(
+func (s *GameService) replyAndDelete(
 	message *discordgo.Message,
 	messageToSend string,
 	deleteAfter bool,
 	emoji string,
 ) {
-	b, err := service.bot.ShardByChannel(message.ChannelID)
+	b, err := s.bot.ShardByChannel(message.ChannelID)
 	if err != nil {
 		utils.Logger.Errorw("game: reply and delete: ShardByChannel failed", "error", err, "channelID", message.ChannelID)
 		return
@@ -934,15 +936,15 @@ func (service *GameService) replyAndDelete(
 
 // specialEmojisForNumber returns the extra emoji reactions a number earns.
 // Pure function — no side effects; tested directly.
-func (service *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, h int, err error) {
-	gameResult, err := service.database.Game.Query().
+func (s *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, h int, err error) {
+	gameResult, err := s.database.Game.Query().
 		Where(game.GuildIDIn(guildIDs...)).
 		Count(ctx)
 	if err != nil && !ent.IsNotFound(err) {
 		return 0, 0, fmt.Errorf("game: count by guild ids: games: %w", err)
 	}
 
-	historyResult, err := service.database.History.Query().
+	historyResult, err := s.database.History.Query().
 		Where(history.HasGameWith(game.GuildIDIn(guildIDs...))).
 		Count(ctx)
 	if err != nil && !ent.IsNotFound(err) {
@@ -952,15 +954,15 @@ func (service *GameService) CountByGuildIDs(ctx context.Context, guildIDs []stri
 	return gameResult, historyResult, nil
 }
 
-func (service *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (games int, h int, err error) {
-	historyResult, hErr := service.database.History.Delete().
+func (s *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (games int, h int, err error) {
+	historyResult, hErr := s.database.History.Delete().
 		Where(history.HasGameWith(game.GuildIDIn(guildIDs...))).
 		Exec(ctx)
 	if hErr != nil && !ent.IsNotFound(hErr) {
 		return 0, 0, fmt.Errorf("game: delete by guild ids: history: %w", hErr)
 	}
 
-	gameResult, err := service.database.Game.Delete().
+	gameResult, err := s.database.Game.Delete().
 		Where(game.GuildIDIn(guildIDs...)).
 		Exec(ctx)
 	if err != nil && !ent.IsNotFound(err) {
@@ -970,8 +972,8 @@ func (service *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []str
 	return gameResult, historyResult, nil
 }
 
-func (service *GameService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
-	return service.database.Game.Query().
+func (s *GameService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
+	return s.database.Game.Query().
 		Unique(true).
 		Select(game.FieldGuildID).
 		Strings(ctx)
@@ -1010,11 +1012,11 @@ func specialEmojisForNumber(number int) []string {
 	return emojis
 }
 
-func (service *GameService) checkSpecialReactions(
+func (s *GameService) checkSpecialReactions(
 	message *discordgo.Message,
 	number int,
 ) {
-	b, err := service.bot.ShardByGuild(message.GuildID)
+	b, err := s.bot.ShardByGuild(message.GuildID)
 	if err != nil {
 		utils.Logger.Errorw("game: check special reactions: ShardByGuild failed", "error", err, "guildID", message.GuildID)
 		return

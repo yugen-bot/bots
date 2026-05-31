@@ -261,7 +261,7 @@ func TestSpecialEmojisForNumber(t *testing.T) {
 	}{
 		{number: 1, wantEmpty: true},
 		{number: 5, wantEmpty: true},
-		{number: 10, wantEmpty: true},   // palindrome but NOT > 10
+		{number: 10, wantEmpty: true}, // palindrome but NOT > 10
 		{number: 4, wantEmoji: "🍀"},
 		{number: 69, wantEmoji: "niceone:1260697303224815696"},
 		{number: 100, wantEmoji: "💯"},

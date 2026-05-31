@@ -9,6 +9,7 @@ import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
+
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -42,7 +43,7 @@ func (m *ServerModule) err(ctx *discordgoplus.Ctx) {
 func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildId(
+	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)

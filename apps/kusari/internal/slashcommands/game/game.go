@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kusari/internal/ent/game"
 	"jurien.dev/yugen/kusari/internal/services"
 	local "jurien.dev/yugen/kusari/internal/static"
@@ -33,7 +34,7 @@ func GetGameModule(container *di.Container) *GameModule {
 func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 	discordgoplus.Defer(ctx, true)
 
-	settings, err := m.settings.GetByGuildId(
+	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)

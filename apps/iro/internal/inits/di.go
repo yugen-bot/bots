@@ -2,6 +2,7 @@ package inits
 
 import (
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/shared/inits"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"

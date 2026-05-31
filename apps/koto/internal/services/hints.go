@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/ent/playerhints"
 	"jurien.dev/yugen/shared/static"
@@ -30,11 +31,11 @@ func CreateHintsService(container *di.Container) *HintsService {
 	}
 }
 
-func (service *HintsService) GetPlayerHintsByUserID(
+func (s *HintsService) GetPlayerHintsByUserID(
 	ctx context.Context,
 	userID string,
 ) (*ent.PlayerHints, error) {
-	player, err := service.database.PlayerHints.Query().
+	player, err := s.database.PlayerHints.Query().
 		Where(playerhints.UserIDEQ(userID)).
 		First(ctx)
 	if err != nil && !ent.IsNotFound(err) {
@@ -45,7 +46,7 @@ func (service *HintsService) GetPlayerHintsByUserID(
 		return player, nil
 	}
 
-	player, err = service.database.PlayerHints.Create().
+	player, err = s.database.PlayerHints.Create().
 		SetUserID(userID).
 		Save(ctx)
 	if err != nil {
@@ -55,12 +56,12 @@ func (service *HintsService) GetPlayerHintsByUserID(
 	return player, nil
 }
 
-func (service *HintsService) GetHints(
+func (s *HintsService) GetHints(
 	ctx context.Context,
 	guildSettings *ent.Settings,
 	userID string,
 ) (*GetHintsResult, error) {
-	player, err := service.GetPlayerHintsByUserID(ctx, userID)
+	player, err := s.GetPlayerHintsByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("hints: get hints: %w", err)
 	}
@@ -71,12 +72,12 @@ func (service *HintsService) GetHints(
 	}, nil
 }
 
-func (service *HintsService) DeductHintFromPlayer(
+func (s *HintsService) DeductHintFromPlayer(
 	ctx context.Context,
 	userID string,
 	amount float64,
 ) (float64, float64, error) {
-	player, err := service.GetPlayerHintsByUserID(ctx, userID)
+	player, err := s.GetPlayerHintsByUserID(ctx, userID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("hints: deduct hint from player: %w", err)
 	}
@@ -87,7 +88,7 @@ func (service *HintsService) DeductHintFromPlayer(
 		newHints = 0
 	}
 
-	player, err = service.database.PlayerHints.UpdateOneID(player.ID).
+	player, err = s.database.PlayerHints.UpdateOneID(player.ID).
 		SetHints(newHints).
 		Save(ctx)
 	if err != nil {
@@ -97,7 +98,7 @@ func (service *HintsService) DeductHintFromPlayer(
 	return player.Hints, player.MaxHints, nil
 }
 
-func (service *HintsService) DeductHintFromGuild(
+func (s *HintsService) DeductHintFromGuild(
 	ctx context.Context,
 	guildID string,
 	guildSettings *ent.Settings,
@@ -109,7 +110,7 @@ func (service *HintsService) DeductHintFromGuild(
 		newHints = 0
 	}
 
-	updatedSettings, err := service.database.Settings.UpdateOneID(guildSettings.ID).
+	updatedSettings, err := s.database.Settings.UpdateOneID(guildSettings.ID).
 		SetHints(newHints).
 		SetHintsUsed(utils.RoundTwo(guildSettings.HintsUsed + amount)).
 		Save(ctx)
@@ -120,12 +121,12 @@ func (service *HintsService) DeductHintFromGuild(
 	return updatedSettings.Hints, updatedSettings.MaxHints, nil
 }
 
-func (service *HintsService) AddHintToPlayer(
+func (s *HintsService) AddHintToPlayer(
 	ctx context.Context,
 	userID string,
 	amount float64,
 ) (float64, float64, error) {
-	player, err := service.GetPlayerHintsByUserID(ctx, userID)
+	player, err := s.GetPlayerHintsByUserID(ctx, userID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("hints: add hint to player: %w", err)
 	}
@@ -140,7 +141,7 @@ func (service *HintsService) AddHintToPlayer(
 		newHints = player.MaxHints
 	}
 
-	player, err = service.database.PlayerHints.UpdateOneID(player.ID).
+	player, err = s.database.PlayerHints.UpdateOneID(player.ID).
 		SetHints(newHints).
 		Save(ctx)
 	if err != nil {
@@ -150,7 +151,7 @@ func (service *HintsService) AddHintToPlayer(
 	return player.Hints, player.MaxHints, nil
 }
 
-func (service *HintsService) AddHintToGuild(
+func (s *HintsService) AddHintToGuild(
 	ctx context.Context,
 	guildID string,
 	guildSettings *ent.Settings,
@@ -162,7 +163,7 @@ func (service *HintsService) AddHintToGuild(
 		newHints = guildSettings.MaxHints
 	}
 
-	updatedSettings, err := service.database.Settings.UpdateOneID(guildSettings.ID).
+	updatedSettings, err := s.database.Settings.UpdateOneID(guildSettings.ID).
 		SetHints(newHints).
 		Save(ctx)
 	if err != nil {

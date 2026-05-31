@@ -3,6 +3,7 @@ package game
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	sharedStatic "jurien.dev/yugen/shared/static"

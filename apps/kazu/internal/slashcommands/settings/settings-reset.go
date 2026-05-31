@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/shared/static"
@@ -53,7 +54,7 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 
 	setting := ctx.Options["setting"].StringValue()
 
-	settings, err := m.settings.GetByGuildId(
+	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)

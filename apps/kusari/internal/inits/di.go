@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/sarulabs/di/v2"
 	"github.com/valkey-io/valkey-go"
+
 	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/services"
 	localStatic "jurien.dev/yugen/kusari/internal/static"

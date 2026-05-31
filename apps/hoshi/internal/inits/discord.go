@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/hoshi/internal/listeners"
 	sharedListeners "jurien.dev/yugen/shared/listeners"
 	"jurien.dev/yugen/shared/middlewares"

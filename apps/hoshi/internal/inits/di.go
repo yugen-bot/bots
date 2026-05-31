@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/hoshi/internal/ent"
 	"jurien.dev/yugen/hoshi/internal/services"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"

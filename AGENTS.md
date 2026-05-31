@@ -92,7 +92,7 @@ go test -coverprofile=coverage.out ./...
 # Format code
 go fmt ./...
 
-# Run linter
+# Run linter (also available as: make lint)
 golangci-lint run
 
 # Run the bot
@@ -104,13 +104,30 @@ make run-pocketbase
 
 ## Code Style Guidelines
 
-1. **Error Handling**: Always handle errors explicitly. Do not ignore errors with `_`.
-2. **Style**:
-   - Adhere to the rules in the .golangci.yml
-   - Make sure all golangci errors are fixed
-   - Use best practices as stated in [Effective Go](https://go.dev/doc/effective_go)
-3. **Early Returns**: Prefer early returns over nested if/else blocks. Handle error cases and edge cases first, then proceed with the happy path. This reduces nesting and improves readability.
-4. **Validation Tags**: Use `required` instead of deprecated `exists` tag
+1. **Error Handling**: Always handle errors explicitly. Do not ignore errors with `_`. Wrap external errors: `fmt.Errorf("context: %w", err)`.
+2. **Formatting**: Run `golangci-lint run --fix` (or `make lint`) after every edit. The linter enforces `gofumpt`, `goimports`, and `golines` (80-col max).
+3. **Imports**: Three groups separated by blank lines — stdlib / `jurien.dev/yugen/*` / third-party. `goimports` with `-local jurien.dev/yugen` enforces this automatically.
+4. **Naming**:
+   - Use `ID` (not `Id`) for Discord/entity identifiers: `GuildID`, `ChannelID`, `GetByGuildID`.
+   - Service method receivers: single letter (`s *SettingsService`, not `service`).
+   - File names: kebab-case (`settings-show.go`, `embed-footer.go`).
+5. **Slash command structure**: Each command group lives in its own sub-package under `slashcommands/`. Example:
+   ```
+   slashcommands/
+     settings/
+       settings.go       // struct, GetModule, Commands() sub-router wiring
+       show/
+         show.go         // package doc, struct, GetXxxModule, Commands()
+         command.go      // handler functions
+       set-channel/
+         set-channel.go
+         command.go
+   ```
+6. **Capability interfaces** (in `shared/utils/register-commands-module.go`): modules opt in via `Commands()`, `MessageComponents()`, and `Modals()` — never return empty slices for capabilities the command doesn't use.
+7. **Listeners**: Use the struct-based form. Embed the session and bot in a struct; register handlers via methods.
+8. **DI constants**: Every service exposes `Di<Name>` in `internal/static/di.go`; constructors accept only `*di.Container`.
+9. **Early Returns**: Prefer early returns over nested if/else. Handle error cases first.
+10. **Linting**: Run `make lint` before committing. Fix all lint errors — do not use `//nolint` without a comment explaining why.
 
 ## Testing
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
+
 	"jurien.dev/yugen/koto/internal/inits"
 	sharedInits "jurien.dev/yugen/shared/inits"
 	"jurien.dev/yugen/shared/utils"

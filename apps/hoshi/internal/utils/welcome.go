@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
+
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"

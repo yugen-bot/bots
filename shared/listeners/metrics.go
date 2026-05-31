@@ -11,6 +11,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
 	"github.com/shirou/gopsutil/v3/process"
+
 	"jurien.dev/yugen/shared/metrics"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"

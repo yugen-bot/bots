@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/valkey-io/valkey-go"
+
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/utils"
 )

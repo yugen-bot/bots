@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/shared/api"
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"

@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
 	localStatic "jurien.dev/yugen/kazu/internal/static"
@@ -20,7 +21,7 @@ type GameListener struct {
 }
 
 func GetGameListener(container *di.Container) *GameListener {
-	utils.Logger.Info("Creating Color Listener")
+	utils.Logger.Info("Creating Game Listener")
 
 	return &GameListener{
 		settings: container.Get(static.DiSettings).(*services.SettingsService),
@@ -122,7 +123,7 @@ func (listener *GameListener) getSettings(
 ) (ok bool, s *ent.Settings) {
 	ok = false
 
-	s, err := listener.settings.GetByGuildId(
+	s, err := listener.settings.GetByGuildID(
 		context.Background(),
 		guildID,
 	)

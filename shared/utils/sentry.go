@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/getsentry/sentry-go"
+	"jurien.dev/yugen/shared/static"
+
+	sentry "github.com/getsentry/sentry-go"
 	sentryzap "github.com/getsentry/sentry-go/zap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"jurien.dev/yugen/shared/static"
 )
 
 var sentryEnabled bool

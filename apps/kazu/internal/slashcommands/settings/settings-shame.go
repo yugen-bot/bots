@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/shared/static"
@@ -29,7 +30,7 @@ func (m *SettingsShameModule) setRole(ctx *discordgoplus.Ctx) {
 
 	role := ctx.Options["role"].RoleValue(ctx.Session, ctx.Interaction.GuildID)
 
-	settings, err := m.settings.GetByGuildId(
+	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)
@@ -61,7 +62,7 @@ func (m *SettingsShameModule) setRemoveShameRole(ctx *discordgoplus.Ctx) {
 
 	remove := ctx.Options["remove"].BoolValue()
 
-	settings, err := m.settings.GetByGuildId(
+	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		ctx.Interaction.GuildID,
 	)

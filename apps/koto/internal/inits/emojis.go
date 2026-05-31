@@ -6,6 +6,7 @@ import (
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
+
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"

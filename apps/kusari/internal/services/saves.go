@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/kusari/internal/ent/playersaves"
 	"jurien.dev/yugen/kusari/internal/ent/settings"
@@ -31,11 +32,11 @@ func CreateSavesService(container *di.Container) *SavesService {
 	}
 }
 
-func (service *SavesService) GetPlayerSavesByUserID(
+func (s *SavesService) GetPlayerSavesByUserID(
 	ctx context.Context,
 	userID string,
 ) (*ent.PlayerSaves, error) {
-	saves, err := service.database.PlayerSaves.Query().
+	saves, err := s.database.PlayerSaves.Query().
 		Where(playersaves.UserIDEQ(userID)).
 		First(ctx)
 	if err != nil && !ent.IsNotFound(err) {
@@ -46,7 +47,7 @@ func (service *SavesService) GetPlayerSavesByUserID(
 		return saves, nil
 	}
 
-	saves, err = service.database.PlayerSaves.Create().
+	saves, err = s.database.PlayerSaves.Create().
 		SetUserID(userID).
 		Save(ctx)
 	if err != nil {
@@ -56,12 +57,12 @@ func (service *SavesService) GetPlayerSavesByUserID(
 	return saves, nil
 }
 
-func (service *SavesService) GetSaves(
+func (s *SavesService) GetSaves(
 	ctx context.Context,
 	s *ent.Settings,
 	userID string,
 ) (*GetSavesResult, error) {
-	player, err := service.GetPlayerSavesByUserID(ctx, userID)
+	player, err := s.GetPlayerSavesByUserID(ctx, userID)
 	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("saves: get saves: %w", err)
 	}
@@ -74,12 +75,12 @@ func (service *SavesService) GetSaves(
 	return result, nil
 }
 
-func (service *SavesService) DeductSaveFromPlayer(
+func (s *SavesService) DeductSaveFromPlayer(
 	ctx context.Context,
 	userID string,
 	amount float64,
 ) (float64, float64, error) {
-	player, err := service.GetPlayerSavesByUserID(ctx, userID)
+	player, err := s.GetPlayerSavesByUserID(ctx, userID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: deduct save from player: %w", err)
 	}
@@ -90,7 +91,7 @@ func (service *SavesService) DeductSaveFromPlayer(
 		newSaves = 0
 	}
 
-	player, err = service.database.PlayerSaves.UpdateOneID(player.ID).
+	player, err = s.database.PlayerSaves.UpdateOneID(player.ID).
 		SetSaves(newSaves).
 		Save(ctx)
 	if err != nil {
@@ -103,7 +104,7 @@ func (service *SavesService) DeductSaveFromPlayer(
 	return player.Saves, player.MaxSaves, nil
 }
 
-func (service *SavesService) DeductSaveFromGuild(
+func (s *SavesService) DeductSaveFromGuild(
 	ctx context.Context,
 	guildID string,
 	s *ent.Settings,
@@ -115,7 +116,7 @@ func (service *SavesService) DeductSaveFromGuild(
 		newSaves = 0
 	}
 
-	n, err := service.database.Settings.Update().
+	n, err := s.database.Settings.Update().
 		Where(settings.IDEQ(s.ID)).
 		SetSaves(newSaves).
 		Save(ctx)
@@ -127,7 +128,7 @@ func (service *SavesService) DeductSaveFromGuild(
 		return 0, 0, fmt.Errorf("saves: deduct save from guild: no rows updated")
 	}
 
-	updated, err := service.database.Settings.Get(ctx, s.ID)
+	updated, err := s.database.Settings.Get(ctx, s.ID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: deduct save from guild: reload: %w", err)
 	}
@@ -135,12 +136,12 @@ func (service *SavesService) DeductSaveFromGuild(
 	return updated.Saves, updated.MaxSaves, nil
 }
 
-func (service *SavesService) AddSaveToPlayer(
+func (s *SavesService) AddSaveToPlayer(
 	ctx context.Context,
 	userID string,
 	amount float64,
 ) (float64, float64, error) {
-	player, err := service.GetPlayerSavesByUserID(ctx, userID)
+	player, err := s.GetPlayerSavesByUserID(ctx, userID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to player: %w", err)
 	}
@@ -155,7 +156,7 @@ func (service *SavesService) AddSaveToPlayer(
 		newSaves = player.MaxSaves
 	}
 
-	player, err = service.database.PlayerSaves.UpdateOneID(player.ID).
+	player, err = s.database.PlayerSaves.UpdateOneID(player.ID).
 		SetSaves(newSaves).
 		Save(ctx)
 	if err != nil {
@@ -165,7 +166,7 @@ func (service *SavesService) AddSaveToPlayer(
 	return player.Saves, player.MaxSaves, nil
 }
 
-func (service *SavesService) AddSaveToGuild(
+func (s *SavesService) AddSaveToGuild(
 	ctx context.Context,
 	guildID string,
 	s *ent.Settings,
@@ -177,7 +178,7 @@ func (service *SavesService) AddSaveToGuild(
 		newSaves = s.MaxSaves
 	}
 
-	n, err := service.database.Settings.Update().
+	n, err := s.database.Settings.Update().
 		Where(settings.IDEQ(s.ID)).
 		SetSaves(newSaves).
 		Save(ctx)
@@ -189,7 +190,7 @@ func (service *SavesService) AddSaveToGuild(
 		return 0, 0, fmt.Errorf("saves: add save to guild: no rows updated")
 	}
 
-	updated, err := service.database.Settings.Get(ctx, s.ID)
+	updated, err := s.database.Settings.Get(ctx, s.ID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to guild: reload: %w", err)
 	}
