@@ -113,7 +113,6 @@ var (
 	SettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "guild_id", Type: field.TypeString},
-		{Name: "bot_updates_channel_id", Type: field.TypeString, Nullable: true},
 		{Name: "channel_id", Type: field.TypeString, Nullable: true},
 		{Name: "cooldown", Type: field.TypeInt, Default: 0},
 		{Name: "math", Type: field.TypeBool, Default: true},

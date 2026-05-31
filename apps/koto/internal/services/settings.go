@@ -155,9 +155,6 @@ func (s *SettingsService) Reset(
 		"start-after-first-guess": func() {
 			upd.SetStartAfterFirstGuess(false)
 		},
-		"bot-updates-channel": func() {
-			upd.ClearBotUpdatesChannelID()
-		},
 	}
 
 	isAll := len(fields) == 1 && fields[0] == "all"

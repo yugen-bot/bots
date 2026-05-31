@@ -1,5 +1,6 @@
-h1:NHBRajUpBugYd5va9Yeqf2k9vEj7IOa2lCfY2csGOhw=
+h1:lnas7hfovQszixlnLKwAk1BDfLIu0ztsVgYSP3Xn2fE=
 20260530000000_initial.sql h1:FrSsZd/EYQoNZMRJHGH7oS3q4Ofcvr+13DTxRS/UhAs=
 20260530000100_rename_snake.sql h1:5BQX1NIbt7/+ZSHKICtbkHy9P4H16u95ls8DuGMnR2Y=
 20260530000200_type_meta.sql h1:j2cZS6uSIgYgeYSaE6DVQhxgnCjGt2MIr4NYCt6mEuA=
 20260530000300_indexes.sql h1:NHPzG69tOQj7SdmrFqEufaTyx2kNLW3+D+GmAMUNzwI=
+20260531000000_drop_bot_updates_channel.sql h1:O5a6ABuChWJzuf/KpYSHU+j1H7Sa0m4bF0FEbc9goG8=

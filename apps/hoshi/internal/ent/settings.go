@@ -20,8 +20,6 @@ type Settings struct {
 	ID int `json:"id,omitempty"`
 	// GuildID holds the value of the "guildID" field.
 	GuildID string `json:"guildID,omitempty"`
-	// BotUpdatesChannelID holds the value of the "botUpdatesChannelID" field.
-	BotUpdatesChannelID *string `json:"botUpdatesChannelID,omitempty"`
 	// Treshold holds the value of the "treshold" field.
 	Treshold int `json:"treshold,omitempty"`
 	// Self holds the value of the "self" field.
@@ -46,7 +44,7 @@ func (*Settings) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case settings.FieldID, settings.FieldTreshold:
 			values[i] = new(sql.NullInt64)
-		case settings.FieldGuildID, settings.FieldBotUpdatesChannelID:
+		case settings.FieldGuildID:
 			values[i] = new(sql.NullString)
 		case settings.FieldCreatedAt, settings.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -76,13 +74,6 @@ func (s *Settings) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field guildID", values[i])
 			} else if value.Valid {
 				s.GuildID = value.String
-			}
-		case settings.FieldBotUpdatesChannelID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field botUpdatesChannelID", values[i])
-			} else if value.Valid {
-				s.BotUpdatesChannelID = new(string)
-				*s.BotUpdatesChannelID = value.String
 			}
 		case settings.FieldTreshold:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -154,11 +145,6 @@ func (s *Settings) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", s.ID))
 	builder.WriteString("guildID=")
 	builder.WriteString(s.GuildID)
-	builder.WriteString(", ")
-	if v := s.BotUpdatesChannelID; v != nil {
-		builder.WriteString("botUpdatesChannelID=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("treshold=")
 	builder.WriteString(fmt.Sprintf("%v", s.Treshold))

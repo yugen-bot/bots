@@ -44,11 +44,6 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		channelIDText = fmt.Sprintf("<#%s>", *s.ChannelID)
 	}
 
-	botUpdatesText := "-"
-	if s.BotUpdatesChannelID != nil && *s.BotUpdatesChannelID != "" {
-		botUpdatesText = fmt.Sprintf("<#%s>", *s.BotUpdatesChannelID)
-	}
-
 	pingRoleText := "-"
 	if s.PingRoleID != nil && *s.PingRoleID != "" {
 		pingRoleText = fmt.Sprintf("<@&%s>", *s.PingRoleID)
@@ -112,11 +107,6 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		Fields: []*discordgo.MessageEmbedField{
 			{Name: "Channel", Value: channelIDText, Inline: true},
 			{
-				Name:   "Bot updates channel",
-				Value:  botUpdatesText,
-				Inline: true,
-			},
-			{
 				Name:   "Members privilege",
 				Value:  membersText,
 				Inline: true,
@@ -154,6 +144,7 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 				Value:  startAfterFirstText,
 				Inline: true,
 			},
+			{Name: "​", Value: "​", Inline: true},
 		},
 	}
 

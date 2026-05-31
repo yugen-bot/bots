@@ -42,26 +42,6 @@ func (su *SettingsUpdate) SetNillableGuildID(s *string) *SettingsUpdate {
 	return su
 }
 
-// SetBotUpdatesChannelID sets the "botUpdatesChannelID" field.
-func (su *SettingsUpdate) SetBotUpdatesChannelID(s string) *SettingsUpdate {
-	su.mutation.SetBotUpdatesChannelID(s)
-	return su
-}
-
-// SetNillableBotUpdatesChannelID sets the "botUpdatesChannelID" field if the given value is not nil.
-func (su *SettingsUpdate) SetNillableBotUpdatesChannelID(s *string) *SettingsUpdate {
-	if s != nil {
-		su.SetBotUpdatesChannelID(*s)
-	}
-	return su
-}
-
-// ClearBotUpdatesChannelID clears the value of the "botUpdatesChannelID" field.
-func (su *SettingsUpdate) ClearBotUpdatesChannelID() *SettingsUpdate {
-	su.mutation.ClearBotUpdatesChannelID()
-	return su
-}
-
 // SetChannelID sets the "channelID" field.
 func (su *SettingsUpdate) SetChannelID(s string) *SettingsUpdate {
 	su.mutation.SetChannelID(s)
@@ -334,12 +314,6 @@ func (su *SettingsUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := su.mutation.GuildID(); ok {
 		_spec.SetField(settings.FieldGuildID, field.TypeString, value)
 	}
-	if value, ok := su.mutation.BotUpdatesChannelID(); ok {
-		_spec.SetField(settings.FieldBotUpdatesChannelID, field.TypeString, value)
-	}
-	if su.mutation.BotUpdatesChannelIDCleared() {
-		_spec.ClearField(settings.FieldBotUpdatesChannelID, field.TypeString)
-	}
 	if value, ok := su.mutation.ChannelID(); ok {
 		_spec.SetField(settings.FieldChannelID, field.TypeString, value)
 	}
@@ -434,26 +408,6 @@ func (suo *SettingsUpdateOne) SetNillableGuildID(s *string) *SettingsUpdateOne {
 	if s != nil {
 		suo.SetGuildID(*s)
 	}
-	return suo
-}
-
-// SetBotUpdatesChannelID sets the "botUpdatesChannelID" field.
-func (suo *SettingsUpdateOne) SetBotUpdatesChannelID(s string) *SettingsUpdateOne {
-	suo.mutation.SetBotUpdatesChannelID(s)
-	return suo
-}
-
-// SetNillableBotUpdatesChannelID sets the "botUpdatesChannelID" field if the given value is not nil.
-func (suo *SettingsUpdateOne) SetNillableBotUpdatesChannelID(s *string) *SettingsUpdateOne {
-	if s != nil {
-		suo.SetBotUpdatesChannelID(*s)
-	}
-	return suo
-}
-
-// ClearBotUpdatesChannelID clears the value of the "botUpdatesChannelID" field.
-func (suo *SettingsUpdateOne) ClearBotUpdatesChannelID() *SettingsUpdateOne {
-	suo.mutation.ClearBotUpdatesChannelID()
 	return suo
 }
 
@@ -758,12 +712,6 @@ func (suo *SettingsUpdateOne) sqlSave(ctx context.Context) (_node *Settings, err
 	}
 	if value, ok := suo.mutation.GuildID(); ok {
 		_spec.SetField(settings.FieldGuildID, field.TypeString, value)
-	}
-	if value, ok := suo.mutation.BotUpdatesChannelID(); ok {
-		_spec.SetField(settings.FieldBotUpdatesChannelID, field.TypeString, value)
-	}
-	if suo.mutation.BotUpdatesChannelIDCleared() {
-		_spec.ClearField(settings.FieldBotUpdatesChannelID, field.TypeString)
 	}
 	if value, ok := suo.mutation.ChannelID(); ok {
 		_spec.SetField(settings.FieldChannelID, field.TypeString, value)

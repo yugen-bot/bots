@@ -23,7 +23,6 @@ var settingsResetChoices = []*discordgo.ApplicationCommandOptionChoice{
 	{Name: "Auto start", Value: "auto-start"},
 	{Name: "Member privilege", Value: "members-privilege"},
 	{Name: "Start after first guess", Value: "start-after-first-guess"},
-	{Name: "Bot updates channel", Value: "bot-updates-channel"},
 	{Name: "All settings", Value: "all"},
 }
 

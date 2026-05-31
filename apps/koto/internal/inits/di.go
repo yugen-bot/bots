@@ -122,13 +122,6 @@ Koto is a Wordle-style game! Guess the 6-letter word by typing words in the conf
 	})
 
 	diBuilder.Add(&di.Def{
-		Name: localStatic.DiNotify,
-		Build: func(ctn di.Container) (any, error) {
-			return services.CreateNotifyService(&ctn), nil
-		},
-	})
-
-	diBuilder.Add(&di.Def{
 		Name: localStatic.DiHints,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateHintsService(&ctn), nil

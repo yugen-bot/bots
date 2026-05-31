@@ -18,23 +18,23 @@ func init() {
 	settingsFields := schema.Settings{}.Fields()
 	_ = settingsFields
 	// settingsDescTreshold is the schema descriptor for treshold field.
-	settingsDescTreshold := settingsFields[2].Descriptor()
+	settingsDescTreshold := settingsFields[1].Descriptor()
 	// settings.DefaultTreshold holds the default value on creation for the treshold field.
 	settings.DefaultTreshold = settingsDescTreshold.Default.(int)
 	// settingsDescSelf is the schema descriptor for self field.
-	settingsDescSelf := settingsFields[3].Descriptor()
+	settingsDescSelf := settingsFields[2].Descriptor()
 	// settings.DefaultSelf holds the default value on creation for the self field.
 	settings.DefaultSelf = settingsDescSelf.Default.(bool)
 	// settingsDescIgnoredChannelIds is the schema descriptor for ignoredChannelIds field.
-	settingsDescIgnoredChannelIds := settingsFields[4].Descriptor()
+	settingsDescIgnoredChannelIds := settingsFields[3].Descriptor()
 	// settings.DefaultIgnoredChannelIds holds the default value on creation for the ignoredChannelIds field.
 	settings.DefaultIgnoredChannelIds = settingsDescIgnoredChannelIds.Default.([]string)
 	// settingsDescCreatedAt is the schema descriptor for createdAt field.
-	settingsDescCreatedAt := settingsFields[5].Descriptor()
+	settingsDescCreatedAt := settingsFields[4].Descriptor()
 	// settings.DefaultCreatedAt holds the default value on creation for the createdAt field.
 	settings.DefaultCreatedAt = settingsDescCreatedAt.Default.(func() time.Time)
 	// settingsDescUpdatedAt is the schema descriptor for updatedAt field.
-	settingsDescUpdatedAt := settingsFields[6].Descriptor()
+	settingsDescUpdatedAt := settingsFields[5].Descriptor()
 	// settings.DefaultUpdatedAt holds the default value on creation for the updatedAt field.
 	settings.DefaultUpdatedAt = settingsDescUpdatedAt.Default.(func() time.Time)
 	// settings.UpdateDefaultUpdatedAt holds the default value on update for the updatedAt field.

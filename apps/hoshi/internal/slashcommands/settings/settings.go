@@ -19,7 +19,6 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	reset := GetSettingsResetModule(container)
 	treshold := GetSettingsTresholdModule(container)
 	authorStarring := GetSettingsAuthorStarringModule(container)
-	botUpdates := GetSettingsBotUpdatesModule(container)
 	ignore := GetSettingsIgnoreModule(container)
 	unignore := GetSettingsUnignoreModule(container)
 
@@ -29,7 +28,6 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	subCommands = append(subCommands, reset.Commands()...)
 	subCommands = append(subCommands, treshold.Commands()...)
 	subCommands = append(subCommands, authorStarring.Commands()...)
-	subCommands = append(subCommands, botUpdates.Commands()...)
 	subCommands = append(subCommands, ignore.Commands()...)
 	subCommands = append(subCommands, unignore.Commands()...)
 

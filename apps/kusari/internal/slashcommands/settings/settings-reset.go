@@ -19,10 +19,6 @@ var choices = []*discordgo.ApplicationCommandOptionChoice{
 		Value: "channelID",
 	},
 	{
-		Name:  "Bot updates channel",
-		Value: "botUpdatesChannelID",
-	},
-	{
 		Name:  "Cooldown",
 		Value: "cooldown",
 	},
@@ -62,9 +58,6 @@ func (m *SettingsResetModule) set(ctx *discordgoplus.Ctx) {
 	switch setting {
 	case "channelID":
 		apply = func(u *ent.SettingsUpdateOne) { u.ClearChannelID() }
-		value = "unset"
-	case "botUpdatesChannelID":
-		apply = func(u *ent.SettingsUpdateOne) { u.ClearBotUpdatesChannelID() }
 		value = "unset"
 	case "cooldown":
 		apply = func(u *ent.SettingsUpdateOne) { u.SetCooldown(0) }

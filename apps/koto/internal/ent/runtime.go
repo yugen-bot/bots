@@ -113,63 +113,63 @@ func init() {
 	settingsFields := schema.Settings{}.Fields()
 	_ = settingsFields
 	// settingsDescPingOnlyNew is the schema descriptor for pingOnlyNew field.
-	settingsDescPingOnlyNew := settingsFields[4].Descriptor()
+	settingsDescPingOnlyNew := settingsFields[3].Descriptor()
 	// settings.DefaultPingOnlyNew holds the default value on creation for the pingOnlyNew field.
 	settings.DefaultPingOnlyNew = settingsDescPingOnlyNew.Default.(bool)
 	// settingsDescMembersCanStart is the schema descriptor for membersCanStart field.
-	settingsDescMembersCanStart := settingsFields[5].Descriptor()
+	settingsDescMembersCanStart := settingsFields[4].Descriptor()
 	// settings.DefaultMembersCanStart holds the default value on creation for the membersCanStart field.
 	settings.DefaultMembersCanStart = settingsDescMembersCanStart.Default.(bool)
 	// settingsDescCooldown is the schema descriptor for cooldown field.
-	settingsDescCooldown := settingsFields[6].Descriptor()
+	settingsDescCooldown := settingsFields[5].Descriptor()
 	// settings.DefaultCooldown holds the default value on creation for the cooldown field.
 	settings.DefaultCooldown = settingsDescCooldown.Default.(int)
 	// settingsDescEnableBackToBackCooldown is the schema descriptor for enableBackToBackCooldown field.
-	settingsDescEnableBackToBackCooldown := settingsFields[7].Descriptor()
+	settingsDescEnableBackToBackCooldown := settingsFields[6].Descriptor()
 	// settings.DefaultEnableBackToBackCooldown holds the default value on creation for the enableBackToBackCooldown field.
 	settings.DefaultEnableBackToBackCooldown = settingsDescEnableBackToBackCooldown.Default.(bool)
 	// settingsDescBackToBackCooldown is the schema descriptor for backToBackCooldown field.
-	settingsDescBackToBackCooldown := settingsFields[8].Descriptor()
+	settingsDescBackToBackCooldown := settingsFields[7].Descriptor()
 	// settings.DefaultBackToBackCooldown holds the default value on creation for the backToBackCooldown field.
 	settings.DefaultBackToBackCooldown = settingsDescBackToBackCooldown.Default.(int)
 	// settingsDescInformCooldownAfterGuess is the schema descriptor for informCooldownAfterGuess field.
-	settingsDescInformCooldownAfterGuess := settingsFields[9].Descriptor()
+	settingsDescInformCooldownAfterGuess := settingsFields[8].Descriptor()
 	// settings.DefaultInformCooldownAfterGuess holds the default value on creation for the informCooldownAfterGuess field.
 	settings.DefaultInformCooldownAfterGuess = settingsDescInformCooldownAfterGuess.Default.(bool)
 	// settingsDescFrequency is the schema descriptor for frequency field.
-	settingsDescFrequency := settingsFields[10].Descriptor()
+	settingsDescFrequency := settingsFields[9].Descriptor()
 	// settings.DefaultFrequency holds the default value on creation for the frequency field.
 	settings.DefaultFrequency = settingsDescFrequency.Default.(int)
 	// settingsDescTimeLimit is the schema descriptor for timeLimit field.
-	settingsDescTimeLimit := settingsFields[11].Descriptor()
+	settingsDescTimeLimit := settingsFields[10].Descriptor()
 	// settings.DefaultTimeLimit holds the default value on creation for the timeLimit field.
 	settings.DefaultTimeLimit = settingsDescTimeLimit.Default.(int)
 	// settingsDescAutoStart is the schema descriptor for autoStart field.
-	settingsDescAutoStart := settingsFields[12].Descriptor()
+	settingsDescAutoStart := settingsFields[11].Descriptor()
 	// settings.DefaultAutoStart holds the default value on creation for the autoStart field.
 	settings.DefaultAutoStart = settingsDescAutoStart.Default.(bool)
 	// settingsDescStartAfterFirstGuess is the schema descriptor for startAfterFirstGuess field.
-	settingsDescStartAfterFirstGuess := settingsFields[13].Descriptor()
+	settingsDescStartAfterFirstGuess := settingsFields[12].Descriptor()
 	// settings.DefaultStartAfterFirstGuess holds the default value on creation for the startAfterFirstGuess field.
 	settings.DefaultStartAfterFirstGuess = settingsDescStartAfterFirstGuess.Default.(bool)
 	// settingsDescHints is the schema descriptor for hints field.
-	settingsDescHints := settingsFields[14].Descriptor()
+	settingsDescHints := settingsFields[13].Descriptor()
 	// settings.DefaultHints holds the default value on creation for the hints field.
 	settings.DefaultHints = settingsDescHints.Default.(float64)
 	// settingsDescMaxHints is the schema descriptor for maxHints field.
-	settingsDescMaxHints := settingsFields[15].Descriptor()
+	settingsDescMaxHints := settingsFields[14].Descriptor()
 	// settings.DefaultMaxHints holds the default value on creation for the maxHints field.
 	settings.DefaultMaxHints = settingsDescMaxHints.Default.(float64)
 	// settingsDescHintsUsed is the schema descriptor for hintsUsed field.
-	settingsDescHintsUsed := settingsFields[16].Descriptor()
+	settingsDescHintsUsed := settingsFields[15].Descriptor()
 	// settings.DefaultHintsUsed holds the default value on creation for the hintsUsed field.
 	settings.DefaultHintsUsed = settingsDescHintsUsed.Default.(float64)
 	// settingsDescCreatedAt is the schema descriptor for createdAt field.
-	settingsDescCreatedAt := settingsFields[17].Descriptor()
+	settingsDescCreatedAt := settingsFields[16].Descriptor()
 	// settings.DefaultCreatedAt holds the default value on creation for the createdAt field.
 	settings.DefaultCreatedAt = settingsDescCreatedAt.Default.(func() time.Time)
 	// settingsDescUpdatedAt is the schema descriptor for updatedAt field.
-	settingsDescUpdatedAt := settingsFields[18].Descriptor()
+	settingsDescUpdatedAt := settingsFields[17].Descriptor()
 	// settings.DefaultUpdatedAt holds the default value on creation for the updatedAt field.
 	settings.DefaultUpdatedAt = settingsDescUpdatedAt.Default.(func() time.Time)
 	// settings.UpdateDefaultUpdatedAt holds the default value on update for the updatedAt field.

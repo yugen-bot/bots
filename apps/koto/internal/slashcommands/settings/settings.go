@@ -27,7 +27,6 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	setMembersPrivilege := GetSetMembersPrivilegeModule(container)
 	startAfterFirstGuess := GetStartAfterFirstGuessModule(container)
 	reset := GetSettingsResetModule(container)
-	botUpdates := GetBotUpdatesModule(container)
 
 	var subCommands []*discordgoplus.Command
 
@@ -43,7 +42,6 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	subCommands = append(subCommands, setMembersPrivilege.Commands()...)
 	subCommands = append(subCommands, startAfterFirstGuess.Commands()...)
 	subCommands = append(subCommands, reset.Commands()...)
-	subCommands = append(subCommands, botUpdates.Commands()...)
 
 	return &SettingsModule{
 		container:   container,

@@ -26,20 +26,6 @@ func (sc *SettingsCreate) SetGuildID(s string) *SettingsCreate {
 	return sc
 }
 
-// SetBotUpdatesChannelID sets the "botUpdatesChannelID" field.
-func (sc *SettingsCreate) SetBotUpdatesChannelID(s string) *SettingsCreate {
-	sc.mutation.SetBotUpdatesChannelID(s)
-	return sc
-}
-
-// SetNillableBotUpdatesChannelID sets the "botUpdatesChannelID" field if the given value is not nil.
-func (sc *SettingsCreate) SetNillableBotUpdatesChannelID(s *string) *SettingsCreate {
-	if s != nil {
-		sc.SetBotUpdatesChannelID(*s)
-	}
-	return sc
-}
-
 // SetChannelID sets the "channelID" field.
 func (sc *SettingsCreate) SetChannelID(s string) *SettingsCreate {
 	sc.mutation.SetChannelID(s)
@@ -454,10 +440,6 @@ func (sc *SettingsCreate) createSpec() (*Settings, *sqlgraph.CreateSpec) {
 	if value, ok := sc.mutation.GuildID(); ok {
 		_spec.SetField(settings.FieldGuildID, field.TypeString, value)
 		_node.GuildID = value
-	}
-	if value, ok := sc.mutation.BotUpdatesChannelID(); ok {
-		_spec.SetField(settings.FieldBotUpdatesChannelID, field.TypeString, value)
-		_node.BotUpdatesChannelID = &value
 	}
 	if value, ok := sc.mutation.ChannelID(); ok {
 		_spec.SetField(settings.FieldChannelID, field.TypeString, value)

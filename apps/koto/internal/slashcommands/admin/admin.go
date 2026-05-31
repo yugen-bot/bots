@@ -10,7 +10,6 @@ import (
 
 type AdminModule struct {
 	container   *di.Container
-	notify      *AdminNotifyModule
 	guilds      *AdminGuildsModule
 	devGuildID  string
 	subCommands []*discordgoplus.Command
@@ -22,7 +21,6 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	emojis := GetAdminEmojisModule(container)
 	guilds := GetAdminGuildsModule(container)
 	getWord := GetAdminGetWordModule(container)
-	notify := GetAdminNotifyModule(container)
 	recreate := GetAdminRecreateModule(container)
 	sendWelcome := GetAdminSendWelcomeModule(container)
 	pruneSettings := GetAdminPruneSettingsModule(container)
@@ -33,7 +31,6 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	subCommands = append(subCommands, emojis.Commands()...)
 	subCommands = append(subCommands, guilds.Commands()...)
 	subCommands = append(subCommands, getWord.Commands()...)
-	subCommands = append(subCommands, notify.Commands()...)
 	subCommands = append(subCommands, recreate.Commands()...)
 	subCommands = append(subCommands, sendWelcome.Commands()...)
 	subCommands = append(subCommands, pruneSettings.Commands()...)
@@ -41,7 +38,6 @@ func GetAdminModule(container *di.Container) *AdminModule {
 
 	return &AdminModule{
 		container:   container,
-		notify:      notify,
 		guilds:      guilds,
 		devGuildID:  cfg.DiscordDevelopmentGuild,
 		subCommands: subCommands,
@@ -63,7 +59,7 @@ func (m *AdminModule) Commands() []*discordgoplus.Command {
 }
 
 func (m *AdminModule) Modals() []*discordgoplus.Modal {
-	return m.notify.Modals()
+	return []*discordgoplus.Modal{}
 }
 
 func (m *AdminModule) MessageComponents() []*discordgoplus.MessageComponent {

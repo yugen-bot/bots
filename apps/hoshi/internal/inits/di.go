@@ -90,13 +90,6 @@ func InitDI() (container di.Container, err error) {
 	})
 
 	diBuilder.Add(&di.Def{
-		Name: localStatic.DiNotify,
-		Build: func(ctn di.Container) (any, error) {
-			return services.CreateNotifyService(&ctn), nil
-		},
-	})
-
-	diBuilder.Add(&di.Def{
 		Name: static.DiVoteReward,
 		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteRewardFunc(&ctn), nil

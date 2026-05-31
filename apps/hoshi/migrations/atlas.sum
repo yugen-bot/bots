@@ -1,5 +1,6 @@
-h1:mgCVr4I+pypJQAsujIaM66vC9tncmMSOEoWhfZIQBW0=
+h1:g8aZ8bnM8opyc//MwHQG8hkjWYE6FZiVznT7DJLtcxs=
 20260530000000_initial.sql h1:GzrPi7SVo2idCOuwXvEQ6dqfFUS/FMtvb4Kye4Mf8KM=
 20260530000100_rename_snake.sql h1:D1kv71ET88fQlzqavUdmEe1Cm5fxOecPO0twMRK6Y20=
 20260530000200_array_to_jsonb.sql h1:cfNFBnFopiiszArAVls13faMj+ezzG3uhbY76VIavlw=
 20260530000300_rename_starboard_logs.sql h1:xTNzyqRXe+3FVleCPhsskjXNqjIDototH+d6jvhtEbg=
+20260531000000_drop_bot_updates_channel.sql h1:47A3ZloALj3J1R7sHpilKdmbIsmH0fr8SJqlFZplMdg=

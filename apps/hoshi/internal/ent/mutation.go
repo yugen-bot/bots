@@ -38,7 +38,6 @@ type SettingsMutation struct {
 	typ                     string
 	id                      *int
 	guildID                 *string
-	botUpdatesChannelID     *string
 	treshold                *int
 	addtreshold             *int
 	self                    *bool
@@ -184,55 +183,6 @@ func (m *SettingsMutation) OldGuildID(ctx context.Context) (v string, err error)
 // ResetGuildID resets all changes to the "guildID" field.
 func (m *SettingsMutation) ResetGuildID() {
 	m.guildID = nil
-}
-
-// SetBotUpdatesChannelID sets the "botUpdatesChannelID" field.
-func (m *SettingsMutation) SetBotUpdatesChannelID(s string) {
-	m.botUpdatesChannelID = &s
-}
-
-// BotUpdatesChannelID returns the value of the "botUpdatesChannelID" field in the mutation.
-func (m *SettingsMutation) BotUpdatesChannelID() (r string, exists bool) {
-	v := m.botUpdatesChannelID
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldBotUpdatesChannelID returns the old "botUpdatesChannelID" field's value of the Settings entity.
-// If the Settings object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SettingsMutation) OldBotUpdatesChannelID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldBotUpdatesChannelID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldBotUpdatesChannelID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldBotUpdatesChannelID: %w", err)
-	}
-	return oldValue.BotUpdatesChannelID, nil
-}
-
-// ClearBotUpdatesChannelID clears the value of the "botUpdatesChannelID" field.
-func (m *SettingsMutation) ClearBotUpdatesChannelID() {
-	m.botUpdatesChannelID = nil
-	m.clearedFields[settings.FieldBotUpdatesChannelID] = struct{}{}
-}
-
-// BotUpdatesChannelIDCleared returns if the "botUpdatesChannelID" field was cleared in this mutation.
-func (m *SettingsMutation) BotUpdatesChannelIDCleared() bool {
-	_, ok := m.clearedFields[settings.FieldBotUpdatesChannelID]
-	return ok
-}
-
-// ResetBotUpdatesChannelID resets all changes to the "botUpdatesChannelID" field.
-func (m *SettingsMutation) ResetBotUpdatesChannelID() {
-	m.botUpdatesChannelID = nil
-	delete(m.clearedFields, settings.FieldBotUpdatesChannelID)
 }
 
 // SetTreshold sets the "treshold" field.
@@ -484,12 +434,9 @@ func (m *SettingsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SettingsMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.guildID != nil {
 		fields = append(fields, settings.FieldGuildID)
-	}
-	if m.botUpdatesChannelID != nil {
-		fields = append(fields, settings.FieldBotUpdatesChannelID)
 	}
 	if m.treshold != nil {
 		fields = append(fields, settings.FieldTreshold)
@@ -516,8 +463,6 @@ func (m *SettingsMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case settings.FieldGuildID:
 		return m.GuildID()
-	case settings.FieldBotUpdatesChannelID:
-		return m.BotUpdatesChannelID()
 	case settings.FieldTreshold:
 		return m.Treshold()
 	case settings.FieldSelf:
@@ -539,8 +484,6 @@ func (m *SettingsMutation) OldField(ctx context.Context, name string) (ent.Value
 	switch name {
 	case settings.FieldGuildID:
 		return m.OldGuildID(ctx)
-	case settings.FieldBotUpdatesChannelID:
-		return m.OldBotUpdatesChannelID(ctx)
 	case settings.FieldTreshold:
 		return m.OldTreshold(ctx)
 	case settings.FieldSelf:
@@ -566,13 +509,6 @@ func (m *SettingsMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGuildID(v)
-		return nil
-	case settings.FieldBotUpdatesChannelID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetBotUpdatesChannelID(v)
 		return nil
 	case settings.FieldTreshold:
 		v, ok := value.(int)
@@ -653,11 +589,7 @@ func (m *SettingsMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *SettingsMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(settings.FieldBotUpdatesChannelID) {
-		fields = append(fields, settings.FieldBotUpdatesChannelID)
-	}
-	return fields
+	return nil
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -670,11 +602,6 @@ func (m *SettingsMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *SettingsMutation) ClearField(name string) error {
-	switch name {
-	case settings.FieldBotUpdatesChannelID:
-		m.ClearBotUpdatesChannelID()
-		return nil
-	}
 	return fmt.Errorf("unknown Settings nullable field %s", name)
 }
 
@@ -684,9 +611,6 @@ func (m *SettingsMutation) ResetField(name string) error {
 	switch name {
 	case settings.FieldGuildID:
 		m.ResetGuildID()
-		return nil
-	case settings.FieldBotUpdatesChannelID:
-		m.ResetBotUpdatesChannelID()
 		return nil
 	case settings.FieldTreshold:
 		m.ResetTreshold()

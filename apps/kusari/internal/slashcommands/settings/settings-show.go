@@ -46,11 +46,6 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		channelIDText = fmt.Sprintf("<#%s>", *s.ChannelID)
 	}
 
-	botUpdatesChannelIDText := "-"
-	if s.BotUpdatesChannelID != nil {
-		botUpdatesChannelIDText = fmt.Sprintf("<#%s>", *s.BotUpdatesChannelID)
-	}
-
 	cooldownText := fmt.Sprintf("%d seconds", cooldown)
 	if cooldown == 1 {
 		cooldownText = fmt.Sprintf("%d second", cooldown)
@@ -81,15 +76,11 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 				Inline: true,
 			},
 			{
-				Name:   "Bot updates channel",
-				Value:  botUpdatesChannelIDText,
-				Inline: true,
-			},
-			{
 				Name:   "Answers cooldown",
 				Value:  cooldownText,
 				Inline: true,
 			},
+			{Name: "​", Value: "​", Inline: true},
 		},
 	}
 

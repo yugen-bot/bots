@@ -15,8 +15,6 @@ const (
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
 	FieldGuildID = "guild_id"
-	// FieldBotUpdatesChannelID holds the string denoting the botupdateschannelid field in the database.
-	FieldBotUpdatesChannelID = "bot_updates_channel_id"
 	// FieldChannelID holds the string denoting the channelid field in the database.
 	FieldChannelID = "channel_id"
 	// FieldCooldown holds the string denoting the cooldown field in the database.
@@ -43,7 +41,6 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldGuildID,
-	FieldBotUpdatesChannelID,
 	FieldChannelID,
 	FieldCooldown,
 	FieldHighscore,
@@ -95,11 +92,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByGuildID orders the results by the guildID field.
 func ByGuildID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldGuildID, opts...).ToFunc()
-}
-
-// ByBotUpdatesChannelID orders the results by the botUpdatesChannelID field.
-func ByBotUpdatesChannelID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldBotUpdatesChannelID, opts...).ToFunc()
 }
 
 // ByChannelID orders the results by the channelID field.

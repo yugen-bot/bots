@@ -59,11 +59,6 @@ func GuildID(v string) predicate.Settings {
 	return predicate.Settings(sql.FieldEQ(FieldGuildID, v))
 }
 
-// BotUpdatesChannelID applies equality check predicate on the "botUpdatesChannelID" field. It's identical to BotUpdatesChannelIDEQ.
-func BotUpdatesChannelID(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldEQ(FieldBotUpdatesChannelID, v))
-}
-
 // ChannelID applies equality check predicate on the "channelID" field. It's identical to ChannelIDEQ.
 func ChannelID(v string) predicate.Settings {
 	return predicate.Settings(sql.FieldEQ(FieldChannelID, v))
@@ -172,81 +167,6 @@ func GuildIDEqualFold(v string) predicate.Settings {
 // GuildIDContainsFold applies the ContainsFold predicate on the "guildID" field.
 func GuildIDContainsFold(v string) predicate.Settings {
 	return predicate.Settings(sql.FieldContainsFold(FieldGuildID, v))
-}
-
-// BotUpdatesChannelIDEQ applies the EQ predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDEQ(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldEQ(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDNEQ applies the NEQ predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDNEQ(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldNEQ(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDIn applies the In predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDIn(vs ...string) predicate.Settings {
-	return predicate.Settings(sql.FieldIn(FieldBotUpdatesChannelID, vs...))
-}
-
-// BotUpdatesChannelIDNotIn applies the NotIn predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDNotIn(vs ...string) predicate.Settings {
-	return predicate.Settings(sql.FieldNotIn(FieldBotUpdatesChannelID, vs...))
-}
-
-// BotUpdatesChannelIDGT applies the GT predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDGT(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldGT(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDGTE applies the GTE predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDGTE(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldGTE(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDLT applies the LT predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDLT(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldLT(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDLTE applies the LTE predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDLTE(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldLTE(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDContains applies the Contains predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDContains(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldContains(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDHasPrefix applies the HasPrefix predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDHasPrefix(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldHasPrefix(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDHasSuffix applies the HasSuffix predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDHasSuffix(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldHasSuffix(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDIsNil applies the IsNil predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDIsNil() predicate.Settings {
-	return predicate.Settings(sql.FieldIsNull(FieldBotUpdatesChannelID))
-}
-
-// BotUpdatesChannelIDNotNil applies the NotNil predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDNotNil() predicate.Settings {
-	return predicate.Settings(sql.FieldNotNull(FieldBotUpdatesChannelID))
-}
-
-// BotUpdatesChannelIDEqualFold applies the EqualFold predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDEqualFold(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldEqualFold(FieldBotUpdatesChannelID, v))
-}
-
-// BotUpdatesChannelIDContainsFold applies the ContainsFold predicate on the "botUpdatesChannelID" field.
-func BotUpdatesChannelIDContainsFold(v string) predicate.Settings {
-	return predicate.Settings(sql.FieldContainsFold(FieldBotUpdatesChannelID, v))
 }
 
 // ChannelIDEQ applies the EQ predicate on the "channelID" field.

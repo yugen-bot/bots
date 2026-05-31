@@ -24,7 +24,6 @@ type SettingsModule struct {
 func GetSettingsModule(container *di.Container) *SettingsModule {
 	showModule := GetSettingsShowModule(container)
 	channelModule := GetSettingsChannelModule(container)
-	botUpdatesModule := GetSettingsBotUpdatesModule(container)
 	cooldownModule := GetSettingsCooldownModule(container)
 	mathModule := GetSettingsMathModule(container)
 	shameModule := GetSettingsShameModule(container)
@@ -33,7 +32,6 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	subCommands := []*discordgoplus.Command{}
 	subCommands = append(subCommands, showModule.Commands()...)
 	subCommands = append(subCommands, channelModule.Commands()...)
-	subCommands = append(subCommands, botUpdatesModule.Commands()...)
 	subCommands = append(subCommands, cooldownModule.Commands()...)
 	subCommands = append(subCommands, mathModule.Commands()...)
 	subCommands = append(subCommands, shameModule.Commands()...)
@@ -63,8 +61,6 @@ func (m *SettingsModule) Show(ctx *discordgoplus.Ctx) {
 	channelIDOk := channelID != nil
 	shameRoleID := settings.ShameRoleID
 	shameRoleIDOk := shameRoleID != nil
-	botUpdatesChannelID := settings.BotUpdatesChannelID
-	botUpdatesChannelIDOk := botUpdatesChannelID != nil
 	removeShameRoleAfterHighscore := settings.RemoveShameRoleAfterHighscore
 	cooldown := settings.Cooldown
 	math := settings.Math
@@ -77,11 +73,6 @@ func (m *SettingsModule) Show(ctx *discordgoplus.Ctx) {
 	shameRoleIDText := "-"
 	if shameRoleIDOk {
 		shameRoleIDText = fmt.Sprintf("<@&%s>", *shameRoleID)
-	}
-
-	botUpdatesChannelIDText := "-"
-	if botUpdatesChannelIDOk {
-		botUpdatesChannelIDText = fmt.Sprintf("<#%s>", *botUpdatesChannelID)
 	}
 
 	removeShameRoleAfterHighscoreText := "No"
@@ -120,11 +111,6 @@ func (m *SettingsModule) Show(ctx *discordgoplus.Ctx) {
 				Inline: true,
 			},
 			{
-				Name:   "Bot updates channel",
-				Value:  botUpdatesChannelIDText,
-				Inline: true,
-			},
-			{
 				Name:   "Answers cooldown",
 				Value:  cooldownText,
 				Inline: true,
@@ -144,6 +130,7 @@ func (m *SettingsModule) Show(ctx *discordgoplus.Ctx) {
 				Value:  removeShameRoleAfterHighscoreText,
 				Inline: true,
 			},
+			{Name: "​", Value: "​", Inline: true},
 		},
 	}
 

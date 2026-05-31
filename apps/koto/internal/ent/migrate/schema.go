@@ -119,7 +119,6 @@ var (
 	SettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "guild_id", Type: field.TypeString},
-		{Name: "bot_updates_channel_id", Type: field.TypeString, Nullable: true},
 		{Name: "channel_id", Type: field.TypeString, Nullable: true},
 		{Name: "ping_role_id", Type: field.TypeString, Nullable: true},
 		{Name: "ping_only_new", Type: field.TypeBool, Default: true},
@@ -152,7 +151,7 @@ var (
 			{
 				Name:    "settings_guild_id_channel_id",
 				Unique:  false,
-				Columns: []*schema.Column{SettingsColumns[1], SettingsColumns[3]},
+				Columns: []*schema.Column{SettingsColumns[1], SettingsColumns[2]},
 			},
 		},
 	}

@@ -18,14 +18,12 @@ type SettingsModule struct {
 func GetSettingsModule(container *di.Container) *SettingsModule {
 	showModule := GetSettingsShowModule(container)
 	channelModule := GetSettingsChannelModule(container)
-	botUpdatesModule := GetSettingsBotUpdatesModule(container)
 	cooldownModule := GetSettingsCooldownModule(container)
 	resetModule := GetSettingsResetModule(container)
 
 	subCommands := []*discordgoplus.Command{}
 	subCommands = append(subCommands, showModule.Commands()...)
 	subCommands = append(subCommands, channelModule.Commands()...)
-	subCommands = append(subCommands, botUpdatesModule.Commands()...)
 	subCommands = append(subCommands, cooldownModule.Commands()...)
 	subCommands = append(subCommands, resetModule.Commands()...)
 

@@ -40,11 +40,6 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	botUpdatesText := "-"
-	if s.BotUpdatesChannelID != nil && len(*s.BotUpdatesChannelID) > 0 {
-		botUpdatesText = fmt.Sprintf("<#%s>", *s.BotUpdatesChannelID)
-	}
-
 	ignoredText := "-"
 
 	if len(s.IgnoredChannelIds) > 0 {
@@ -81,7 +76,7 @@ func (m *SettingsShowModule) show(ctx *discordgoplus.Ctx) {
 
 				return "Disallowed"
 			}(), Inline: true},
-			{Name: "Bot updates channel", Value: botUpdatesText, Inline: true},
+			{Name: "​", Value: "​", Inline: true},
 			{Name: "Ignored Channels", Value: ignoredText, Inline: false},
 		},
 	}

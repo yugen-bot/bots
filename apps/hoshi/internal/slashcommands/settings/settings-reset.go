@@ -18,7 +18,6 @@ import (
 var resetChoices = []*discordgo.ApplicationCommandOptionChoice{
 	{Name: "Treshold", Value: "treshold"},
 	{Name: "Author starring", Value: "self"},
-	{Name: "Bot updates channel", Value: "botUpdatesChannelId"},
 	{Name: "Ignored channels", Value: "ignoredChannelIds"},
 }
 
@@ -51,9 +50,6 @@ func (m *SettingsResetModule) reset(ctx *discordgoplus.Ctx) {
 	case "self":
 		apply = func(u *ent.SettingsUpdateOne) { u.SetSelf(false) }
 		value = "false"
-	case "botUpdatesChannelId":
-		apply = func(u *ent.SettingsUpdateOne) { u.ClearBotUpdatesChannelID() }
-		value = "-"
 	case "ignoredChannelIds":
 		apply = func(u *ent.SettingsUpdateOne) { u.SetIgnoredChannelIds(pq.StringArray{}) }
 		value = "[]"

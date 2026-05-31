@@ -60,6 +60,17 @@ Here is a small summary of the applications:
 > Do **not** scaffold empty `api/`, `services/`, `slashcommands/`, `static/`, `utils/`,
 > or `prisma/` directories for iro unless a feature genuinely requires them.
 
+## Ent ORM — Code Generation
+
+Each bot uses [entgo.io/ent](https://entgo.io) for its ORM. After modifying any file under `apps/<bot>/internal/ent/schema/`, regenerate the ent code from the **bot's root directory**:
+
+```bash
+cd apps/<bot>
+GOWORK=off go generate ./internal/ent
+```
+
+**Always run this after schema changes.** The generator rewrites `runtime.go`, `mutation.go`, `settings.go`, `settings_create.go`, `settings_update.go`, `settings/settings.go`, `settings/where.go`, and `migrate/schema.go`. Editing those generated files by hand and skipping generation leaves `runtime.go` field indices stale, causing a runtime panic in `init()`.
+
 ## Development Commands
 
 ```bash

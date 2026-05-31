@@ -6,6 +6,5 @@ const (
 	DiGameMessage = "gamemessage"
 	DiPoints      = "points"
 	DiGuilds      = "adminguilds"
-	DiNotify      = "adminnotify"
 	DiHints       = "hints"
 )

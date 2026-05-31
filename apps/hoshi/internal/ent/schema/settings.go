@@ -13,9 +13,6 @@ type Settings struct{ ent.Schema }
 func (Settings) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("guildID"),
-		field.String("botUpdatesChannelID").
-			Optional().
-			Nillable(),
 		field.Int("treshold").
 			Default(3),
 		field.Bool("self").

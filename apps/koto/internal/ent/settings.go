@@ -19,8 +19,6 @@ type Settings struct {
 	ID int `json:"id,omitempty"`
 	// GuildID holds the value of the "guildID" field.
 	GuildID string `json:"guildID,omitempty"`
-	// BotUpdatesChannelID holds the value of the "botUpdatesChannelID" field.
-	BotUpdatesChannelID *string `json:"botUpdatesChannelID,omitempty"`
 	// ChannelID holds the value of the "channelID" field.
 	ChannelID *string `json:"channelID,omitempty"`
 	// PingRoleID holds the value of the "pingRoleID" field.
@@ -69,7 +67,7 @@ func (*Settings) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case settings.FieldID, settings.FieldCooldown, settings.FieldBackToBackCooldown, settings.FieldFrequency, settings.FieldTimeLimit:
 			values[i] = new(sql.NullInt64)
-		case settings.FieldGuildID, settings.FieldBotUpdatesChannelID, settings.FieldChannelID, settings.FieldPingRoleID:
+		case settings.FieldGuildID, settings.FieldChannelID, settings.FieldPingRoleID:
 			values[i] = new(sql.NullString)
 		case settings.FieldCreatedAt, settings.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -99,13 +97,6 @@ func (s *Settings) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field guildID", values[i])
 			} else if value.Valid {
 				s.GuildID = value.String
-			}
-		case settings.FieldBotUpdatesChannelID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field botUpdatesChannelID", values[i])
-			} else if value.Valid {
-				s.BotUpdatesChannelID = new(string)
-				*s.BotUpdatesChannelID = value.String
 			}
 		case settings.FieldChannelID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -249,11 +240,6 @@ func (s *Settings) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", s.ID))
 	builder.WriteString("guildID=")
 	builder.WriteString(s.GuildID)
-	builder.WriteString(", ")
-	if v := s.BotUpdatesChannelID; v != nil {
-		builder.WriteString("botUpdatesChannelID=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	if v := s.ChannelID; v != nil {
 		builder.WriteString("channelID=")

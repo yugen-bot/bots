@@ -88,39 +88,39 @@ func init() {
 	settingsFields := schema.Settings{}.Fields()
 	_ = settingsFields
 	// settingsDescCooldown is the schema descriptor for cooldown field.
-	settingsDescCooldown := settingsFields[3].Descriptor()
+	settingsDescCooldown := settingsFields[2].Descriptor()
 	// settings.DefaultCooldown holds the default value on creation for the cooldown field.
 	settings.DefaultCooldown = settingsDescCooldown.Default.(int)
 	// settingsDescMath is the schema descriptor for math field.
-	settingsDescMath := settingsFields[4].Descriptor()
+	settingsDescMath := settingsFields[3].Descriptor()
 	// settings.DefaultMath holds the default value on creation for the math field.
 	settings.DefaultMath = settingsDescMath.Default.(bool)
 	// settingsDescRemoveShameRoleAfterHighscore is the schema descriptor for removeShameRoleAfterHighscore field.
-	settingsDescRemoveShameRoleAfterHighscore := settingsFields[6].Descriptor()
+	settingsDescRemoveShameRoleAfterHighscore := settingsFields[5].Descriptor()
 	// settings.DefaultRemoveShameRoleAfterHighscore holds the default value on creation for the removeShameRoleAfterHighscore field.
 	settings.DefaultRemoveShameRoleAfterHighscore = settingsDescRemoveShameRoleAfterHighscore.Default.(bool)
 	// settingsDescHighscore is the schema descriptor for highscore field.
-	settingsDescHighscore := settingsFields[8].Descriptor()
+	settingsDescHighscore := settingsFields[7].Descriptor()
 	// settings.DefaultHighscore holds the default value on creation for the highscore field.
 	settings.DefaultHighscore = settingsDescHighscore.Default.(int)
 	// settingsDescSaves is the schema descriptor for saves field.
-	settingsDescSaves := settingsFields[10].Descriptor()
+	settingsDescSaves := settingsFields[9].Descriptor()
 	// settings.DefaultSaves holds the default value on creation for the saves field.
 	settings.DefaultSaves = settingsDescSaves.Default.(float64)
 	// settingsDescMaxSaves is the schema descriptor for maxSaves field.
-	settingsDescMaxSaves := settingsFields[11].Descriptor()
+	settingsDescMaxSaves := settingsFields[10].Descriptor()
 	// settings.DefaultMaxSaves holds the default value on creation for the maxSaves field.
 	settings.DefaultMaxSaves = settingsDescMaxSaves.Default.(float64)
 	// settingsDescSavesUsed is the schema descriptor for savesUsed field.
-	settingsDescSavesUsed := settingsFields[12].Descriptor()
+	settingsDescSavesUsed := settingsFields[11].Descriptor()
 	// settings.DefaultSavesUsed holds the default value on creation for the savesUsed field.
 	settings.DefaultSavesUsed = settingsDescSavesUsed.Default.(float64)
 	// settingsDescCreatedAt is the schema descriptor for createdAt field.
-	settingsDescCreatedAt := settingsFields[13].Descriptor()
+	settingsDescCreatedAt := settingsFields[12].Descriptor()
 	// settings.DefaultCreatedAt holds the default value on creation for the createdAt field.
 	settings.DefaultCreatedAt = settingsDescCreatedAt.Default.(func() time.Time)
 	// settingsDescUpdatedAt is the schema descriptor for updatedAt field.
-	settingsDescUpdatedAt := settingsFields[14].Descriptor()
+	settingsDescUpdatedAt := settingsFields[13].Descriptor()
 	// settings.DefaultUpdatedAt holds the default value on creation for the updatedAt field.
 	settings.DefaultUpdatedAt = settingsDescUpdatedAt.Default.(func() time.Time)
 	// settings.UpdateDefaultUpdatedAt holds the default value on update for the updatedAt field.
