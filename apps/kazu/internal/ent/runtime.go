@@ -20,15 +20,15 @@ func init() {
 	gameFields := schema.Game{}.Fields()
 	_ = gameFields
 	// gameDescIsHighscored is the schema descriptor for isHighscored field.
-	gameDescIsHighscored := gameFields[4].Descriptor()
+	gameDescIsHighscored := gameFields[3].Descriptor()
 	// game.DefaultIsHighscored holds the default value on creation for the isHighscored field.
 	game.DefaultIsHighscored = gameDescIsHighscored.Default.(bool)
 	// gameDescCreatedAt is the schema descriptor for createdAt field.
-	gameDescCreatedAt := gameFields[5].Descriptor()
+	gameDescCreatedAt := gameFields[4].Descriptor()
 	// game.DefaultCreatedAt holds the default value on creation for the createdAt field.
 	game.DefaultCreatedAt = gameDescCreatedAt.Default.(func() time.Time)
 	// gameDescUpdatedAt is the schema descriptor for updatedAt field.
-	gameDescUpdatedAt := gameFields[6].Descriptor()
+	gameDescUpdatedAt := gameFields[5].Descriptor()
 	// game.DefaultUpdatedAt holds the default value on creation for the updatedAt field.
 	game.DefaultUpdatedAt = gameDescUpdatedAt.Default.(func() time.Time)
 	// game.UpdateDefaultUpdatedAt holds the default value on update for the updatedAt field.

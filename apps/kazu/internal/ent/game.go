@@ -19,8 +19,6 @@ type Game struct {
 	ID int `json:"id,omitempty"`
 	// GuildID holds the value of the "guildID" field.
 	GuildID string `json:"guildID,omitempty"`
-	// LastMessageID holds the value of the "lastMessageID" field.
-	LastMessageID *string `json:"lastMessageID,omitempty"`
 	// Status holds the value of the "status" field.
 	Status game.Status `json:"status,omitempty"`
 	// Type holds the value of the "type" field.
@@ -64,7 +62,7 @@ func (*Game) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case game.FieldID:
 			values[i] = new(sql.NullInt64)
-		case game.FieldGuildID, game.FieldLastMessageID, game.FieldStatus, game.FieldType:
+		case game.FieldGuildID, game.FieldStatus, game.FieldType:
 			values[i] = new(sql.NullString)
 		case game.FieldCreatedAt, game.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -94,13 +92,6 @@ func (ga *Game) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field guildID", values[i])
 			} else if value.Valid {
 				ga.GuildID = value.String
-			}
-		case game.FieldLastMessageID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field lastMessageID", values[i])
-			} else if value.Valid {
-				ga.LastMessageID = new(string)
-				*ga.LastMessageID = value.String
 			}
 		case game.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -175,11 +166,6 @@ func (ga *Game) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", ga.ID))
 	builder.WriteString("guildID=")
 	builder.WriteString(ga.GuildID)
-	builder.WriteString(", ")
-	if v := ga.LastMessageID; v != nil {
-		builder.WriteString("lastMessageID=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", ga.Status))

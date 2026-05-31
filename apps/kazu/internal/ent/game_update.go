@@ -43,26 +43,6 @@ func (gu *GameUpdate) SetNillableGuildID(s *string) *GameUpdate {
 	return gu
 }
 
-// SetLastMessageID sets the "lastMessageID" field.
-func (gu *GameUpdate) SetLastMessageID(s string) *GameUpdate {
-	gu.mutation.SetLastMessageID(s)
-	return gu
-}
-
-// SetNillableLastMessageID sets the "lastMessageID" field if the given value is not nil.
-func (gu *GameUpdate) SetNillableLastMessageID(s *string) *GameUpdate {
-	if s != nil {
-		gu.SetLastMessageID(*s)
-	}
-	return gu
-}
-
-// ClearLastMessageID clears the value of the "lastMessageID" field.
-func (gu *GameUpdate) ClearLastMessageID() *GameUpdate {
-	gu.mutation.ClearLastMessageID()
-	return gu
-}
-
 // SetStatus sets the "status" field.
 func (gu *GameUpdate) SetStatus(ga game.Status) *GameUpdate {
 	gu.mutation.SetStatus(ga)
@@ -218,12 +198,6 @@ func (gu *GameUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := gu.mutation.GuildID(); ok {
 		_spec.SetField(game.FieldGuildID, field.TypeString, value)
 	}
-	if value, ok := gu.mutation.LastMessageID(); ok {
-		_spec.SetField(game.FieldLastMessageID, field.TypeString, value)
-	}
-	if gu.mutation.LastMessageIDCleared() {
-		_spec.ClearField(game.FieldLastMessageID, field.TypeString)
-	}
 	if value, ok := gu.mutation.Status(); ok {
 		_spec.SetField(game.FieldStatus, field.TypeEnum, value)
 	}
@@ -312,26 +286,6 @@ func (guo *GameUpdateOne) SetNillableGuildID(s *string) *GameUpdateOne {
 	if s != nil {
 		guo.SetGuildID(*s)
 	}
-	return guo
-}
-
-// SetLastMessageID sets the "lastMessageID" field.
-func (guo *GameUpdateOne) SetLastMessageID(s string) *GameUpdateOne {
-	guo.mutation.SetLastMessageID(s)
-	return guo
-}
-
-// SetNillableLastMessageID sets the "lastMessageID" field if the given value is not nil.
-func (guo *GameUpdateOne) SetNillableLastMessageID(s *string) *GameUpdateOne {
-	if s != nil {
-		guo.SetLastMessageID(*s)
-	}
-	return guo
-}
-
-// ClearLastMessageID clears the value of the "lastMessageID" field.
-func (guo *GameUpdateOne) ClearLastMessageID() *GameUpdateOne {
-	guo.mutation.ClearLastMessageID()
 	return guo
 }
 
@@ -519,12 +473,6 @@ func (guo *GameUpdateOne) sqlSave(ctx context.Context) (_node *Game, err error) 
 	}
 	if value, ok := guo.mutation.GuildID(); ok {
 		_spec.SetField(game.FieldGuildID, field.TypeString, value)
-	}
-	if value, ok := guo.mutation.LastMessageID(); ok {
-		_spec.SetField(game.FieldLastMessageID, field.TypeString, value)
-	}
-	if guo.mutation.LastMessageIDCleared() {
-		_spec.ClearField(game.FieldLastMessageID, field.TypeString)
 	}
 	if value, ok := guo.mutation.Status(); ok {
 		_spec.SetField(game.FieldStatus, field.TypeEnum, value)

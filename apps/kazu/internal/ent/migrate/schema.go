@@ -12,7 +12,6 @@ var (
 	GamesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "guild_id", Type: field.TypeString},
-		{Name: "last_message_id", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"IN_PROGRESS", "FAILED", "COMPLETED"}, Default: "IN_PROGRESS"},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"NORMAL"}, Default: "NORMAL"},
 		{Name: "is_highscored", Type: field.TypeBool, Default: false},

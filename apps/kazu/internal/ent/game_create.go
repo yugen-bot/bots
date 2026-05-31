@@ -27,20 +27,6 @@ func (gc *GameCreate) SetGuildID(s string) *GameCreate {
 	return gc
 }
 
-// SetLastMessageID sets the "lastMessageID" field.
-func (gc *GameCreate) SetLastMessageID(s string) *GameCreate {
-	gc.mutation.SetLastMessageID(s)
-	return gc
-}
-
-// SetNillableLastMessageID sets the "lastMessageID" field if the given value is not nil.
-func (gc *GameCreate) SetNillableLastMessageID(s *string) *GameCreate {
-	if s != nil {
-		gc.SetLastMessageID(*s)
-	}
-	return gc
-}
-
 // SetStatus sets the "status" field.
 func (gc *GameCreate) SetStatus(ga game.Status) *GameCreate {
 	gc.mutation.SetStatus(ga)
@@ -242,10 +228,6 @@ func (gc *GameCreate) createSpec() (*Game, *sqlgraph.CreateSpec) {
 	if value, ok := gc.mutation.GuildID(); ok {
 		_spec.SetField(game.FieldGuildID, field.TypeString, value)
 		_node.GuildID = value
-	}
-	if value, ok := gc.mutation.LastMessageID(); ok {
-		_spec.SetField(game.FieldLastMessageID, field.TypeString, value)
-		_node.LastMessageID = &value
 	}
 	if value, ok := gc.mutation.Status(); ok {
 		_spec.SetField(game.FieldStatus, field.TypeEnum, value)

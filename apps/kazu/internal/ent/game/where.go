@@ -60,11 +60,6 @@ func GuildID(v string) predicate.Game {
 	return predicate.Game(sql.FieldEQ(FieldGuildID, v))
 }
 
-// LastMessageID applies equality check predicate on the "lastMessageID" field. It's identical to LastMessageIDEQ.
-func LastMessageID(v string) predicate.Game {
-	return predicate.Game(sql.FieldEQ(FieldLastMessageID, v))
-}
-
 // IsHighscored applies equality check predicate on the "isHighscored" field. It's identical to IsHighscoredEQ.
 func IsHighscored(v bool) predicate.Game {
 	return predicate.Game(sql.FieldEQ(FieldIsHighscored, v))
@@ -143,81 +138,6 @@ func GuildIDEqualFold(v string) predicate.Game {
 // GuildIDContainsFold applies the ContainsFold predicate on the "guildID" field.
 func GuildIDContainsFold(v string) predicate.Game {
 	return predicate.Game(sql.FieldContainsFold(FieldGuildID, v))
-}
-
-// LastMessageIDEQ applies the EQ predicate on the "lastMessageID" field.
-func LastMessageIDEQ(v string) predicate.Game {
-	return predicate.Game(sql.FieldEQ(FieldLastMessageID, v))
-}
-
-// LastMessageIDNEQ applies the NEQ predicate on the "lastMessageID" field.
-func LastMessageIDNEQ(v string) predicate.Game {
-	return predicate.Game(sql.FieldNEQ(FieldLastMessageID, v))
-}
-
-// LastMessageIDIn applies the In predicate on the "lastMessageID" field.
-func LastMessageIDIn(vs ...string) predicate.Game {
-	return predicate.Game(sql.FieldIn(FieldLastMessageID, vs...))
-}
-
-// LastMessageIDNotIn applies the NotIn predicate on the "lastMessageID" field.
-func LastMessageIDNotIn(vs ...string) predicate.Game {
-	return predicate.Game(sql.FieldNotIn(FieldLastMessageID, vs...))
-}
-
-// LastMessageIDGT applies the GT predicate on the "lastMessageID" field.
-func LastMessageIDGT(v string) predicate.Game {
-	return predicate.Game(sql.FieldGT(FieldLastMessageID, v))
-}
-
-// LastMessageIDGTE applies the GTE predicate on the "lastMessageID" field.
-func LastMessageIDGTE(v string) predicate.Game {
-	return predicate.Game(sql.FieldGTE(FieldLastMessageID, v))
-}
-
-// LastMessageIDLT applies the LT predicate on the "lastMessageID" field.
-func LastMessageIDLT(v string) predicate.Game {
-	return predicate.Game(sql.FieldLT(FieldLastMessageID, v))
-}
-
-// LastMessageIDLTE applies the LTE predicate on the "lastMessageID" field.
-func LastMessageIDLTE(v string) predicate.Game {
-	return predicate.Game(sql.FieldLTE(FieldLastMessageID, v))
-}
-
-// LastMessageIDContains applies the Contains predicate on the "lastMessageID" field.
-func LastMessageIDContains(v string) predicate.Game {
-	return predicate.Game(sql.FieldContains(FieldLastMessageID, v))
-}
-
-// LastMessageIDHasPrefix applies the HasPrefix predicate on the "lastMessageID" field.
-func LastMessageIDHasPrefix(v string) predicate.Game {
-	return predicate.Game(sql.FieldHasPrefix(FieldLastMessageID, v))
-}
-
-// LastMessageIDHasSuffix applies the HasSuffix predicate on the "lastMessageID" field.
-func LastMessageIDHasSuffix(v string) predicate.Game {
-	return predicate.Game(sql.FieldHasSuffix(FieldLastMessageID, v))
-}
-
-// LastMessageIDIsNil applies the IsNil predicate on the "lastMessageID" field.
-func LastMessageIDIsNil() predicate.Game {
-	return predicate.Game(sql.FieldIsNull(FieldLastMessageID))
-}
-
-// LastMessageIDNotNil applies the NotNil predicate on the "lastMessageID" field.
-func LastMessageIDNotNil() predicate.Game {
-	return predicate.Game(sql.FieldNotNull(FieldLastMessageID))
-}
-
-// LastMessageIDEqualFold applies the EqualFold predicate on the "lastMessageID" field.
-func LastMessageIDEqualFold(v string) predicate.Game {
-	return predicate.Game(sql.FieldEqualFold(FieldLastMessageID, v))
-}
-
-// LastMessageIDContainsFold applies the ContainsFold predicate on the "lastMessageID" field.
-func LastMessageIDContainsFold(v string) predicate.Game {
-	return predicate.Game(sql.FieldContainsFold(FieldLastMessageID, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
