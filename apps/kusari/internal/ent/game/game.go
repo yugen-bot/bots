@@ -17,8 +17,6 @@ const (
 	FieldID = "id"
 	// FieldGuildID holds the string denoting the guildid field in the database.
 	FieldGuildID = "guild_id"
-	// FieldLastMessageID holds the string denoting the lastmessageid field in the database.
-	FieldLastMessageID = "last_message_id"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldType holds the string denoting the type field in the database.
@@ -46,7 +44,6 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldGuildID,
-	FieldLastMessageID,
 	FieldStatus,
 	FieldType,
 	FieldIsHighscored,
@@ -138,11 +135,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByGuildID orders the results by the guildID field.
 func ByGuildID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldGuildID, opts...).ToFunc()
-}
-
-// ByLastMessageID orders the results by the lastMessageID field.
-func ByLastMessageID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLastMessageID, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

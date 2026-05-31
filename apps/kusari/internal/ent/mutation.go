@@ -42,7 +42,6 @@ type GameMutation struct {
 	typ            string
 	id             *int
 	guildID        *string
-	lastMessageID  *string
 	status         *game.Status
 	_type          *game.Type
 	isHighscored   *bool
@@ -189,55 +188,6 @@ func (m *GameMutation) OldGuildID(ctx context.Context) (v string, err error) {
 // ResetGuildID resets all changes to the "guildID" field.
 func (m *GameMutation) ResetGuildID() {
 	m.guildID = nil
-}
-
-// SetLastMessageID sets the "lastMessageID" field.
-func (m *GameMutation) SetLastMessageID(s string) {
-	m.lastMessageID = &s
-}
-
-// LastMessageID returns the value of the "lastMessageID" field in the mutation.
-func (m *GameMutation) LastMessageID() (r string, exists bool) {
-	v := m.lastMessageID
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLastMessageID returns the old "lastMessageID" field's value of the Game entity.
-// If the Game object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GameMutation) OldLastMessageID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLastMessageID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLastMessageID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLastMessageID: %w", err)
-	}
-	return oldValue.LastMessageID, nil
-}
-
-// ClearLastMessageID clears the value of the "lastMessageID" field.
-func (m *GameMutation) ClearLastMessageID() {
-	m.lastMessageID = nil
-	m.clearedFields[game.FieldLastMessageID] = struct{}{}
-}
-
-// LastMessageIDCleared returns if the "lastMessageID" field was cleared in this mutation.
-func (m *GameMutation) LastMessageIDCleared() bool {
-	_, ok := m.clearedFields[game.FieldLastMessageID]
-	return ok
-}
-
-// ResetLastMessageID resets all changes to the "lastMessageID" field.
-func (m *GameMutation) ResetLastMessageID() {
-	m.lastMessageID = nil
-	delete(m.clearedFields, game.FieldLastMessageID)
 }
 
 // SetStatus sets the "status" field.
@@ -508,12 +458,9 @@ func (m *GameMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GameMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.guildID != nil {
 		fields = append(fields, game.FieldGuildID)
-	}
-	if m.lastMessageID != nil {
-		fields = append(fields, game.FieldLastMessageID)
 	}
 	if m.status != nil {
 		fields = append(fields, game.FieldStatus)
@@ -540,8 +487,6 @@ func (m *GameMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case game.FieldGuildID:
 		return m.GuildID()
-	case game.FieldLastMessageID:
-		return m.LastMessageID()
 	case game.FieldStatus:
 		return m.Status()
 	case game.FieldType:
@@ -563,8 +508,6 @@ func (m *GameMutation) OldField(ctx context.Context, name string) (ent.Value, er
 	switch name {
 	case game.FieldGuildID:
 		return m.OldGuildID(ctx)
-	case game.FieldLastMessageID:
-		return m.OldLastMessageID(ctx)
 	case game.FieldStatus:
 		return m.OldStatus(ctx)
 	case game.FieldType:
@@ -590,13 +533,6 @@ func (m *GameMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGuildID(v)
-		return nil
-	case game.FieldLastMessageID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLastMessageID(v)
 		return nil
 	case game.FieldStatus:
 		v, ok := value.(game.Status)
@@ -662,11 +598,7 @@ func (m *GameMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *GameMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(game.FieldLastMessageID) {
-		fields = append(fields, game.FieldLastMessageID)
-	}
-	return fields
+	return nil
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -679,11 +611,6 @@ func (m *GameMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *GameMutation) ClearField(name string) error {
-	switch name {
-	case game.FieldLastMessageID:
-		m.ClearLastMessageID()
-		return nil
-	}
 	return fmt.Errorf("unknown Game nullable field %s", name)
 }
 
@@ -693,9 +620,6 @@ func (m *GameMutation) ResetField(name string) error {
 	switch name {
 	case game.FieldGuildID:
 		m.ResetGuildID()
-		return nil
-	case game.FieldLastMessageID:
-		m.ResetLastMessageID()
 		return nil
 	case game.FieldStatus:
 		m.ResetStatus()

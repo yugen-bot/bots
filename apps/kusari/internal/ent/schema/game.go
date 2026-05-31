@@ -14,9 +14,6 @@ type Game struct{ ent.Schema }
 func (Game) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("guildID"),
-		field.String("lastMessageID").
-			Optional().
-			Nillable(),
 		field.Enum("status").
 			Values("IN_PROGRESS", "FAILED", "COMPLETED").
 			Default("IN_PROGRESS"),
