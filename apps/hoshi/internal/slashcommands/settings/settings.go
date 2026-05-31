@@ -1,40 +1,45 @@
-package slashcommands
+// Package settings contains the hoshi /settings slash command group.
+package settings
 
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
-	"jurien.dev/yugen/hoshi/internal/services"
+	authorstarring "jurien.dev/yugen/hoshi/internal/slashcommands/settings/author-starring"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/settings/ignore"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/settings/reset"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/settings/show"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/settings/treshold"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/settings/unignore"
 	"jurien.dev/yugen/shared/middlewares"
-	"jurien.dev/yugen/shared/static"
 )
 
 type SettingsModule struct {
 	container   *di.Container
-	settings    *services.SettingsService
 	subCommands []*discordgoplus.Command
 }
 
+type settingsSubModule interface {
+	Commands() []*discordgoplus.Command
+}
+
 func GetSettingsModule(container *di.Container) *SettingsModule {
-	show := GetSettingsShowModule(container)
-	reset := GetSettingsResetModule(container)
-	treshold := GetSettingsTresholdModule(container)
-	authorStarring := GetSettingsAuthorStarringModule(container)
-	ignore := GetSettingsIgnoreModule(container)
-	unignore := GetSettingsUnignoreModule(container)
+	subModules := []settingsSubModule{
+		show.GetShowModule(container),
+		treshold.GetTresholdModule(container),
+		authorstarring.GetAuthorStarringModule(container),
+		ignore.GetIgnoreModule(container),
+		unignore.GetUnignoreModule(container),
+		reset.GetResetModule(container),
+	}
 
 	var subCommands []*discordgoplus.Command
-
-	subCommands = append(subCommands, show.Commands()...)
-	subCommands = append(subCommands, reset.Commands()...)
-	subCommands = append(subCommands, treshold.Commands()...)
-	subCommands = append(subCommands, authorStarring.Commands()...)
-	subCommands = append(subCommands, ignore.Commands()...)
-	subCommands = append(subCommands, unignore.Commands()...)
+	for _, m := range subModules {
+		subCommands = append(subCommands, m.Commands()...)
+	}
 
 	return &SettingsModule{
 		container:   container,
-		settings:    container.Get(static.DiSettings).(*services.SettingsService),
 		subCommands: subCommands,
 	}
 }

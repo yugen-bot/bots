@@ -1,34 +1,43 @@
-package slashcommands
+// Package starboard contains the hoshi /starboard slash command group.
+package starboard
 
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
-	"jurien.dev/yugen/hoshi/internal/services"
-	localStatic "jurien.dev/yugen/hoshi/internal/static"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/starboard/add"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/starboard/list"
+	"jurien.dev/yugen/hoshi/internal/slashcommands/starboard/remove"
 	"jurien.dev/yugen/shared/middlewares"
 )
 
 type StarboardModule struct {
 	container   *di.Container
-	starboard   *services.StarboardService
+	list        *list.ListModule
 	subCommands []*discordgoplus.Command
 }
 
+type starboardSubModule interface {
+	Commands() []*discordgoplus.Command
+}
+
 func GetStarboardModule(container *di.Container) *StarboardModule {
-	list := GetStarboardListModule(container)
-	add := GetStarboardAddModule(container)
-	remove := GetStarboardRemoveModule(container)
+	listModule := list.GetListModule(container)
+
+	subModules := []starboardSubModule{
+		listModule,
+		add.GetAddModule(container),
+		remove.GetRemoveModule(container),
+	}
 
 	var subCommands []*discordgoplus.Command
-
-	subCommands = append(subCommands, list.Commands()...)
-	subCommands = append(subCommands, add.Commands()...)
-	subCommands = append(subCommands, remove.Commands()...)
+	for _, m := range subModules {
+		subCommands = append(subCommands, m.Commands()...)
+	}
 
 	return &StarboardModule{
 		container:   container,
-		starboard:   container.Get(localStatic.DiStarboard).(*services.StarboardService),
+		list:        listModule,
 		subCommands: subCommands,
 	}
 }
@@ -44,4 +53,8 @@ func (m *StarboardModule) Commands() []*discordgoplus.Command {
 			SubCommands: discordgoplus.NewRouter(m.subCommands),
 		},
 	}
+}
+
+func (m *StarboardModule) MessageComponents() []*discordgoplus.MessageComponent {
+	return m.list.MessageComponents()
 }

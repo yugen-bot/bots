@@ -1,50 +1,51 @@
+// Package game contains the koto /game slash command group.
 package game
 
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
-	"jurien.dev/yugen/koto/internal/services"
-	localStatic "jurien.dev/yugen/koto/internal/static"
-	sharedStatic "jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/koto/internal/slashcommands/game/hint"
+	"jurien.dev/yugen/koto/internal/slashcommands/game/reset"
+	"jurien.dev/yugen/koto/internal/slashcommands/game/start"
 )
 
+type gameSubModule interface {
+	Commands() []*discordgoplus.Command
+}
+
 type GameModule struct {
-	container   *di.Container
-	game        *services.GameService
-	settings    *services.SettingsService
-	subCommands []*discordgoplus.Command
-	hintModule  *GameHintModule
+	container  *di.Container
+	subModules []gameSubModule
+	hint       *hint.HintModule
 }
 
 func GetGameModule(container *di.Container) *GameModule {
-	start := GetGameStartModule(container)
-	reset := GetGameResetModule(container)
-
-	var subCommands []*discordgoplus.Command
-
-	subCommands = append(subCommands, start.Commands()...)
-	subCommands = append(subCommands, reset.Commands()...)
-
 	return &GameModule{
-		container:   container,
-		game:        container.Get(localStatic.DiGame).(*services.GameService),
-		settings:    container.Get(sharedStatic.DiSettings).(*services.SettingsService),
-		subCommands: subCommands,
-		hintModule:  GetGameHintModule(container),
+		container: container,
+		hint:      hint.GetHintModule(container),
+		subModules: []gameSubModule{
+			start.GetStartModule(container),
+			reset.GetResetModule(container),
+		},
 	}
 }
 
 func (m *GameModule) Commands() []*discordgoplus.Command {
+	var subCmds []*discordgoplus.Command
+	for _, sm := range m.subModules {
+		subCmds = append(subCmds, sm.Commands()...)
+	}
+
 	return []*discordgoplus.Command{
 		{
 			Name:        "game",
 			Description: "Game commands",
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(subCmds),
 		},
 	}
 }
 
 func (m *GameModule) MessageComponents() []*discordgoplus.MessageComponent {
-	return m.hintModule.MessageComponents()
+	return m.hint.MessageComponents()
 }

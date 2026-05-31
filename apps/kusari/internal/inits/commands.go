@@ -34,12 +34,7 @@ func InitCommands(container *di.Container) (err error) {
 
 		settings.GetSettingsModule(container),
 
-		points.GetDonateSaveModule(container),
-		points.GetProfileModule(container),
-		points.GetServerModule(container),
-
-		points.GetResetLeaderboardModule(container),
-		points.GetLeaderboardModule(container),
+		points.GetPointsModule(container),
 	}
 
 	utils.RegisterCommandModules(bot, modules)

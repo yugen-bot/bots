@@ -1,4 +1,4 @@
-package slashcommands
+package game
 
 import (
 	"context"

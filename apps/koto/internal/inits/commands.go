@@ -10,7 +10,7 @@ import (
 
 	admin "jurien.dev/yugen/koto/internal/slashcommands/admin"
 	gameCmd "jurien.dev/yugen/koto/internal/slashcommands/game"
-	points "jurien.dev/yugen/koto/internal/slashcommands/points"
+	"jurien.dev/yugen/koto/internal/slashcommands/points"
 	settingsCmd "jurien.dev/yugen/koto/internal/slashcommands/settings"
 	sharedSlashcommands "jurien.dev/yugen/shared/slashcommands"
 )
@@ -31,10 +31,6 @@ func InitCommands(container *di.Container) (err error) {
 		settingsCmd.GetSettingsModule(container),
 		gameCmd.GetGameModule(container),
 		points.GetPointsModule(container),
-		points.GetLeaderboardModule(container),
-		points.GetResetLeaderboardModule(container),
-		points.GetServerModule(container),
-		points.GetDonateHintModule(container),
 		admin.GetAdminModule(container),
 	}
 

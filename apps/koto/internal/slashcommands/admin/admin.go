@@ -1,51 +1,59 @@
+// Package admin contains the koto /admin slash command group.
 package admin
 
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
+	"jurien.dev/yugen/koto/internal/slashcommands/admin/emojis"
+	getword "jurien.dev/yugen/koto/internal/slashcommands/admin/get-word"
+	"jurien.dev/yugen/koto/internal/slashcommands/admin/guilds"
+	prunegames "jurien.dev/yugen/koto/internal/slashcommands/admin/prune-games"
+	prunesettings "jurien.dev/yugen/koto/internal/slashcommands/admin/prune-settings"
+	"jurien.dev/yugen/koto/internal/slashcommands/admin/recreate"
+	sendwelcome "jurien.dev/yugen/koto/internal/slashcommands/admin/send-welcome"
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 )
 
+type adminSubModule interface {
+	Commands() []*discordgoplus.Command
+}
+
 type AdminModule struct {
-	container   *di.Container
-	guilds      *AdminGuildsModule
-	devGuildID  string
-	subCommands []*discordgoplus.Command
+	container  *di.Container
+	guilds     *guilds.GuildsModule
+	devGuildID string
+	subModules []adminSubModule
 }
 
 func GetAdminModule(container *di.Container) *AdminModule {
 	cfg := container.Get(static.DiConfig).(*config.Config)
-
-	emojis := GetAdminEmojisModule(container)
-	guilds := GetAdminGuildsModule(container)
-	getWord := GetAdminGetWordModule(container)
-	recreate := GetAdminRecreateModule(container)
-	sendWelcome := GetAdminSendWelcomeModule(container)
-	pruneSettings := GetAdminPruneSettingsModule(container)
-	pruneGames := GetAdminPruneGamesModule(container)
-
-	var subCommands []*discordgoplus.Command
-
-	subCommands = append(subCommands, emojis.Commands()...)
-	subCommands = append(subCommands, guilds.Commands()...)
-	subCommands = append(subCommands, getWord.Commands()...)
-	subCommands = append(subCommands, recreate.Commands()...)
-	subCommands = append(subCommands, sendWelcome.Commands()...)
-	subCommands = append(subCommands, pruneSettings.Commands()...)
-	subCommands = append(subCommands, pruneGames.Commands()...)
+	g := guilds.GetGuildsModule(container)
 
 	return &AdminModule{
-		container:   container,
-		guilds:      guilds,
-		devGuildID:  cfg.DiscordDevelopmentGuild,
-		subCommands: subCommands,
+		container:  container,
+		guilds:     g,
+		devGuildID: cfg.DiscordDevelopmentGuild,
+		subModules: []adminSubModule{
+			emojis.GetEmojisModule(container),
+			g,
+			getword.GetGetWordModule(container),
+			recreate.GetRecreateModule(container),
+			sendwelcome.GetSendWelcomeModule(container),
+			prunegames.GetPruneGamesModule(container),
+			prunesettings.GetPruneSettingsModule(container),
+		},
 	}
 }
 
 func (m *AdminModule) Commands() []*discordgoplus.Command {
+	var subCmds []*discordgoplus.Command
+	for _, sm := range m.subModules {
+		subCmds = append(subCmds, sm.Commands()...)
+	}
+
 	return []*discordgoplus.Command{
 		{
 			Name:        "admin",
@@ -54,13 +62,9 @@ func (m *AdminModule) Commands() []*discordgoplus.Command {
 			Middlewares: []discordgoplus.Handler{
 				discordgoplus.HandlerFunc(middlewares.OwnerMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(subCmds),
 		},
 	}
-}
-
-func (m *AdminModule) Modals() []*discordgoplus.Modal {
-	return []*discordgoplus.Modal{}
 }
 
 func (m *AdminModule) MessageComponents() []*discordgoplus.MessageComponent {

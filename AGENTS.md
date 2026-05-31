@@ -111,19 +111,26 @@ make run-pocketbase
    - Use `ID` (not `Id`) for Discord/entity identifiers: `GuildID`, `ChannelID`, `GetByGuildID`.
    - Service method receivers: single letter (`s *SettingsService`, not `service`).
    - File names: kebab-case (`settings-show.go`, `embed-footer.go`).
-5. **Slash command structure**: Each command group lives in its own sub-package under `slashcommands/`. Example:
+5. **Slash command structure (MANDATORY)**: Every leaf sub-command MUST live in its own sub-package (its own directory + `package`). This applies even when there is only one file inside.
    ```
    slashcommands/
-     settings/
-       settings.go       // struct, GetModule, Commands() sub-router wiring
-       show/
-         show.go         // package doc, struct, GetXxxModule, Commands()
-         command.go      // handler functions
-       set-channel/
-         set-channel.go
-         command.go
+     <group>/
+       <group>.go        // package <group>; root command, sub-router wiring,
+                         // capability fan-out for Modals/MessageComponents
+       <leaf>/
+         <leaf>.go       // package <leafpkg>; package doc, struct,
+                         // Get<Leaf>Module(*di.Container), Commands(),
+                         // and any capability methods this leaf opts into
+         command.go      // handler func bodies
+         embeds.go       // only when the leaf owns ≥ 1 embed builder
+         modals.go       // only when the leaf implements Modals()
+         handlers.go     // only when command.go would exceed ~2 handlers
+         models.go       // only for local DTOs shared by ≥ 2 files
    ```
-6. **Capability interfaces** (in `shared/utils/register-commands-module.go`): modules opt in via `Commands()`, `MessageComponents()`, and `Modals()` — never return empty slices for capabilities the command doesn't use.
+   Package identifiers strip hyphens from the directory name — `set-channel/` uses `package setchannel`, `start-after-first-guess/` uses `package startafterfirstguess`. Factory functions follow `Get<PascalCaseLeaf>Module(*di.Container)`, e.g. `setchannel.GetSetChannelModule(container)`.
+   Group root files aggregate leaf sub-modules via a local `interface { Commands() []*discordgoplus.Command }` loop (see `kazu/settings/settings.go` for the pattern).
+   Single-file groups where the file is simultaneously the group root and the only command (`game/game.go` in kazu/kusari) are the sole exception — leave as-is until a sibling command is added.
+6. **Capability interfaces** (in `shared/utils/register-commands-module.go`): modules opt in via `Commands()`, `MessageComponents()`, and `Modals()` — never return empty slices for capabilities the command doesn't use. Group-level files fan out to leaf capability methods rather than implementing them directly.
 7. **Listeners**: Use the struct-based form. Embed the session and bot in a struct; register handlers via methods.
 8. **DI constants**: Every service exposes `Di<Name>` in `internal/static/di.go`; constructors accept only `*di.Container`.
 9. **Early Returns**: Prefer early returns over nested if/else. Handle error cases first.

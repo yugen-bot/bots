@@ -83,7 +83,7 @@ func (s *GameService) Start(
 		return g, started, err
 	}
 
-	s, err := s.settings.GetByGuildID(ctx, guildID)
+	guildSettings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: start: get settings failed",
@@ -95,7 +95,7 @@ func (s *GameService) Start(
 		return g, started, fmt.Errorf("game: start: get settings: %w", err)
 	}
 
-	channelID := s.ChannelID
+	channelID := guildSettings.ChannelID
 	if channelID == nil {
 		err = ErrNoChannelIDConfigured
 		utils.Logger.Errorw(
@@ -212,16 +212,16 @@ func (s *GameService) End(
 	}
 
 	if hasShame {
-		s := shame[0]
-		roleID := s.settings.ShameRoleID
+		shameOpts := shame[0]
+		roleID := shameOpts.settings.ShameRoleID
 		okRoleID := roleID != nil
 
-		lastShameUserID := s.settings.LastShameUserID
+		lastShameUserID := shameOpts.settings.LastShameUserID
 		okLastShameUserID := lastShameUserID != nil
 
-		shameBot, shameErr := s.bot.ShardByGuild(s.settings.GuildID)
+		shameBot, shameErr := s.bot.ShardByGuild(shameOpts.settings.GuildID)
 		if shameErr != nil {
-			utils.Logger.Warnw("game: end: ShardByGuild failed for shame", "error", shameErr, "guildID", s.settings.GuildID)
+			utils.Logger.Warnw("game: end: ShardByGuild failed for shame", "error", shameErr, "guildID", shameOpts.settings.GuildID)
 			shameBot = s.bot
 		}
 
@@ -231,7 +231,7 @@ func (s *GameService) End(
 					utils.Logger,
 					"guild-member-role-remove",
 					shameBot.GuildMemberRoleRemove(
-						s.settings.GuildID,
+						shameOpts.settings.GuildID,
 						*lastShameUserID,
 						*roleID,
 					),
@@ -245,8 +245,8 @@ func (s *GameService) End(
 					utils.Logger,
 					"guild-member-role-add",
 					shameBot.GuildMemberRoleAdd(
-						s.settings.GuildID,
-						s.message.Author.ID,
+						shameOpts.settings.GuildID,
+						shameOpts.message.Author.ID,
 						*roleID,
 					),
 				)
@@ -255,9 +255,9 @@ func (s *GameService) End(
 
 		_, err = s.settings.Update(
 			ctx,
-			s.settings.ID,
+			shameOpts.settings.ID,
 			func(u *ent.SettingsUpdateOne) {
-				u.SetLastShameUserID(s.message.Author.ID)
+				u.SetLastShameUserID(shameOpts.message.Author.ID)
 			},
 		)
 		if err != nil {
@@ -266,11 +266,11 @@ func (s *GameService) End(
 				"error",
 				err,
 				"guildID",
-				s.settings.GuildID,
+				shameOpts.settings.GuildID,
 				"gameID",
 				gameID,
 				"userID",
-				s.message.Author.ID,
+				shameOpts.message.Author.ID,
 			)
 			return g, fmt.Errorf("game: end: update shame settings: %w", err)
 		}
@@ -344,7 +344,7 @@ func (s *GameService) AddNumber(
 	guildID string,
 	number int,
 	message *discordgo.Message,
-	s *ent.Settings,
+	guildSettings *ent.Settings,
 ) {
 	g, exists, err := s.GetCurrentGame(ctx, guildID)
 	if err != nil {
@@ -402,7 +402,7 @@ func (s *GameService) AddNumber(
 			b.MessageReactionAdd(message.ChannelID, message.ID, "❌"),
 		)
 
-		saves, err := s.saves.GetSaves(ctx, s, message.Author.ID)
+		saves, err := s.saves.GetSaves(ctx, guildSettings, message.Author.ID)
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add number: get saves failed",
@@ -463,7 +463,7 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 			leftoverSaves, maxSaves, err := s.saves.DeductSaveFromGuild(
 				ctx,
 				message.GuildID,
-				s,
+				guildSettings,
 				1,
 			)
 			if err != nil {
@@ -498,7 +498,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			return
 		}
 
-		isHighscore, _, err := s.checkStreak(ctx, s, g, number)
+		isHighscore, _, err := s.checkStreak(ctx, guildSettings, g, number)
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add number: check streak failed",
@@ -568,7 +568,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 
 		shame := ShameOptions{
 			message:  message,
-			settings: s,
+			settings: guildSettings,
 		}
 		if _, _, startErr := s.Start(
 			ctx,
@@ -592,7 +592,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	cooldown, err := s.checkCooldown(ctx,
 		message.Author.ID,
 		g.ID,
-		s.Cooldown,
+		guildSettings.Cooldown,
 	)
 	if err != nil && !ent.IsNotFound(err) {
 		utils.Logger.Errorw(
@@ -658,7 +658,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	// Check streak and react
 	isHighscore, isGameHighscored, err := s.checkStreak(
 		ctx,
-		s,
+		guildSettings,
 		g,
 		number,
 	)
@@ -705,7 +705,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 func (s *GameService) IsEqualToLast(
 	ctx context.Context,
 	message *discordgo.Message,
-	s *ent.Settings,
+	guildSettings *ent.Settings,
 	isDelete bool,
 ) (ok bool, number int) {
 	ok = true
@@ -742,7 +742,7 @@ func (s *GameService) IsEqualToLast(
 		return ok, number
 	}
 
-	parsedNumber, err := s.ParseNumber(ctx, message, s.Math)
+	parsedNumber, err := s.ParseNumber(ctx, message, guildSettings.Math)
 	if err != nil {
 		ok = false
 		return ok, number
@@ -815,17 +815,17 @@ func (s *GameService) GetLastHistory(
 
 func (s *GameService) checkStreak(
 	ctx context.Context,
-	s *ent.Settings,
+	guildSettings *ent.Settings,
 	g *ent.Game,
 	number int,
 ) (isHighscore bool, isGameHighscored bool, err error) {
-	if number <= s.Highscore {
+	if number <= guildSettings.Highscore {
 		return false, false, nil
 	}
 
 	isHighscore = true
 
-	go s.settings.SetHighscoreByGuildID(ctx, s.GuildID, number) //nolint:errcheck
+	go s.settings.SetHighscoreByGuildID(ctx, guildSettings.GuildID, number) //nolint:errcheck
 
 	if g.IsHighscored {
 		return isHighscore, false, nil

@@ -1,53 +1,60 @@
+// Package settings contains the koto /settings slash command group.
 package settings
 
 import (
-	"jurien.dev/yugen/koto/internal/services"
-	"jurien.dev/yugen/shared/middlewares"
-	"jurien.dev/yugen/shared/static"
-
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
-)
 
-type SettingsModule struct {
-	container   *di.Container
-	settings    *services.SettingsService
-	subCommands []*discordgoplus.Command
-}
+	"jurien.dev/yugen/koto/internal/slashcommands/settings/reset"
+	setautostart "jurien.dev/yugen/koto/internal/slashcommands/settings/set-auto-start"
+	setbacktobackcooldown "jurien.dev/yugen/koto/internal/slashcommands/settings/set-back-to-back-cooldown"
+	setchannel "jurien.dev/yugen/koto/internal/slashcommands/settings/set-channel"
+	setcooldown "jurien.dev/yugen/koto/internal/slashcommands/settings/set-cooldown"
+	setfrequency "jurien.dev/yugen/koto/internal/slashcommands/settings/set-frequency"
+	setinformcooldown "jurien.dev/yugen/koto/internal/slashcommands/settings/set-inform-cooldown"
+	setmembersprivilege "jurien.dev/yugen/koto/internal/slashcommands/settings/set-members-privilege"
+	setrole "jurien.dev/yugen/koto/internal/slashcommands/settings/set-role"
+	settimelimit "jurien.dev/yugen/koto/internal/slashcommands/settings/set-time-limit"
+	"jurien.dev/yugen/koto/internal/slashcommands/settings/show"
+	startafterfirstguess "jurien.dev/yugen/koto/internal/slashcommands/settings/start-after-first-guess"
+	"jurien.dev/yugen/shared/middlewares"
+)
 
 type settingsSubModule interface {
 	Commands() []*discordgoplus.Command
 }
 
+type SettingsModule struct {
+	container  *di.Container
+	subModules []settingsSubModule
+}
+
 func GetSettingsModule(container *di.Container) *SettingsModule {
-	subModules := []settingsSubModule{
-		GetSettingsShowModule(container),
-		GetSetChannelModule(container),
-		GetSetRoleModule(container),
-		GetSetFrequencyModule(container),
-		GetSetTimeLimitModule(container),
-		GetSetCooldownModule(container),
-		GetSetBackToBackCooldownModule(container),
-		GetSetInformCooldownModule(container),
-		GetSetAutoStartModule(container),
-		GetSetMembersPrivilegeModule(container),
-		GetStartAfterFirstGuessModule(container),
-		GetSettingsResetModule(container),
-	}
-
-	var subCommands []*discordgoplus.Command
-	for _, m := range subModules {
-		subCommands = append(subCommands, m.Commands()...)
-	}
-
 	return &SettingsModule{
-		container:   container,
-		settings:    container.Get(static.DiSettings).(*services.SettingsService),
-		subCommands: subCommands,
+		container: container,
+		subModules: []settingsSubModule{
+			show.GetShowModule(container),
+			setchannel.GetSetChannelModule(container),
+			setrole.GetSetRoleModule(container),
+			setfrequency.GetSetFrequencyModule(container),
+			settimelimit.GetSetTimeLimitModule(container),
+			setcooldown.GetSetCooldownModule(container),
+			setbacktobackcooldown.GetSetBackToBackCooldownModule(container),
+			setinformcooldown.GetSetInformCooldownModule(container),
+			setautostart.GetSetAutoStartModule(container),
+			setmembersprivilege.GetSetMembersPrivilegeModule(container),
+			startafterfirstguess.GetStartAfterFirstGuessModule(container),
+			reset.GetResetModule(container),
+		},
 	}
 }
 
 func (m *SettingsModule) Commands() []*discordgoplus.Command {
+	var subCmds []*discordgoplus.Command
+	for _, sm := range m.subModules {
+		subCmds = append(subCmds, sm.Commands()...)
+	}
+
 	return []*discordgoplus.Command{
 		{
 			Name:        "settings",
@@ -55,7 +62,7 @@ func (m *SettingsModule) Commands() []*discordgoplus.Command {
 			Middlewares: []discordgoplus.Handler{
 				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(subCmds),
 		},
 	}
 }

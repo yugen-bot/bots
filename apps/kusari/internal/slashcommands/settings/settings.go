@@ -1,42 +1,43 @@
-package slashcommands
+// Package settings contains the kusari /settings slash command group.
+package settings
 
 import (
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
-	"jurien.dev/yugen/kusari/internal/services"
+	"jurien.dev/yugen/kusari/internal/slashcommands/settings/channel"
+	"jurien.dev/yugen/kusari/internal/slashcommands/settings/cooldown"
+	"jurien.dev/yugen/kusari/internal/slashcommands/settings/reset"
+	"jurien.dev/yugen/kusari/internal/slashcommands/settings/show"
 	"jurien.dev/yugen/shared/middlewares"
-	"jurien.dev/yugen/shared/static"
 )
 
-type SettingsModule struct {
-	container *di.Container
-	settings  *services.SettingsService
+type settingsSubModule interface {
+	Commands() []*discordgoplus.Command
+}
 
-	subCommands []*discordgoplus.Command
+type SettingsModule struct {
+	container  *di.Container
+	subModules []settingsSubModule
 }
 
 func GetSettingsModule(container *di.Container) *SettingsModule {
-	showModule := GetSettingsShowModule(container)
-	channelModule := GetSettingsChannelModule(container)
-	cooldownModule := GetSettingsCooldownModule(container)
-	resetModule := GetSettingsResetModule(container)
-
-	subCommands := []*discordgoplus.Command{}
-	subCommands = append(subCommands, showModule.Commands()...)
-	subCommands = append(subCommands, channelModule.Commands()...)
-	subCommands = append(subCommands, cooldownModule.Commands()...)
-	subCommands = append(subCommands, resetModule.Commands()...)
-
 	return &SettingsModule{
 		container: container,
-		settings:  container.Get(static.DiSettings).(*services.SettingsService),
-
-		subCommands: subCommands,
+		subModules: []settingsSubModule{
+			show.GetShowModule(container),
+			channel.GetChannelModule(container),
+			cooldown.GetCooldownModule(container),
+			reset.GetResetModule(container),
+		},
 	}
 }
 
 func (m *SettingsModule) Commands() []*discordgoplus.Command {
+	var subCmds []*discordgoplus.Command
+	for _, sm := range m.subModules {
+		subCmds = append(subCmds, sm.Commands()...)
+	}
 	return []*discordgoplus.Command{
 		{
 			Name:        "settings",
@@ -44,7 +45,7 @@ func (m *SettingsModule) Commands() []*discordgoplus.Command {
 			Middlewares: []discordgoplus.Handler{
 				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: discordgoplus.NewRouter(subCmds),
 		},
 	}
 }

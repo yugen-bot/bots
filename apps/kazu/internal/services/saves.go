@@ -59,7 +59,7 @@ func (s *SavesService) GetPlayerSavesByUserID(
 
 func (s *SavesService) GetSaves(
 	ctx context.Context,
-	s *ent.Settings,
+	guildSettings *ent.Settings,
 	userID string,
 ) (*GetSavesResult, error) {
 	player, err := s.GetPlayerSavesByUserID(ctx, userID)
@@ -69,7 +69,7 @@ func (s *SavesService) GetSaves(
 
 	result := &GetSavesResult{
 		player: int(player.Saves),
-		guild:  int(s.Saves),
+		guild:  int(guildSettings.Saves),
 	}
 
 	return result, nil
@@ -107,17 +107,17 @@ func (s *SavesService) DeductSaveFromPlayer(
 func (s *SavesService) DeductSaveFromGuild(
 	ctx context.Context,
 	guildID string,
-	s *ent.Settings,
+	guildSettings *ent.Settings,
 	amount float64,
 ) (float64, float64, error) {
-	newSaves := utils.RoundTwo(s.Saves - amount)
+	newSaves := utils.RoundTwo(guildSettings.Saves - amount)
 
 	if newSaves < 0 {
 		newSaves = 0
 	}
 
 	n, err := s.database.Settings.Update().
-		Where(settings.IDEQ(s.ID)).
+		Where(settings.IDEQ(guildSettings.ID)).
 		SetSaves(newSaves).
 		Save(ctx)
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *SavesService) DeductSaveFromGuild(
 		return 0, 0, fmt.Errorf("saves: deduct save from guild: no rows updated")
 	}
 
-	updated, err := s.database.Settings.Get(ctx, s.ID)
+	updated, err := s.database.Settings.Get(ctx, guildSettings.ID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: deduct save from guild: reload: %w", err)
 	}
@@ -169,17 +169,17 @@ func (s *SavesService) AddSaveToPlayer(
 func (s *SavesService) AddSaveToGuild(
 	ctx context.Context,
 	guildID string,
-	s *ent.Settings,
+	guildSettings *ent.Settings,
 	amount float64,
 ) (float64, float64, error) {
-	newSaves := utils.RoundTwo(s.Saves + amount)
+	newSaves := utils.RoundTwo(guildSettings.Saves + amount)
 
-	if newSaves > s.MaxSaves {
-		newSaves = s.MaxSaves
+	if newSaves > guildSettings.MaxSaves {
+		newSaves = guildSettings.MaxSaves
 	}
 
 	n, err := s.database.Settings.Update().
-		Where(settings.IDEQ(s.ID)).
+		Where(settings.IDEQ(guildSettings.ID)).
 		SetSaves(newSaves).
 		Save(ctx)
 	if err != nil {
@@ -190,7 +190,7 @@ func (s *SavesService) AddSaveToGuild(
 		return 0, 0, fmt.Errorf("saves: add save to guild: no rows updated")
 	}
 
-	updated, err := s.database.Settings.Get(ctx, s.ID)
+	updated, err := s.database.Settings.Get(ctx, guildSettings.ID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("saves: add save to guild: reload: %w", err)
 	}
