@@ -15,10 +15,10 @@ func InitCommands(container *di.Container) (err error) {
 
 	modules := []utils.CommandsModule{
 		// shared
-		slashcommands.GetVoteModule(container),
 		slashcommands.GetDonateModule(container),
-		slashcommands.GetSupportModule(container),
 		slashcommands.GetInviteModule(container),
+		slashcommands.GetSupportModule(container),
+		slashcommands.GetVoteModule(container),
 	}
 
 	utils.RegisterCommandModules(bot, modules)
