@@ -20,7 +20,7 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-const scheduleConcurrency = 16
+const scheduleConcurrency = 10
 
 func InitSchedule(container *di.Container) {
 	c := container.Get(sharedStatic.DiCron).(*cron.Cron)
@@ -29,7 +29,10 @@ func InitSchedule(container *di.Container) {
 	gameSvc := container.Get(localStatic.DiGame).(*services.GameService)
 
 	if _, err := c.AddFunc("* * * * *", func() {
-		jobCtx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+		jobCtx, cancel := context.WithTimeout(
+			context.Background(),
+			50*time.Second,
+		)
 		defer cancel()
 
 		var endedGames, checkedGuilds, startedGames atomic.Int64
@@ -69,8 +72,6 @@ func InitSchedule(container *di.Container) {
 		g.SetLimit(scheduleConcurrency)
 
 		for _, setting := range allSettings {
-			setting := setting
-
 			// State-only membership check — avoids an API call per guild per minute.
 			// If the guild isn't in cache yet we'll catch it on the next tick.
 			b, bErr := bot.ShardByGuild(setting.GuildID)
@@ -96,7 +97,11 @@ func InitSchedule(container *di.Container) {
 						active.ID,
 						entgame.StatusOUT_OF_TIME,
 					); endErr != nil {
-						utils.Logger.Warnf("schedule: end game %d: %v", active.ID, endErr)
+						utils.Logger.Warnf(
+							"schedule: end game %d: %v",
+							active.ID,
+							endErr,
+						)
 						return nil
 					}
 
@@ -106,7 +111,13 @@ func InitSchedule(container *di.Container) {
 						return nil
 					}
 
-					started, startErr := gameSvc.Start(gctx, setting.GuildID, false, false, "")
+					started, startErr := gameSvc.Start(
+						gctx,
+						setting.GuildID,
+						false,
+						false,
+						"",
+					)
 					if startErr != nil {
 						utils.Logger.Warnf(
 							"schedule: auto-start after end for %s: %v",
@@ -124,7 +135,12 @@ func InitSchedule(container *di.Container) {
 				}
 
 				// No active game — check if a scheduled start is due.
-				if started := startGameIfDue(gctx, database, gameSvc, setting); started {
+				if started := startGameIfDue(
+					gctx,
+					database,
+					gameSvc,
+					setting,
+				); started {
 					startedGames.Add(1)
 				}
 
@@ -157,7 +173,11 @@ func InitSchedule(container *di.Container) {
 					active.ID,
 					entgame.StatusOUT_OF_TIME,
 				); endErr != nil {
-					utils.Logger.Warnf("schedule: orphan end game %d: %v", active.ID, endErr)
+					utils.Logger.Warnf(
+						"schedule: orphan end game %d: %v",
+						active.ID,
+						endErr,
+					)
 					return nil
 				}
 
@@ -200,9 +220,19 @@ func startGameIfDue(
 
 	if err != nil || len(lastGames) == 0 {
 		// No previous game → start immediately.
-		started, startErr := gameSvc.Start(ctx, setting.GuildID, true, false, "")
+		started, startErr := gameSvc.Start(
+			ctx,
+			setting.GuildID,
+			true,
+			false,
+			"",
+		)
 		if startErr != nil {
-			utils.Logger.Warnf("schedule: initial start for %s: %v", setting.GuildID, startErr)
+			utils.Logger.Warnf(
+				"schedule: initial start for %s: %v",
+				setting.GuildID,
+				startErr,
+			)
 			return false
 		}
 
@@ -233,7 +263,11 @@ func startGameIfDue(
 
 	started, startErr := gameSvc.Start(ctx, setting.GuildID, true, false, "")
 	if startErr != nil {
-		utils.Logger.Warnf("schedule: start for %s: %v", setting.GuildID, startErr)
+		utils.Logger.Warnf(
+			"schedule: start for %s: %v",
+			setting.GuildID,
+			startErr,
+		)
 		return false
 	}
 
