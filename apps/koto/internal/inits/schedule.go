@@ -2,11 +2,13 @@ package inits
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
+	"golang.org/x/sync/errgroup"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	entgame "jurien.dev/yugen/koto/internal/ent/game"
@@ -18,127 +20,175 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
+const scheduleConcurrency = 16
+
 func InitSchedule(container *di.Container) {
 	c := container.Get(sharedStatic.DiCron).(*cron.Cron)
 	database := container.Get(sharedStatic.DiDatabase).(*ent.Client)
 	bot := container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
 	gameSvc := container.Get(localStatic.DiGame).(*services.GameService)
-	settingsSvc := container.Get(sharedStatic.DiSettings).(*services.SettingsService)
 
 	if _, err := c.AddFunc("* * * * *", func() {
-		ctx := context.Background()
+		jobCtx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+		defer cancel()
 
-		outOfTimeCount := 0
-		checkedGuilds := 0
-		startedGames := 0
+		var endedGames, checkedGuilds, startedGames atomic.Int64
 
-		// 1. Find and end expired games
-		outOfTimeGames, err := database.Game.Query().
-			Where(
-				entgame.StatusEQ(entgame.StatusIN_PROGRESS),
-				entgame.EndingAtLTE(time.Now()),
-			).
-			All(ctx)
+		// Batch query 1: every in-progress game across all guilds.
+		inProgress, err := database.Game.Query().
+			Where(entgame.StatusEQ(entgame.StatusIN_PROGRESS)).
+			All(jobCtx)
 		if err != nil && !ent.IsNotFound(err) {
-			utils.Logger.Warnf("schedule: find expired games: %v", err)
+			utils.Logger.Warnf("schedule: query in-progress games: %v", err)
 		}
 
-		outOfTimeCount = len(outOfTimeGames)
-		for _, g := range outOfTimeGames {
-			if endErr := gameSvc.EndGame(
-				ctx,
-				g.ID,
-				entgame.StatusOUT_OF_TIME,
-			); endErr != nil {
-				utils.Logger.Warnf("schedule: end game %d: %v", g.ID, endErr)
-				continue
-			}
-
-			// Auto-start if configured
-			guildSettings, sErr := settingsSvc.GetByGuildID(ctx, g.GuildID)
-			if sErr != nil || guildSettings == nil || !guildSettings.AutoStart {
-				continue
-			}
-
-			started, startErr := gameSvc.Start(
-				ctx,
-				g.GuildID,
-				false,
-				false,
-				"",
-			)
-			if startErr != nil {
-				utils.Logger.Warnf(
-					"schedule: auto-start after end for %s: %v",
-					g.GuildID,
-					startErr,
-				)
-			}
-
-			if started {
-				startedGames++
-			}
+		inProgressByGuild := make(map[string]*ent.Game, len(inProgress))
+		for _, g := range inProgress {
+			inProgressByGuild[g.GuildID] = g
 		}
 
-		// 2. Check guilds with configured channels for scheduled starts.
-		// Only fetch rows that have a channel configured.
+		// Batch query 2: every settings row with a channel configured.
 		allSettings, err := database.Settings.Query().
 			Where(
 				settings.ChannelIDNotNil(),
 				settings.ChannelIDNEQ(""),
 			).
-			All(ctx)
+			All(jobCtx)
 		if err != nil && !ent.IsNotFound(err) {
-			utils.Logger.Warnf("schedule: find all settings: %v", err)
+			utils.Logger.Warnf("schedule: query settings: %v", err)
 		}
 
+		// Build guild set for orphan sweep below.
+		settingsGuilds := make(map[string]struct{}, len(allSettings))
+		for _, s := range allSettings {
+			settingsGuilds[s.GuildID] = struct{}{}
+		}
+
+		// Unified per-guild loop: expire active games OR start new ones.
+		g, gctx := errgroup.WithContext(jobCtx)
+		g.SetLimit(scheduleConcurrency)
+
 		for _, setting := range allSettings {
+			setting := setting
+
 			// State-only membership check — avoids an API call per guild per minute.
 			// If the guild isn't in cache yet we'll catch it on the next tick.
 			b, bErr := bot.ShardByGuild(setting.GuildID)
 			if bErr != nil {
 				continue
 			}
-			if _, gErr := b.State.Guild(setting.GuildID); gErr != nil {
+			if _, sErr := b.State.Guild(setting.GuildID); sErr != nil {
 				continue
 			}
 
-			checkedGuilds++
+			checkedGuilds.Add(1)
 
-			if started := checkAndStartGame(
-				ctx,
-				database,
-				gameSvc,
-				setting,
-			); started {
-				startedGames++
-			}
+			g.Go(func() error {
+				active, hasActive := inProgressByGuild[setting.GuildID]
+				if hasActive {
+					if !time.Now().After(active.EndingAt) {
+						// Game running and not yet expired — nothing to do.
+						return nil
+					}
+
+					if endErr := gameSvc.EndGame(
+						gctx,
+						active.ID,
+						entgame.StatusOUT_OF_TIME,
+					); endErr != nil {
+						utils.Logger.Warnf("schedule: end game %d: %v", active.ID, endErr)
+						return nil
+					}
+
+					endedGames.Add(1)
+
+					if !setting.AutoStart {
+						return nil
+					}
+
+					started, startErr := gameSvc.Start(gctx, setting.GuildID, false, false, "")
+					if startErr != nil {
+						utils.Logger.Warnf(
+							"schedule: auto-start after end for %s: %v",
+							setting.GuildID,
+							startErr,
+						)
+						return nil
+					}
+
+					if started {
+						startedGames.Add(1)
+					}
+
+					return nil
+				}
+
+				// No active game — check if a scheduled start is due.
+				if started := startGameIfDue(gctx, database, gameSvc, setting); started {
+					startedGames.Add(1)
+				}
+
+				return nil
+			})
 		}
+
+		_ = g.Wait()
+
+		// Orphan sweep: expire in-progress games whose guild has no settings row.
+		// In practice this is almost always empty; keeps stale rows from accumulating
+		// if a guild's settings are removed while a game is still running.
+		og, ogctx := errgroup.WithContext(jobCtx)
+		og.SetLimit(scheduleConcurrency)
+
+		for guildID, active := range inProgressByGuild {
+			if _, inSettings := settingsGuilds[guildID]; inSettings {
+				continue
+			}
+
+			active := active
+
+			og.Go(func() error {
+				if !time.Now().After(active.EndingAt) {
+					return nil
+				}
+
+				if endErr := gameSvc.EndGame(
+					ogctx,
+					active.ID,
+					entgame.StatusOUT_OF_TIME,
+				); endErr != nil {
+					utils.Logger.Warnf("schedule: orphan end game %d: %v", active.ID, endErr)
+					return nil
+				}
+
+				endedGames.Add(1)
+
+				return nil
+			})
+		}
+
+		_ = og.Wait()
 
 		utils.Logger.Infof(
 			"Schedule: ended %d games, checked %d guilds, started %d games",
-			outOfTimeCount,
-			checkedGuilds,
-			startedGames,
+			endedGames.Load(),
+			checkedGuilds.Load(),
+			startedGames.Load(),
 		)
 	}); err != nil {
 		utils.Logger.Errorf("schedule: add job: %v", err)
 	}
 }
 
-func checkAndStartGame(
+// startGameIfDue checks if a scheduled game start is due for the guild.
+// The caller guarantees no in-progress game exists for this guild.
+func startGameIfDue(
 	ctx context.Context,
 	database *ent.Client,
 	gameSvc *services.GameService,
 	setting *ent.Settings,
 ) bool {
-	// Check if there's already an active game
-	currentGame, err := gameSvc.GetCurrentGame(ctx, setting.GuildID)
-	if err != nil || currentGame != nil {
-		return false
-	}
-
-	// Get the last completed game
+	// Last completed game for this guild.
 	lastGames, err := database.Game.Query().
 		Where(
 			entgame.GuildIDEQ(setting.GuildID),
@@ -149,21 +199,10 @@ func checkAndStartGame(
 		All(ctx)
 
 	if err != nil || len(lastGames) == 0 {
-		// No previous game → start immediately
-		started, startErr := gameSvc.Start(
-			ctx,
-			setting.GuildID,
-			true,
-			false,
-			"",
-		)
+		// No previous game → start immediately.
+		started, startErr := gameSvc.Start(ctx, setting.GuildID, true, false, "")
 		if startErr != nil {
-			utils.Logger.Warnf(
-				"schedule: initial start for %s: %v",
-				setting.GuildID,
-				startErr,
-			)
-
+			utils.Logger.Warnf("schedule: initial start for %s: %v", setting.GuildID, startErr)
 			return false
 		}
 
@@ -172,7 +211,7 @@ func checkAndStartGame(
 
 	lastGame := lastGames[0]
 
-	// Determine base time for frequency check
+	// Determine base time for frequency check.
 	baseTime := lastGame.CreatedAt
 
 	if setting.StartAfterFirstGuess {
@@ -194,12 +233,7 @@ func checkAndStartGame(
 
 	started, startErr := gameSvc.Start(ctx, setting.GuildID, true, false, "")
 	if startErr != nil {
-		utils.Logger.Warnf(
-			"schedule: start for %s: %v",
-			setting.GuildID,
-			startErr,
-		)
-
+		utils.Logger.Warnf("schedule: start for %s: %v", setting.GuildID, startErr)
 		return false
 	}
 
