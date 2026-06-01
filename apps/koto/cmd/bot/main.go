@@ -41,6 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	sharedInits.InitPprof()
 	sharedInits.InitCron(&container)
 	inits.InitSchedule(&container)
 	inits.InitCleanup(&container)

@@ -38,7 +38,12 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiCron,
 		Build: func(ctn di.Container) (any, error) {
-			return cron.New(), nil
+			return cron.New(
+				cron.WithChain(
+					cron.Recover(cron.DiscardLogger),
+					cron.SkipIfStillRunning(cron.DiscardLogger),
+				),
+			), nil
 		},
 		Close: func(obj any) error {
 			c := obj.(*cron.Cron)

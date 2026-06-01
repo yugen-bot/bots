@@ -11,6 +11,7 @@ import (
 	"jurien.dev/yugen/koto/internal/ent"
 	entgame "jurien.dev/yugen/koto/internal/ent/game"
 	"jurien.dev/yugen/koto/internal/ent/guess"
+	"jurien.dev/yugen/koto/internal/ent/settings"
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	sharedStatic "jurien.dev/yugen/shared/static"
@@ -59,8 +60,6 @@ func InitSchedule(container *di.Container) {
 				continue
 			}
 
-			time.Sleep(500 * time.Millisecond)
-
 			started, startErr := gameSvc.Start(
 				ctx,
 				g.GuildID,
@@ -81,18 +80,26 @@ func InitSchedule(container *di.Container) {
 			}
 		}
 
-		// 2. Check guilds with configured channels for scheduled starts
-		allSettings, err := database.Settings.Query().All(ctx)
+		// 2. Check guilds with configured channels for scheduled starts.
+		// Only fetch rows that have a channel configured.
+		allSettings, err := database.Settings.Query().
+			Where(
+				settings.ChannelIDNotNil(),
+				settings.ChannelIDNEQ(""),
+			).
+			All(ctx)
 		if err != nil && !ent.IsNotFound(err) {
 			utils.Logger.Warnf("schedule: find all settings: %v", err)
 		}
 
 		for _, setting := range allSettings {
-			if setting.ChannelID == nil || *setting.ChannelID == "" {
+			// State-only membership check — avoids an API call per guild per minute.
+			// If the guild isn't in cache yet we'll catch it on the next tick.
+			b, bErr := bot.ShardByGuild(setting.GuildID)
+			if bErr != nil {
 				continue
 			}
-
-			if !utils.IsBotInGuild(bot, setting.GuildID) {
+			if _, gErr := b.State.Guild(setting.GuildID); gErr != nil {
 				continue
 			}
 
@@ -179,9 +186,9 @@ func checkAndStartGame(
 		}
 	}
 
-	// Check if frequency time has passed (with 30s buffer for cron drift)
+	// Check if frequency time has passed (5s buffer for cron drift).
 	nextStart := baseTime.Add(time.Duration(setting.Frequency) * time.Minute)
-	if nextStart.After(time.Now().Add(30 * time.Second)) {
+	if nextStart.After(time.Now().Add(5 * time.Second)) {
 		return false
 	}
 

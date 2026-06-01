@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -31,13 +32,14 @@ type cooldownResult struct {
 }
 
 type GameService struct {
-	database *ent.Client
-	settings *SettingsService
-	words    *WordsService
-	message  *MessageService
-	points   *PointsService
-	hints    *HintsService
-	bot      *discordgoplus.Bot
+	database   *ent.Client
+	settings   *SettingsService
+	words      *WordsService
+	message    *MessageService
+	points     *PointsService
+	hints      *HintsService
+	bot        *discordgoplus.Bot
+	startLocks sync.Map // keyed by guildID → *sync.Mutex
 }
 
 var (
@@ -61,6 +63,11 @@ func CreateGameService(container *di.Container) *GameService {
 	}
 }
 
+func (s *GameService) lockFor(guildID string) *sync.Mutex {
+	v, _ := s.startLocks.LoadOrStore(guildID, &sync.Mutex{})
+	return v.(*sync.Mutex)
+}
+
 // Start creates a new game. schedule=true means cron-started. recreate=true ends current game first.
 // word="" means pick randomly.
 func (s *GameService) Start(
@@ -71,6 +78,10 @@ func (s *GameService) Start(
 	word string,
 ) (bool, error) {
 	utils.Logger.Debugf("Trying to start a game for %s", guildID)
+
+	mu := s.lockFor(guildID)
+	mu.Lock()
+	defer mu.Unlock()
 
 	b, err := s.bot.ShardByGuild(guildID)
 	if err != nil {
