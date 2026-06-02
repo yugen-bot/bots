@@ -83,12 +83,19 @@ func AddLogListeners(container *di.Container) {
 				return
 			}
 
+			var userID string
+			var username string
+			if event.Member != nil && event.Member.User != nil {
+				userID = event.Member.User.ID
+				username = event.Member.User.Username
+			}
+
 			data := event.ApplicationCommandData()
 			name := discordgoplus.GetInteractionName(&data)
 			utils.Logger.With(
 				"interaction", name,
-				"username", event.Member.User.Username,
-				"userID", event.Member.User.ID,
+				"username", username,
+				"userID", userID,
 				"guildID", event.GuildID,
 				"shard ID", bot.ShardID+1,
 			).Infof("Interaction \"%s\" used by %s", name, event.Member.User.Username)
