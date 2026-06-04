@@ -1,18 +1,19 @@
 package inits
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
-	"github.com/sarulabs/di/v2"
-
 	"jurien.dev/yugen/kusari/internal/listeners"
+	sharedInits "jurien.dev/yugen/shared/inits"
+	sharedListeners "jurien.dev/yugen/shared/listeners"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 
-	sharedListeners "jurien.dev/yugen/shared/listeners"
+	"github.com/bwmarrin/discordgo"
+	"github.com/jurienhamaker/discordgoplus"
+	"github.com/sarulabs/di/v2"
 )
 
 const (
@@ -24,7 +25,7 @@ const (
 		discordgo.IntentsGuildMessageReactions
 )
 
-func InitDiscordBot(container *di.Container) error {
+func InitDiscordBot(ctx context.Context, container *di.Container) error {
 	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
 
 	bot.Identify.Intents = Intents
@@ -60,6 +61,8 @@ func InitDiscordBot(container *di.Container) error {
 	if err := bot.Open(); err != nil {
 		return fmt.Errorf("discord: open: %w", err)
 	}
+
+	sharedInits.StartShardWatchdog(bot, ctx)
 
 	return nil
 }

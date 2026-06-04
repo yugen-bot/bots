@@ -37,7 +37,7 @@ func main() {
 	}
 	defer container.DeleteWithSubContainers()
 
-	if err := inits.InitDiscordBot(&container); err != nil {
+	if err := inits.InitDiscordBot(ctx, &container); err != nil {
 		utils.Logger.Errorf("init discord: %v", err)
 		os.Exit(1)
 	}
