@@ -3,6 +3,7 @@ package listeners
 import (
 	"os"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
+
+var disconnectedAt sync.Map
 
 func setLatency(bot *discordgoplus.Bot) {
 	bot.Each(func(b *discordgoplus.Bot) {
@@ -134,15 +137,33 @@ func AddMetricsListeners(container *di.Container) {
 
 	bot.AddHandler(
 		func(session *discordgo.Session, event *discordgo.Connect) {
-			utils.Logger.Info("Connected to Discord")
 			metrics.DiscordConnected.Set(1)
+
+			if v, ok := disconnectedAt.LoadAndDelete(session.ShardID); ok {
+				t := v.(time.Time)
+				utils.Logger.Infof(
+					"Reconnected to Discord (shard %d) after %s",
+					session.ShardID,
+					time.Since(t).Round(time.Second),
+				)
+				return
+			}
+
+			utils.Logger.Infof(
+				"Connected to Discord (shard %d)",
+				session.ShardID,
+			)
 		},
 	)
 
 	bot.AddHandler(
 		func(session *discordgo.Session, event *discordgo.Disconnect) {
-			utils.Logger.Info("Disconnected from Discord")
 			metrics.DiscordConnected.Set(0)
+			disconnectedAt.Store(session.ShardID, time.Now())
+			utils.Logger.Infof(
+				"Disconnected from Discord (shard %d)",
+				session.ShardID,
+			)
 		},
 	)
 
