@@ -6,30 +6,30 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneSettingsModule) run(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
 	shouldDelete := false
-	if opt, ok := ctx.Options["delete"]; ok {
-		shouldDelete = opt.BoolValue()
+	if v, ok := ctx.CommandData.OptBool("delete"); ok {
+		shouldDelete = v
 	}
 
 	all, err := m.settings.FindAll(context.Background())
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	var orphans []string
 
 	for _, s := range all {
-		if !utils.IsBotInGuild(m.bot, s.GuildID) {
+		if !utils.IsBotInGuildClient(m.bot.Client(), s.GuildID) {
 			orphans = append(orphans, fmt.Sprintf(
 				"`%s` — %s",
 				s.GuildID,
@@ -38,12 +38,12 @@ func (m *PruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 		}
 	}
 
-	channelID := ctx.Interaction.ChannelID
+	channelID := ctx.ChannelID
 
 	if !shouldDelete {
 		if len(orphans) == 0 {
-			ctx.ChannelMessageSend(channelID, "**Orphan settings: 0** — nothing to prune.")
-			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
+			ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: "**Orphan settings: 0** — nothing to prune."})
+			disgoplus.FollowUp(ctx, discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral})
 
 			return
 		}
@@ -53,7 +53,7 @@ func (m *PruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 
 		for _, line := range orphans {
 			if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
-				ctx.ChannelMessageSend(channelID, buf.String())
+				ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
 				buf.Reset()
 			}
 
@@ -62,12 +62,13 @@ func (m *PruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 		}
 
 		if buf.Len() > 0 {
-			ctx.ChannelMessageSend(channelID, buf.String())
+			ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
 		}
 
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Content: fmt.Sprintf("Found %d orphan(s). See <#%s>.", len(orphans), channelID),
-		}, true)
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
+			Content: fmt.Sprintf("Found %d orphan(s). See <#%s>.", len(orphans), channelID.String()),
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -76,7 +77,7 @@ func (m *PruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 	failed := 0
 
 	for _, s := range all {
-		if !utils.IsBotInGuild(m.bot, s.GuildID) {
+		if !utils.IsBotInGuildClient(m.bot.Client(), s.GuildID) {
 			if delErr := m.settings.Delete(context.Background(), s.GuildID); delErr != nil {
 				failed++
 			} else {
@@ -90,7 +91,7 @@ func (m *PruneSettingsModule) run(ctx *discordgoplus.Ctx) {
 		msg += fmt.Sprintf(" Failed to delete **%d**.", failed)
 	}
 
-	ctx.ChannelMessageSend(channelID, msg)
+	ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: msg})
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{Content: "Done."}, true)
+	disgoplus.FollowUp(ctx, discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral})
 }

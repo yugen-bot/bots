@@ -3,24 +3,24 @@ package authorstarring
 import (
 	"context"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *AuthorStarringModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *AuthorStarringModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	allowed := ctx.Options["allowed"].BoolValue()
+	allowed := ctx.CommandData.Bool("allowed")
 
 	err := m.settings.Set(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		func(u *ent.SettingsUpdateOne) { u.SetSelf(allowed) },
 	)
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -29,7 +29,8 @@ func (m *AuthorStarringModule) set(ctx *discordgoplus.Ctx) {
 		state = "allowed"
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: "Message authors are now **" + state + "** to star their own message.",
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

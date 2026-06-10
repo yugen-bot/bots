@@ -2,8 +2,8 @@
 package reset
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -11,7 +11,7 @@ import (
 	"jurien.dev/yugen/shared/static"
 )
 
-var resetChoices = []*discordgo.ApplicationCommandOptionChoice{
+var resetChoices = []discord.ApplicationCommandOptionChoiceString{
 	{Name: "Treshold", Value: "treshold"},
 	{Name: "Author starring", Value: "self"},
 	{Name: "Ignored channels", Value: "ignoredChannelIds"},
@@ -29,18 +29,17 @@ func GetResetModule(container *di.Container) *ResetModule {
 	}
 }
 
-func (m *ResetModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ResetModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "reset",
 			Description: "Reset a Hoshi setting to its default value.",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
 			},
-			Handler: discordgoplus.HandlerFunc(m.reset),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler: disgoplus.HandlerFunc(m.reset),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "setting",
 					Description: "The setting to reset to its default value.",
 					Required:    true,

@@ -2,7 +2,7 @@
 package settings
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	authorstarring "jurien.dev/yugen/hoshi/internal/slashcommands/settings/author-starring"
@@ -16,11 +16,11 @@ import (
 
 type SettingsModule struct {
 	container   *di.Container
-	subCommands []*discordgoplus.Command
+	subCommands []*disgoplus.Command
 }
 
 type settingsSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 func GetSettingsModule(container *di.Container) *SettingsModule {
@@ -33,7 +33,7 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 		reset.GetResetModule(container),
 	}
 
-	var subCommands []*discordgoplus.Command
+	var subCommands []*disgoplus.Command
 	for _, m := range subModules {
 		subCommands = append(subCommands, m.Commands()...)
 	}
@@ -44,15 +44,15 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	}
 }
 
-func (m *SettingsModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SettingsModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "settings",
 			Description: "Hoshi settings",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: disgoplus.NewRouter(m.subCommands),
 		},
 	}
 }

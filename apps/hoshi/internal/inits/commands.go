@@ -1,7 +1,7 @@
 package inits
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
@@ -14,18 +14,16 @@ import (
 	starboard "jurien.dev/yugen/hoshi/internal/slashcommands/starboard"
 )
 
-func InitCommands(container *di.Container) (err error) {
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
+func InitCommands(container *di.Container) error {
+	bot := container.Get(static.DiClient).(*disgoplus.Bot)
 
 	modules := []utils.CommandsModule{
-		// shared
 		sharedSlashcommands.GetDonateModule(container),
 		sharedSlashcommands.GetInviteModule(container),
 		sharedSlashcommands.GetSupportModule(container),
 		sharedSlashcommands.GetVoteModule(container),
 		sharedSlashcommands.GetHelpModule(container),
 
-		// internal
 		admin.GetAdminModule(container),
 		settings.GetSettingsModule(container),
 		starboard.GetStarboardModule(container),
@@ -33,12 +31,6 @@ func InitCommands(container *di.Container) (err error) {
 
 	utils.RegisterCommandModules(bot, modules)
 
-	bot.AddHandler(bot.Router.HandleInteraction)
-	bot.AddHandler(bot.Router.HandleInteractionMessageComponent)
-	bot.AddHandler(bot.Router.HandleInteractionModalSubmit)
-
 	cfg := container.Get(static.DiConfig).(*config.Config)
-	err = utils.SyncCommands(bot, cfg, len(modules))
-
-	return
+	return utils.SyncCommands(bot, cfg, len(modules))
 }

@@ -4,35 +4,37 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
-func (m *RemoveModule) remove(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *RemoveModule) remove(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	id := int(ctx.Options["id"].IntValue())
+	id := ctx.CommandData.Int("id")
 
 	config, err := m.starboard.RemoveStarboardByID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		id,
 	)
 	if err != nil || config == nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"No starboard configuration found with ID %d.",
 				id,
 			),
-		}, true)
+			Flags: discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Removed starboard configuration with ID \"%d\".",
 			config.ID,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/lib/pq"
 
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *ResetModule) reset(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	setting := ctx.Options["setting"].StringValue()
+	setting := ctx.CommandData.String("setting")
 
 	var (
 		apply func(*ent.SettingsUpdateOne)
@@ -33,28 +33,29 @@ func (m *ResetModule) reset(ctx *discordgoplus.Ctx) {
 		apply = func(u *ent.SettingsUpdateOne) { u.SetIgnoredChannelIds(pq.StringArray{}) }
 		value = "[]"
 	default:
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	if err := m.settings.Set(context.Background(), ctx.Interaction.GuildID, apply); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+	if err := m.settings.Set(context.Background(), ctx.GuildID.String(), apply); err != nil {
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	idx := slices.IndexFunc(
 		resetChoices,
-		func(c *discordgo.ApplicationCommandOptionChoice) bool {
+		func(c discord.ApplicationCommandOptionChoiceString) bool {
 			return c.Value == setting
 		},
 	)
 	name := resetChoices[idx].Name
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"%s has been reset to its default value of `%s`",
 			name,
 			value,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

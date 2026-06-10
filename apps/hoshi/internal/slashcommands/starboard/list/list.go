@@ -2,8 +2,8 @@
 package list
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -22,30 +22,31 @@ func GetListModule(container *di.Container) *ListModule {
 	}
 }
 
-func (m *ListModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func intPtr(i int) *int { return &i }
+
+func (m *ListModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "list",
 			Description: "List the starboards",
-			Handler:     discordgoplus.HandlerFunc(m.list),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Handler:     disgoplus.HandlerFunc(m.list),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "page",
 					Description: "The page to view",
 					Required:    false,
-					MinValue:    func() *float64 { v := float64(1); return &v }(),
+					MinValue:    intPtr(1),
 				},
 			},
 		},
 	}
 }
 
-func (m *ListModule) MessageComponents() []*discordgoplus.MessageComponent {
-	return []*discordgoplus.MessageComponent{
+func (m *ListModule) MessageComponents() []*disgoplus.MessageComponent {
+	return []*disgoplus.MessageComponent{
 		{
 			CustomID: "STARBOARD_LIST/:page",
-			Handler:  discordgoplus.HandlerFunc(m.listPage),
+			Handler:  disgoplus.HandlerFunc(m.listPage),
 		},
 	}
 }

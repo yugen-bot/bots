@@ -2,8 +2,8 @@
 package remove
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -22,15 +22,14 @@ func GetRemoveModule(container *di.Container) *RemoveModule {
 	}
 }
 
-func (m *RemoveModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *RemoveModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "remove",
 			Description: "Remove a starboard configuration",
-			Handler:     discordgoplus.HandlerFunc(m.remove),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Handler:     disgoplus.HandlerFunc(m.remove),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "id",
 					Description: "The id of a configuration to remove",
 					Required:    true,

@@ -2,7 +2,7 @@
 package starboard
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/slashcommands/starboard/add"
@@ -14,11 +14,11 @@ import (
 type StarboardModule struct {
 	container   *di.Container
 	list        *list.ListModule
-	subCommands []*discordgoplus.Command
+	subCommands []*disgoplus.Command
 }
 
 type starboardSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 func GetStarboardModule(container *di.Container) *StarboardModule {
@@ -30,7 +30,7 @@ func GetStarboardModule(container *di.Container) *StarboardModule {
 		remove.GetRemoveModule(container),
 	}
 
-	var subCommands []*discordgoplus.Command
+	var subCommands []*disgoplus.Command
 	for _, m := range subModules {
 		subCommands = append(subCommands, m.Commands()...)
 	}
@@ -42,19 +42,19 @@ func GetStarboardModule(container *di.Container) *StarboardModule {
 	}
 }
 
-func (m *StarboardModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *StarboardModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "starboard",
 			Description: "Manage starboards",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: disgoplus.NewRouter(m.subCommands),
 		},
 	}
 }
 
-func (m *StarboardModule) MessageComponents() []*discordgoplus.MessageComponent {
+func (m *StarboardModule) MessageComponents() []*disgoplus.MessageComponent {
 	return m.list.MessageComponents()
 }

@@ -2,7 +2,7 @@
 package admin
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/slashcommands/admin/guilds"
@@ -17,11 +17,11 @@ type AdminModule struct {
 	container   *di.Container
 	guilds      *guilds.GuildsModule
 	devGuildID  string
-	subCommands []*discordgoplus.Command
+	subCommands []*disgoplus.Command
 }
 
 type adminSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 func GetAdminModule(container *di.Container) *AdminModule {
@@ -37,7 +37,7 @@ func GetAdminModule(container *di.Container) *AdminModule {
 		pruneStarboardsModule,
 	}
 
-	var subCommands []*discordgoplus.Command
+	var subCommands []*disgoplus.Command
 	for _, m := range subModules {
 		subCommands = append(subCommands, m.Commands()...)
 	}
@@ -50,20 +50,20 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	}
 }
 
-func (m *AdminModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *AdminModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "admin",
 			Description: "Admin commands",
 			GuildID:     m.devGuildID,
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.OwnerMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.OwnerMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: disgoplus.NewRouter(m.subCommands),
 		},
 	}
 }
 
-func (m *AdminModule) MessageComponents() []*discordgoplus.MessageComponent {
+func (m *AdminModule) MessageComponents() []*disgoplus.MessageComponent {
 	return m.guilds.MessageComponents()
 }

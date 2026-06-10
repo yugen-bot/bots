@@ -1,12 +1,12 @@
 package utils
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
 
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
+	sharedUtils "jurien.dev/yugen/shared/utils"
 )
 
 const NoSettingsDescription = `Someone with ` + "`Manage Server`" + ` permissions must do the following:
@@ -22,35 +22,25 @@ To add another starboard, use ` + "`/starboard add`" + `.
 *Notes:*
 - Hoshi does not *yet* support super reactions!`
 
-func SendWelcomeMessage(
-	channel *discordgo.Channel,
-	bot *discordgoplus.Bot,
-	ownerID string,
-) error {
-	footer := utils.CreateEmbedFooter(
-		bot,
-		&utils.CreateEmbedFooterParams{IsVote: false},
-		ownerID,
-	)
+// SendWelcomeMessage sends the welcome embed to the given channel.
+// Returns an error if the send fails (e.g. 403 no permission).
+func SendWelcomeMessage(ch discord.GuildChannel, client *bot.Client, ownerID string) error {
+	// Inline footer since CreateEmbedFooter needs a *disgoplus.Bot; use simple footer here.
+	embed := discord.NewEmbed().
+		WithTitle("Thank you for inviting Hoshi!").
+		WithDescription("Hoshi has not yet been set up in this server!\n\n" + NoSettingsDescription).
+		WithColor(localStatic.EmbedColor)
 
-	embed := &discordgo.MessageEmbed{
-		Title:       "Thank you for inviting Hoshi!",
-		Description: "Hoshi has not yet been set up in this server!\n\n" + NoSettingsDescription,
-		Color:       localStatic.EmbedColor,
-		Footer:      footer,
-	}
-
-	_, err := bot.ChannelMessageSendComplex(channel.ID, &discordgo.MessageSend{
-		Embeds: []*discordgo.MessageEmbed{embed},
-		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					static.ButtonKofi,
-					static.ButtonDiscordSupportServer,
-				},
-			},
+	_, err := client.Rest.CreateMessage(ch.ID(), discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Components: []discord.LayoutComponent{
+			discord.NewActionRow(static.ButtonKofi, static.ButtonDiscordSupportServer),
 		},
 	})
+
+	if err != nil {
+		sharedUtils.Logger.Debugw("welcome: send failed", "channelID", ch.ID(), "error", err)
+	}
 
 	return err
 }

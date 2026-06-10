@@ -4,30 +4,31 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *AddModule) add(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *AddModule) add(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	bot := m.container.Get(static.DiBot).(*discordgoplus.Bot)
-	destination := ctx.Options["destination"].ChannelValue(ctx.Session)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
+	destination := ctx.CommandData.Channel("destination")
 
 	emojiInput := "⭐"
-	if opt, ok := ctx.Options["emoji"]; ok {
-		emojiInput = opt.StringValue()
+	if v, ok := ctx.CommandData.OptString("emoji"); ok {
+		emojiInput = v
 	}
 
-	found, key, display, unicode := localUtils.ResolveEmoji(emojiInput, bot)
+	found, key, display, unicode := localUtils.ResolveEmoji(emojiInput, bot.Client())
 	if !found {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "You can only use emojis from guilds that the bot is in.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -36,43 +37,43 @@ func (m *AddModule) add(ctx *discordgoplus.Ctx) {
 
 	sourceLabel := ""
 
-	if opt, ok := ctx.Options["source"]; ok {
-		src := opt.ChannelValue(ctx.Session)
-		id := src.ID
+	if src, ok := ctx.CommandData.OptChannel("source"); ok {
+		id := src.ID.String()
 		sourceChannelID = &id
 		sourceLabel = fmt.Sprintf("\nSource: <#%s>", id)
 	}
 
 	existing, err := m.starboard.GetStarboardBySourceIDAndEmoji(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		key,
 		sourceChannelID,
 	)
 	if err != nil {
 		utils.Logger.Warnf("error getting starboard", "error", err)
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 
 		return
 	}
 
 	if existing != nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "A starboard for the supplied rules already exists.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
 	_, err = m.starboard.AddStarboard(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		key,
 		sourceChannelID,
-		destination.ID,
+		destination.ID.String(),
 	)
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -81,12 +82,13 @@ func (m *AddModule) add(ctx *discordgoplus.Ctx) {
 		emojiDisplay = key
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"A starboard has been added;\nDestination: <#%s>\nEmoji: %s%s",
-			destination.ID,
+			destination.ID.String(),
 			emojiDisplay,
 			sourceLabel,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

@@ -3,26 +3,28 @@ package listeners
 import (
 	"context"
 
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/jurienhamaker/disgoplus"
+	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/hoshi/internal/services"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
 	"jurien.dev/yugen/shared/config"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
-
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
-	"github.com/sarulabs/di/v2"
 )
 
 type GuildListener struct {
-	bot         *discordgoplus.Bot
+	client      *bot.Client
 	settingsSvc *services.SettingsService
 	cfg         *config.Config
 }
 
 func GetGuildListener(container *di.Container) *GuildListener {
 	return &GuildListener{
-		bot:         container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
+		client:      container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
 		settingsSvc: container.Get(sharedStatic.DiSettings).(*services.SettingsService),
 		cfg:         container.Get(sharedStatic.DiConfig).(*config.Config),
 	}
@@ -30,17 +32,17 @@ func GetGuildListener(container *di.Container) *GuildListener {
 
 func AddGuildListeners(container *di.Container) {
 	l := GetGuildListener(container)
-	l.bot.AddHandler(l.OnGuildCreate)
-	l.bot.AddHandler(l.OnGuildDelete)
+	disgoBot := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	disgoBot.Client().EventManager.AddEventListeners(
+		bot.NewListenerFunc(l.OnGuildJoin),
+		bot.NewListenerFunc(l.OnGuildLeave),
+	)
 }
 
-func (l *GuildListener) OnGuildCreate(
-	s *discordgo.Session,
-	event *discordgo.GuildCreate,
-) {
+func (l *GuildListener) OnGuildJoin(e *events.GuildJoin) {
 	ctx := context.Background()
 
-	existing, err := l.settingsSvc.GetByGuildID(ctx, event.ID)
+	existing, err := l.settingsSvc.GetByGuildID(ctx, e.GuildID.String())
 	if err != nil {
 		return
 	}
@@ -49,33 +51,25 @@ func (l *GuildListener) OnGuildCreate(
 		return
 	}
 
-	utils.Logger.Infof("Joined guild: %s", event.Name)
+	utils.Logger.Infof("Joined guild: %s", e.Guild.Name)
 
-	for _, ch := range event.Channels {
-		if ch.Type != discordgo.ChannelTypeGuildText {
+	for _, ch := range e.Guild.Channels {
+		if ch.Type() != discord.ChannelTypeGuildText {
 			continue
 		}
 
-		perms, err := s.UserChannelPermissions(s.State.User.ID, ch.ID)
-		if err != nil {
-			continue
-		}
-
-		if perms&discordgo.PermissionSendMessages != 0 {
-			localUtils.SendWelcomeMessage(ch, l.bot, l.cfg.OwnerID)
+		// Try sending; catch permission errors and continue to next channel.
+		if err := localUtils.SendWelcomeMessage(ch, l.client, l.cfg.OwnerID); err == nil {
 			break
 		}
 	}
 
-	if _, err := l.settingsSvc.GetByGuildID(ctx, event.ID); err != nil {
-		utils.Logger.With("guildID", event.ID).
+	if _, err := l.settingsSvc.GetByGuildID(ctx, e.GuildID.String()); err != nil {
+		utils.Logger.With("guildID", e.GuildID).
 			Warn("Failed to seed settings on guild create")
 	}
 }
 
-func (l *GuildListener) OnGuildDelete(
-	_ *discordgo.Session,
-	event *discordgo.GuildDelete,
-) {
-	utils.Logger.Infof("Left guild: %s", event.ID)
+func (l *GuildListener) OnGuildLeave(e *events.GuildLeave) {
+	utils.Logger.Infof("Left guild: %s", e.GuildID)
 }

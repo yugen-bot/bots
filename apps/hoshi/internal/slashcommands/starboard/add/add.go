@@ -2,8 +2,8 @@
 package add
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -22,27 +22,24 @@ func GetAddModule(container *di.Container) *AddModule {
 	}
 }
 
-func (m *AddModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *AddModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "add",
 			Description: "Add a starboard",
-			Handler:     discordgoplus.HandlerFunc(m.add),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionChannel,
+			Handler:     disgoplus.HandlerFunc(m.add),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionChannel{
 					Name:        "destination",
 					Description: "The destination channel to keep the starboard in",
 					Required:    true,
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+				discord.ApplicationCommandOptionString{
 					Name:        "emoji",
 					Description: "An emoji to check for (default ⭐)",
 					Required:    false,
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionChannel,
+				discord.ApplicationCommandOptionChannel{
 					Name:        "source",
 					Description: "A source channel to check",
 					Required:    false,

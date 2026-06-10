@@ -4,35 +4,37 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *TresholdModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *TresholdModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	n := int(ctx.Options["treshold"].IntValue())
+	n := ctx.CommandData.Int("treshold")
 	if n < 1 {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Treshold must be at least 1.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
 	err := m.settings.Set(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		func(u *ent.SettingsUpdateOne) { u.SetTreshold(n) },
 	)
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf("Starboard treshold has been set to **%d**.", n),
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

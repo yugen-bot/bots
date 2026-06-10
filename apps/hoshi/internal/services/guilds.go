@@ -3,10 +3,10 @@ package services
 import (
 	"cmp"
 	"slices"
-	"sync"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	sharedStatic "jurien.dev/yugen/shared/static"
@@ -14,31 +14,25 @@ import (
 )
 
 type GuildsService struct {
-	bot *discordgoplus.Bot
+	client *bot.Client
 }
 
 func CreateGuildsService(container *di.Container) *GuildsService {
 	utils.Logger.Info("Creating Guilds Service")
 
 	return &GuildsService{
-		bot: container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
+		client: container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
 	}
 }
 
-func (s *GuildsService) GetData(page int) ([]*discordgo.Guild, int) {
-	var (
-		mu     sync.Mutex
-		guilds []*discordgo.Guild
-	)
+func (s *GuildsService) GetData(page int) ([]discord.Guild, int) {
+	var guilds []discord.Guild
 
-	s.bot.Each(func(b *discordgoplus.Bot) {
-		mu.Lock()
+	for g := range s.client.Caches.Guilds() {
+		guilds = append(guilds, g)
+	}
 
-		guilds = append(guilds, b.State.Guilds...)
-		mu.Unlock()
-	})
-
-	slices.SortFunc(guilds, func(a, b *discordgo.Guild) int {
+	slices.SortFunc(guilds, func(a, b discord.Guild) int {
 		return cmp.Compare(b.MemberCount, a.MemberCount)
 	})
 

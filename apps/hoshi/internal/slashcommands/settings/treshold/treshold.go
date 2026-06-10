@@ -2,8 +2,8 @@
 package treshold
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -23,22 +23,23 @@ func GetTresholdModule(container *di.Container) *TresholdModule {
 	}
 }
 
-func (m *TresholdModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func intPtr(i int) *int { return &i }
+
+func (m *TresholdModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "treshold",
 			Description: "Set starboard threshold",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
 			},
-			Handler: discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Handler: disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "treshold",
 					Description: "The treshold to set (minimum 1)",
 					Required:    true,
-					MinValue:    func() *float64 { v := float64(1); return &v }(),
+					MinValue:    intPtr(1),
 				},
 			},
 		},

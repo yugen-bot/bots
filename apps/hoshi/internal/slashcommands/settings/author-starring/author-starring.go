@@ -2,8 +2,8 @@
 package authorstarring
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -23,18 +23,17 @@ func GetAuthorStarringModule(container *di.Container) *AuthorStarringModule {
 	}
 }
 
-func (m *AuthorStarringModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *AuthorStarringModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "author-starring",
 			Description: "Set whether message author starring counts",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
 			},
-			Handler: discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+			Handler: disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionBool{
 					Name:        "allowed",
 					Description: "Whether message authors are allowed to star their own message",
 					Required:    true,

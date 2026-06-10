@@ -4,33 +4,33 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
-func (m *UnignoreModule) unignore(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *UnignoreModule) unignore(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	channelID := ctx.Interaction.ChannelID
+	channelID := ctx.ChannelID.String()
 	label := "this channel"
 
-	if opt, ok := ctx.Options["channel"]; ok {
-		ch := opt.ChannelValue(ctx.Session)
-		channelID = ch.ID
-		label = fmt.Sprintf("<#%s>", ch.ID)
+	if ch, ok := ctx.CommandData.OptChannel("channel"); ok {
+		channelID = ch.ID.String()
+		label = fmt.Sprintf("<#%s>", ch.ID.String())
 	}
 
 	if err := m.settings.IgnoreChannel(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		channelID,
 		false,
 	); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf("Starboards are now **unignored** for %s!", label),
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

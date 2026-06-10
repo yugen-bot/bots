@@ -7,24 +7,24 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
 	"jurien.dev/yugen/shared/static"
 )
 
-func (m *ListModule) list(ctx *discordgoplus.Ctx) {
+func (m *ListModule) list(ctx *disgoplus.Ctx) {
 	page := 1
-	if opt, ok := ctx.Options["page"]; ok {
-		page = int(opt.IntValue())
+	if v, ok := ctx.CommandData.OptInt("page"); ok {
+		page = v
 	}
 
 	m.showList(ctx, page, false)
 }
 
-func (m *ListModule) listPage(ctx *discordgoplus.Ctx) {
+func (m *ListModule) listPage(ctx *disgoplus.Ctx) {
 	page := 1
 
 	if p, ok := ctx.MessageComponentOptions["page"]; ok {
@@ -40,26 +40,26 @@ func (m *ListModule) listPage(ctx *discordgoplus.Ctx) {
 }
 
 func (m *ListModule) showList(
-	ctx *discordgoplus.Ctx,
+	ctx *disgoplus.Ctx,
 	page int,
 	isComponent bool,
 ) {
 	if !isComponent {
-		discordgoplus.Defer(ctx, true)
+		disgoplus.Defer(ctx, true)
 	}
 
-	bot := m.container.Get(static.DiBot).(*discordgoplus.Bot)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 
 	items, total, err := m.starboard.GetStarboards(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		page,
 	)
 	if err != nil {
 		if isComponent {
-			discordgoplus.MessageComponentError(ctx)
+			disgoplus.MessageComponentError(ctx)
 		} else {
-			discordgoplus.InteractionError(ctx, true)
+			disgoplus.InteractionError(ctx, true)
 		}
 
 		return
@@ -68,19 +68,20 @@ func (m *ListModule) showList(
 	if total == 0 {
 		content := "No starboards have been configured yet."
 		if isComponent {
-			discordgoplus.Update(
+			empty := []discord.Embed{}
+			emptyComponents := []discord.LayoutComponent{}
+			disgoplus.Update(
 				ctx,
-				&discordgo.InteractionResponseData{
-					Content:    content,
-					Embeds:     []*discordgo.MessageEmbed{},
-					Components: []discordgo.MessageComponent{},
+				discord.MessageUpdate{
+					Content:    &content,
+					Embeds:     &empty,
+					Components: &emptyComponents,
 				},
 			)
 		} else {
-			discordgoplus.FollowUp(
+			disgoplus.FollowUp(
 				ctx,
-				&discordgo.WebhookParams{Content: content},
-				true,
+				discord.MessageCreate{Content: content, Flags: discord.MessageFlagEphemeral},
 			)
 		}
 
@@ -90,19 +91,20 @@ func (m *ListModule) showList(
 	if len(items) == 0 {
 		content := fmt.Sprintf("No starboards found for page %d", page)
 		if isComponent {
-			discordgoplus.Update(
+			empty := []discord.Embed{}
+			emptyComponents := []discord.LayoutComponent{}
+			disgoplus.Update(
 				ctx,
-				&discordgo.InteractionResponseData{
-					Content:    content,
-					Embeds:     []*discordgo.MessageEmbed{},
-					Components: []discordgo.MessageComponent{},
+				discord.MessageUpdate{
+					Content:    &content,
+					Embeds:     &empty,
+					Components: &emptyComponents,
 				},
 			)
 		} else {
-			discordgoplus.FollowUp(
+			disgoplus.FollowUp(
 				ctx,
-				&discordgo.WebhookParams{Content: content},
-				true,
+				discord.MessageCreate{Content: content, Flags: discord.MessageFlagEphemeral},
 			)
 		}
 
@@ -119,7 +121,7 @@ func (m *ListModule) showList(
 	for i, c := range items {
 		ids[i] = fmt.Sprintf("%d", c.ID)
 
-		_, _, display, unicode := localUtils.ResolveEmoji(c.SourceEmoji, bot)
+		_, _, display, unicode := localUtils.ResolveEmoji(c.SourceEmoji, bot.Client())
 
 		emojiDisplay := c.SourceEmoji
 		if !unicode {
@@ -135,64 +137,48 @@ func (m *ListModule) showList(
 		destinations[i] = fmt.Sprintf("<#%s>", c.TargetChannelID)
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Color: localStatic.EmbedColor,
-		Title: fmt.Sprintf("Starboards for %s", ctx.Interaction.GuildID),
-		Fields: []*discordgo.MessageEmbedField{
-			{Name: "ID", Value: strings.Join(ids, "\n"), Inline: true},
-			{
-				Name:   "Emoji | Source",
-				Value:  strings.Join(emojiSources, "\n"),
-				Inline: true,
-			},
-			{
-				Name:   "Destination",
-				Value:  strings.Join(destinations, "\n"),
-				Inline: true,
-			},
-		},
-	}
+	embed := discord.NewEmbed().
+		WithColor(localStatic.EmbedColor).
+		WithTitle(fmt.Sprintf("Starboards for %s", ctx.GuildID.String())).
+		WithFields(
+			discord.EmbedField{Name: "ID", Value: strings.Join(ids, "\n"), Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Emoji | Source", Value: strings.Join(emojiSources, "\n"), Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Destination", Value: strings.Join(destinations, "\n"), Inline: boolPtr(true)},
+		)
 
 	if maxPage > 1 {
-		embed.Footer = &discordgo.MessageEmbedFooter{
+		embed = embed.WithEmbedFooter(&discord.EmbedFooter{
 			Text: fmt.Sprintf("Page %d/%d", page, maxPage),
-		}
+		})
 	}
 
-	var buttons []discordgo.MessageComponent
+	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discordgo.Button{
-			CustomID: fmt.Sprintf("STARBOARD_LIST/%d", page-1),
-			Style:    discordgo.PrimaryButton,
-			Label:    "◀️",
-		})
+		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("STARBOARD_LIST/%d", page-1)))
 	}
 
 	if page < maxPage {
-		buttons = append(buttons, discordgo.Button{
-			CustomID: fmt.Sprintf("STARBOARD_LIST/%d", page+1),
-			Style:    discordgo.PrimaryButton,
-			Label:    "▶️",
-		})
+		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("STARBOARD_LIST/%d", page+1)))
 	}
 
-	components := []discordgo.MessageComponent{}
+	components := []discord.LayoutComponent{}
 	if len(buttons) > 0 {
-		components = append(
-			components,
-			discordgo.ActionsRow{Components: buttons},
-		)
+		components = append(components, discord.NewActionRow(buttons...))
 	}
 
 	if isComponent {
-		discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
-			Embeds:     []*discordgo.MessageEmbed{embed},
-			Components: components,
+		embeds := []discord.Embed{embed}
+		disgoplus.Update(ctx, discord.MessageUpdate{
+			Embeds:     &embeds,
+			Components: &components,
 		})
 	} else {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Embeds:     []*discordgo.MessageEmbed{embed},
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
+			Embeds:     []discord.Embed{embed},
 			Components: components,
-		}, true)
+			Flags:      discord.MessageFlagEphemeral,
+		})
 	}
 }
+
+func boolPtr(b bool) *bool { return &b }

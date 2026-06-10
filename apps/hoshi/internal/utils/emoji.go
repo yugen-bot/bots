@@ -2,53 +2,22 @@ package utils
 
 import (
 	"regexp"
-	"sync"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/bot"
 )
 
 var customEmojiRegex = regexp.MustCompile(`<a?:\w+:(\d+)>`)
 
+// ResolveEmoji parses an emoji string into (found, key, display, unicode).
+// For custom emojis (<:name:id> or <a:name:id>) the key is the emoji ID.
+// For unicode emojis the key equals the input string.
 func ResolveEmoji(
 	input string,
-	bot *discordgoplus.Bot,
+	_ *bot.Client,
 ) (found bool, key string, display string, unicode bool) {
 	match := customEmojiRegex.FindStringSubmatch(input)
 	if len(match) > 1 {
-		emojiID := match[1]
-
-		var (
-			mu                     sync.Mutex
-			foundKey, foundDisplay string
-		)
-
-		bot.Each(func(b *discordgoplus.Bot) {
-			mu.Lock()
-			if foundKey != "" {
-				mu.Unlock()
-				return
-			}
-			mu.Unlock()
-
-			for _, guild := range b.State.Guilds {
-				for _, e := range guild.Emojis {
-					if e.ID == emojiID {
-						mu.Lock()
-						foundKey = emojiID
-						foundDisplay = input
-						mu.Unlock()
-
-						return
-					}
-				}
-			}
-		})
-
-		if foundKey != "" {
-			return true, foundKey, foundDisplay, false
-		}
-
-		return
+		return true, match[1], input, false
 	}
 
 	return true, input, input, true
