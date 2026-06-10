@@ -67,7 +67,9 @@ func InitDI() (container di.Container, err error) {
 			} else {
 				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
 			}
-			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt, cacheOpt)
+			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt, cacheOpt,
+				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
+			)
 		},
 		Close: func(obj any) error {
 			b := obj.(*disgoplus.Bot)

@@ -58,6 +58,7 @@ func InitDI() (container di.Container, err error) {
 			}
 			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt,
 				bot.WithCacheConfigOpts(cache.WithCaches(static.DefaultCacheFlags)),
+				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
 			)
 		},
 		Close: func(obj any) error {
