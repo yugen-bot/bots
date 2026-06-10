@@ -4,7 +4,7 @@ This document provides instructions for AI coding agents working on this reposit
 
 ## Project Overview
 
-This is a **Golang/Discordgo/Prisma** monorepo containing multiple applications in the apps folder. Each application has it's own purpose.
+This is a **Golang/disgo** monorepo containing multiple applications in the apps folder. Each application has it's own purpose.
 
 Here is a small summary of the applications:
 
@@ -12,33 +12,33 @@ Here is a small summary of the applications:
 `apps/iro` - A bot that responds to hex color codes and represents the color
 `apps/kazu` - A collaborative counting bot
 `apps/kusari` - A collaborative word-chain bot
+`apps/koto` - A collaborative word-guessing bot (Wordle-style)
 
 ## Technology Stack
 
-- **Go**: 1.25+ required
-- Discord: [Discordgo](https://github.com/bwmarrin/discordgo) v0.27+ & [Discordgo-Plus](https://github.com/jurienhamaker/discordgo-plus)
+- **Go**: 1.26+ required
+- **Discord**: [disgoorg/disgo](https://github.com/disgoorg/disgo) v0.19+ via the [disgoplus](https://github.com/jurienhamaker/disgoplus) wrapper
 - **API Framework**: [Gofiber](https://github.com/gofiber/fiber) v2.52+
-- **ORM**: [prisma-client-go](https://github.com/steebchen/prisma-client-go)
+- **ORM**: [entgo.io/ent](https://entgo.io)
 
 ## Directory Structure
 
 ```
 .
-├── go.mod             # Go mod file for all applications
+├── go.work            # Go workspace for all modules
 ├── .golangci.yml      # Go linter configuration
 │
 ├── apps/
 │   └── [bot name]            # A named folder for each bot
 │       ├── cmd                   # Entry points for the bot
 │       ├── internal              # Per bot functionality
-│       │   ├── api                   # Api routes, middlewares, etc
-│       │   ├── inits                 # Initialization functions
-│       │   ├── listeners             # Discord listeners
+│       │   ├── inits                 # Initialization functions (DI, discord, commands)
+│       │   ├── listeners             # Discord event listeners
 │       │   ├── services              # Services that communicate with data
 │       │   ├── slashcommands         # Slash commands
 │       │   ├── static                # Static constants etc
 │       │   └── utils                 # Utility functions
-│       └── prisma                # Prisma files
+│       └── ent                   # Ent ORM schema + generated files
 │
 ├── shared/            # Shared code between applications
 │   ├── api            # Api routes, middlewares, etc
@@ -57,8 +57,8 @@ Here is a small summary of the applications:
 > **Exception — `apps/iro`**: Iro only responds to hex color codes in chat messages.
 > It has no slash commands, no database, and no API routes.
 > Its `internal/` directory intentionally contains only `inits/` and `listeners/`.
-> Do **not** scaffold empty `api/`, `services/`, `slashcommands/`, `static/`, `utils/`,
-> or `prisma/` directories for iro unless a feature genuinely requires them.
+> Do **not** scaffold empty `services/`, `slashcommands/`, `static/`, `utils/`,
+> or `ent/` directories for iro unless a feature genuinely requires them.
 
 ## Ent ORM — Code Generation
 
@@ -80,9 +80,6 @@ go mod download
 # Build the bot
 make build-bot
 
-# Build pocketbase
-make build-pocketbase
-
 # Run tests
 go test ./...
 
@@ -94,12 +91,6 @@ go fmt ./...
 
 # Run linter (also available as: make lint)
 golangci-lint run
-
-# Run the bot
-make run-bot
-
-# Run pocketbase
-make run-pocketbase
 ```
 
 ## Code Style Guidelines
@@ -128,13 +119,26 @@ make run-pocketbase
          models.go       // only for local DTOs shared by ≥ 2 files
    ```
    Package identifiers strip hyphens from the directory name — `set-channel/` uses `package setchannel`, `start-after-first-guess/` uses `package startafterfirstguess`. Factory functions follow `Get<PascalCaseLeaf>Module(*di.Container)`, e.g. `setchannel.GetSetChannelModule(container)`.
-   Group root files aggregate leaf sub-modules via a local `interface { Commands() []*discordgoplus.Command }` loop (see `kazu/settings/settings.go` for the pattern).
+   Group root files aggregate leaf sub-modules via a local `interface { Commands() []*disgoplus.Command }` loop (see `kazu/settings/settings.go` for the pattern).
    Single-file groups where the file is simultaneously the group root and the only command (`game/game.go` in kazu/kusari) are the sole exception — leave as-is until a sibling command is added.
 6. **Capability interfaces** (in `shared/utils/register-commands-module.go`): modules opt in via `Commands()`, `MessageComponents()`, and `Modals()` — never return empty slices for capabilities the command doesn't use. Group-level files fan out to leaf capability methods rather than implementing them directly.
-7. **Listeners**: Use the struct-based form. Embed the session and bot in a struct; register handlers via methods.
-8. **DI constants**: Every service exposes `Di<Name>` in `internal/static/di.go`; constructors accept only `*di.Container`.
+7. **Listeners**: Use the struct-based form with `*bot.Client`; register handlers via `client.EventManager.AddEventListeners(bot.NewListenerFunc(...))`.
+8. **DI constants**: Every service exposes `Di<Name>` in `internal/static/di.go`; constructors accept only `*di.Container`. The bot is registered under `static.DiBot` as `*disgoplus.Bot`; retrieve with `container.Get(static.DiBot).(*disgoplus.Bot)`.
 9. **Early Returns**: Prefer early returns over nested if/else. Handle error cases first.
 10. **Linting**: Run `make lint` before committing. Fix all lint errors — do not use `//nolint` without a comment explaining why.
+
+## disgoplus / disgo patterns
+
+- **Bot creation** (`internal/inits/di.go`): each app creates `*disgoplus.Bot` via `disgoplus.New(token, sharded, gatewayOpt, cacheOpt, loggerOpt)`. Intents, presence, cache flags, and the logger are passed at construction time.
+- **Presence**: set via `gateway.WithPresenceOpts(gateway.WithWatchingActivity("..."))` inside `bot.WithGatewayConfigOpts(...)` — not via `client.SetPresence` in event handlers.
+- **Sharding**: when `cfg.Shard == true` use `bot.WithShardManagerConfigOpts(sharding.WithGatewayConfigOpts(...))` instead of `bot.WithGatewayConfigOpts(...)`.
+- **Cache**: always pass `bot.WithCacheConfigOpts(cache.WithCaches(static.DefaultCacheFlags))`. Add `cache.FlagMessages` for bots that need message edit/delete history (hoshi, kazu, kusari).
+- **Slash command handlers**: receive `*disgoplus.Ctx`. Options via `ctx.CommandData.Int("name")`, `ctx.CommandData.String("name")`, etc. Guild ID: `ctx.GuildID.String()`. Member: `ctx.Member.User.ID.String()`.
+- **Responses**: `disgoplus.Defer(ctx, ephemeral)`, `disgoplus.FollowUp(ctx, discord.MessageCreate{...})`, `disgoplus.Update(ctx, discord.MessageUpdate{...})`, `disgoplus.ModalRespond(ctx, discord.ModalCreate{...})`.
+- **REST calls**: `ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{...})`, `.AddReaction(...)`, `.GetGuild(...)`, etc.
+- **Embeds**: `discord.NewEmbed().WithColor(...).WithTitle(...).WithDescription(...).WithEmbedFooter(footer)` — value type, no pointer.
+- **Buttons**: `discord.NewPrimaryButton(label, customID)`, `discord.NewDangerButton(...)`, `discord.NewSecondaryButton(...)`. Action rows: `discord.NewActionRow(buttons...)`.
+- **Custom-ID routing**: message components use slug params (`LEADERBOARD/:page`) parsed by disgoplus into `ctx.MessageComponentOptions`.
 
 ## Testing
 
