@@ -142,11 +142,23 @@ func (m *LeaderboardModule) showLeaderboard(
 
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page-1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"◀️",
+				fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page-1),
+			),
+		)
 	}
 
 	if page < maxPage {
-		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page+1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"▶️",
+				fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page+1),
+			),
+		)
 	}
 
 	components := []discord.LayoutComponent{}
