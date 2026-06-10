@@ -2,8 +2,8 @@ package utils
 
 // TODO: test requires mock
 // ShowLeaderboard, LeaderboardCommandHandler, LeaderboardMessageComponentHandler,
-// doLeaderboardResponse, and doError all require a live *discordgoplus.Ctx and
-// *di.Container (which wraps a Discord session, bot state, and embed colour).
+// doLeaderboardResponse, and doError all require a live *disgoplus.Ctx and
+// *di.Container (which wraps a Discord client and embed colour).
 // They cannot be exercised here without a mock framework; integration-level
 // tests would need a fake container satisfying the DI interface.
 //
