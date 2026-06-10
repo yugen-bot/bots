@@ -463,9 +463,9 @@ func (s *StarboardService) createStarboard(
 		return
 	}
 
-	utils.LogIfErr(utils.Logger, "message-reaction-add",
+	utils.LogIfErrNoRateLimit(utils.Logger, "message-reaction-add",
 		s.client.Rest.AddReaction(targetChID, sent.ID, emojiAPIFormat(emojiName, emojiID)))
-	utils.LogIfErr(utils.Logger, "message-reaction-add",
+	utils.LogIfErrNoRateLimit(utils.Logger, "message-reaction-add",
 		s.client.Rest.AddReaction(msg.ChannelID, msg.ID, "🌟"))
 
 	utils.Logger.Infow("starboard: create starboard: created new starboard entry",
