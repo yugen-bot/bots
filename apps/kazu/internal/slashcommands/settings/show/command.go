@@ -4,23 +4,25 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ShowModule) show(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func boolPtr(b bool) *bool { return &b }
+
+func (m *ShowModule) show(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -64,50 +66,31 @@ func (m *ShowModule) show(ctx *discordgoplus.Ctx) {
 	}
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*discordgoplus.Bot),
-		&utils.CreateEmbedFooterParams{
-			IsVote: false,
-		},
+		bot,
+		&utils.CreateEmbedFooterParams{IsVote: false},
 		cfg.OwnerID,
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Color:       m.container.Get(static.DiEmbedColor).(int),
-		Title:       "Kazu settings",
-		Description: "These are the settings currently configured for Kazu",
-		Footer:      footer,
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   "Channel",
-				Value:  channelIDText,
-				Inline: true,
-			},
-			{
-				Name:   "Answers cooldown",
-				Value:  cooldownText,
-				Inline: true,
-			},
-			{
-				Name:   "Math",
-				Value:  mathText,
-				Inline: true,
-			},
-			{
-				Name:   "Shame role",
-				Value:  shameRoleIDText,
-				Inline: true,
-			},
-			{
-				Name:   "Remove shame role on highscore",
-				Value:  removeShameRoleAfterHighscoreText,
-				Inline: true,
-			},
-			{Name: "​", Value: "​", Inline: true},
-		},
-	}
+	embedColor := m.container.Get(static.DiEmbedColor).(int)
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Embeds: []*discordgo.MessageEmbed{embed},
-	}, true)
+	embed := discord.NewEmbed().
+		WithColor(embedColor).
+		WithTitle("Kazu settings").
+		WithDescription("These are the settings currently configured for Kazu").
+		WithEmbedFooter(footer).
+		WithFields(
+			discord.EmbedField{Name: "Channel", Value: channelIDText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Answers cooldown", Value: cooldownText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Math", Value: mathText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Shame role", Value: shameRoleIDText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Remove shame role on highscore", Value: removeShameRoleAfterHighscoreText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
+		)
+
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	})
 }

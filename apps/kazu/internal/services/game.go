@@ -8,9 +8,10 @@ import (
 
 	"errors"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/expr-lang/expr"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 
@@ -35,7 +36,7 @@ var (
 )
 
 type GameService struct {
-	bot      *discordgoplus.Bot
+	client   *disgoplus.Bot
 	cfg      *config.Config
 	database *ent.Client
 	settings *SettingsService
@@ -47,7 +48,7 @@ func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 
 	return &GameService{
-		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
+		client:   container.Get(static.DiClient).(*disgoplus.Bot),
 		cfg:      container.Get(static.DiConfig).(*config.Config),
 		database: container.Get(static.DiDatabase).(*ent.Client),
 		settings: container.Get(static.DiSettings).(*SettingsService),
@@ -57,7 +58,7 @@ func CreateGameService(container *di.Container) *GameService {
 }
 
 type ShameOptions struct {
-	message  *discordgo.Message
+	message  discord.Message
 	settings *ent.Settings
 }
 
@@ -75,10 +76,8 @@ func (s *GameService) Start(
 	if err != nil && !ent.IsNotFound(err) {
 		utils.Logger.Errorw(
 			"game: start: get current game failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
+			"error", err,
+			"guildID", guildID,
 		)
 		return g, started, err
 	}
@@ -87,10 +86,8 @@ func (s *GameService) Start(
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: start: get settings failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
+			"error", err,
+			"guildID", guildID,
 		)
 		return g, started, fmt.Errorf("game: start: get settings: %w", err)
 	}
@@ -100,24 +97,24 @@ func (s *GameService) Start(
 		err = ErrNoChannelIDConfigured
 		utils.Logger.Errorw(
 			"game: start: no channel id configured",
-			"error",
-			err,
-			"guildID",
-			guildID,
+			"error", err,
+			"guildID", guildID,
 		)
 		return g, started, err
 	}
 
-	channel, err := s.bot.Channel(*channelID)
+	channelSnowflake, err := snowflake.Parse(*channelID)
+	if err != nil {
+		return g, started, fmt.Errorf("game: start: parse channel id: %w", err)
+	}
+
+	channel, err := s.client.Client().Rest.GetChannel(channelSnowflake)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: start: get channel failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"channelID",
-			*channelID,
+			"error", err,
+			"guildID", guildID,
+			"channelID", *channelID,
 		)
 		return g, started, fmt.Errorf("game: start: get channel: %w", err)
 	}
@@ -151,28 +148,20 @@ func (s *GameService) Start(
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: start: create game failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
+			"error", err,
+			"guildID", guildID,
 		)
 		return g, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
-	b, err := s.bot.ShardByGuild(guildID)
-	if err != nil {
-		utils.Logger.Warnw("game: start: ShardByGuild failed", "error", err, "guildID", guildID)
-		return g, started, fmt.Errorf("game: start: ShardByGuild: %w", err)
-	}
-
-	self := b.State.User
+	self, _ := s.client.Client().Caches.SelfUser()
 
 	if number < 0 {
 		number = 0
 	}
 
 	_, err = s.database.History.Create().
-		SetUserID(self.ID).
+		SetUserID(self.ID.String()).
 		SetGameID(g.ID).
 		SetNumber(number).
 		Save(ctx)
@@ -180,14 +169,17 @@ func (s *GameService) Start(
 		return g, started, fmt.Errorf("game: start: create history: %w", err)
 	}
 
-	if channel.Type == discordgo.ChannelTypeGuildText ||
-		channel.Type == discordgo.ChannelTypeGuildPublicThread ||
-		channel.Type == discordgo.ChannelTypeGuildPrivateThread {
+	channelType := channel.Type()
+	if channelType == discord.ChannelTypeGuildText ||
+		channelType == discord.ChannelTypeGuildPublicThread ||
+		channelType == discord.ChannelTypeGuildPrivateThread {
 		go func() {
-			_, sendErr := b.ChannelMessageSend(
-				*channelID,
-				fmt.Sprintf(`**A new game has started!**
+			_, sendErr := s.client.Client().Rest.CreateMessage(
+				channelSnowflake,
+				discord.MessageCreate{
+					Content: fmt.Sprintf(`**A new game has started!**
 Start the count from **%d**`, number+1),
+				},
 			)
 			utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
 		}()
@@ -219,58 +211,53 @@ func (s *GameService) End(
 		lastShameUserID := shameOpts.settings.LastShameUserID
 		okLastShameUserID := lastShameUserID != nil
 
-		shameBot, shameErr := s.bot.ShardByGuild(shameOpts.settings.GuildID)
-		if shameErr != nil {
-			utils.Logger.Warnw("game: end: ShardByGuild failed for shame", "error", shameErr, "guildID", shameOpts.settings.GuildID)
-			shameBot = s.bot
-		}
+		guildSnowflake, parseErr := snowflake.Parse(shameOpts.settings.GuildID)
+		if parseErr != nil {
+			utils.Logger.Warnw("game: end: parse guild id failed", "error", parseErr, "guildID", shameOpts.settings.GuildID)
+		} else {
+			if okLastShameUserID && okRoleID {
+				lastUserSnowflake, lastUserErr := snowflake.Parse(*lastShameUserID)
+				roleSnowflake, roleErr := snowflake.Parse(*roleID)
+				if lastUserErr == nil && roleErr == nil {
+					go func() {
+						utils.LogIfErr(
+							utils.Logger,
+							"guild-member-role-remove",
+							s.client.Client().Rest.RemoveMemberRole(guildSnowflake, lastUserSnowflake, roleSnowflake),
+						)
+					}()
+				}
+			}
 
-		if okLastShameUserID && okRoleID {
-			go func() {
-				utils.LogIfErr(
-					utils.Logger,
-					"guild-member-role-remove",
-					shameBot.GuildMemberRoleRemove(
-						shameOpts.settings.GuildID,
-						*lastShameUserID,
-						*roleID,
-					),
-				)
-			}()
-		}
-
-		if okRoleID {
-			go func() {
-				utils.LogIfErr(
-					utils.Logger,
-					"guild-member-role-add",
-					shameBot.GuildMemberRoleAdd(
-						shameOpts.settings.GuildID,
-						shameOpts.message.Author.ID,
-						*roleID,
-					),
-				)
-			}()
+			if okRoleID {
+				authorSnowflake, authorErr := snowflake.Parse(shameOpts.message.Author.ID.String())
+				roleSnowflake, roleErr := snowflake.Parse(*roleID)
+				if authorErr == nil && roleErr == nil {
+					go func() {
+						utils.LogIfErr(
+							utils.Logger,
+							"guild-member-role-add",
+							s.client.Client().Rest.AddMemberRole(guildSnowflake, authorSnowflake, roleSnowflake),
+						)
+					}()
+				}
+			}
 		}
 
 		_, err = s.settings.Update(
 			ctx,
 			shameOpts.settings.ID,
 			func(u *ent.SettingsUpdateOne) {
-				u.SetLastShameUserID(shameOpts.message.Author.ID)
+				u.SetLastShameUserID(shameOpts.message.Author.ID.String())
 			},
 		)
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: end: update shame settings failed",
-				"error",
-				err,
-				"guildID",
-				shameOpts.settings.GuildID,
-				"gameID",
-				gameID,
-				"userID",
-				shameOpts.message.Author.ID,
+				"error", err,
+				"guildID", shameOpts.settings.GuildID,
+				"gameID", gameID,
+				"userID", shameOpts.message.Author.ID.String(),
 			)
 			return g, fmt.Errorf("game: end: update shame settings: %w", err)
 		}
@@ -281,7 +268,7 @@ func (s *GameService) End(
 
 func (s *GameService) ParseNumber(
 	ctx context.Context,
-	message *discordgo.Message,
+	message discord.Message,
 	math bool,
 ) (i int, err error) {
 	if message.Author.Bot {
@@ -343,17 +330,15 @@ func (s *GameService) AddNumber(
 	ctx context.Context,
 	guildID string,
 	number int,
-	message *discordgo.Message,
+	message discord.Message,
 	guildSettings *ent.Settings,
 ) {
 	g, exists, err := s.GetCurrentGame(ctx, guildID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: add number: get current game failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
+			"error", err,
+			"guildID", guildID,
 		)
 		return
 	}
@@ -366,31 +351,22 @@ func (s *GameService) AddNumber(
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: add number: get last history failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"gameID",
-			g.ID,
+			"error", err,
+			"guildID", guildID,
+			"gameID", g.ID,
 		)
 		return
 	}
 
-	b, shardErr := s.bot.ShardByGuild(guildID)
-	if shardErr != nil {
-		utils.Logger.Errorw("game: add number: ShardByGuild failed", "error", shardErr, "guildID", guildID)
-		return
-	}
-
 	isNextNumber := number == h.Number+1
-	isSameUser := message.Author.ID == h.UserID &&
+	isSameUser := message.Author.ID.String() == h.UserID &&
 		s.cfg.Env != "development"
 
 	if !isNextNumber || isSameUser {
 		// Build failure reason
 		failReason := fmt.Sprintf(
 			"<@%s> counted twice in a row!",
-			message.Author.ID,
+			message.Author.ID.String(),
 		)
 		if !isNextNumber {
 			failReason = fmt.Sprintf("%d is not the next number!", number)
@@ -399,21 +375,17 @@ func (s *GameService) AddNumber(
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			b.MessageReactionAdd(message.ChannelID, message.ID, "❌"),
+			s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, "❌"),
 		)
 
-		saves, err := s.saves.GetSaves(ctx, guildSettings, message.Author.ID)
+		saves, err := s.saves.GetSaves(ctx, guildSettings, message.Author.ID.String())
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add number: get saves failed",
-				"error",
-				err,
-				"guildID",
-				guildID,
-				"userID",
-				message.Author.ID,
-				"messageID",
-				message.ID,
+				"error", err,
+				"guildID", guildID,
+				"userID", message.Author.ID.String(),
+				"messageID", message.ID.String(),
 			)
 			return
 		}
@@ -421,39 +393,42 @@ func (s *GameService) AddNumber(
 		if saves.player >= 1 {
 			leftoverSaves, maxSaves, err := s.saves.DeductSaveFromPlayer(
 				ctx,
-				message.Author.ID,
+				message.Author.ID.String(),
 				1,
 			)
 			if err != nil {
 				utils.Logger.Errorw(
 					"game: add number: deduct player save failed",
-					"error",
-					err,
-					"guildID",
-					guildID,
-					"userID",
-					message.Author.ID,
+					"error", err,
+					"guildID", guildID,
+					"userID", message.Author.ID.String(),
 				)
 				return
 			}
 
+			msgID := message.ID
+			channelID := message.ChannelID
+			guildIDPtr := message.GuildID
+
 			go func() {
-				_, sendErr := b.ChannelMessageSendReply(
-					message.ChannelID,
-					fmt.Sprintf(
-						`%s
+				_, sendErr := s.client.Client().Rest.CreateMessage(
+					channelID,
+					discord.MessageCreate{
+						Content: fmt.Sprintf(
+							`%s
 Used **1 of your own** saves, You have **%s/%s** saves left.`,
-						failReason,
-						strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-						strconv.FormatFloat(maxSaves, 'f', -1, 64),
-					),
-					message.Reference(),
+							failReason,
+							strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+							strconv.FormatFloat(maxSaves, 'f', -1, 64),
+						),
+						MessageReference: &discord.MessageReference{
+							MessageID: &msgID,
+							ChannelID: &channelID,
+							GuildID:   guildIDPtr,
+						},
+					},
 				)
-				utils.LogIfErr(
-					utils.Logger,
-					"channel-message-send-reply",
-					sendErr,
-				)
+				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 			}()
 
 			return
@@ -462,7 +437,7 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 		if saves.guild >= 1 {
 			leftoverSaves, maxSaves, err := s.saves.DeductSaveFromGuild(
 				ctx,
-				message.GuildID,
+				message.GuildID.String(),
 				guildSettings,
 				1,
 			)
@@ -471,28 +446,34 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 					"game: add number: deduct guild save failed",
 					"error", err,
 					"guildID", guildID,
-					"userID", message.Author.ID,
+					"userID", message.Author.ID.String(),
 				)
 				return
 			}
 
+			msgID := message.ID
+			channelID := message.ChannelID
+			guildIDPtr := message.GuildID
+
 			go func() {
-				_, sendErr := b.ChannelMessageSendReply(
-					message.ChannelID,
-					fmt.Sprintf(
-						`%s
+				_, sendErr := s.client.Client().Rest.CreateMessage(
+					channelID,
+					discord.MessageCreate{
+						Content: fmt.Sprintf(
+							`%s
 Used **1 server** save, There are **%s/%s** server saves left.`,
-						failReason,
-						strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-						strconv.FormatFloat(maxSaves, 'f', -1, 64),
-					),
-					message.Reference(),
+							failReason,
+							strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+							strconv.FormatFloat(maxSaves, 'f', -1, 64),
+						),
+						MessageReference: &discord.MessageReference{
+							MessageID: &msgID,
+							ChannelID: &channelID,
+							GuildID:   guildIDPtr,
+						},
+					},
 				)
-				utils.LogIfErr(
-					utils.Logger,
-					"channel-message-send-reply",
-					sendErr,
-				)
+				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 			}()
 
 			return
@@ -502,12 +483,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add number: check streak failed",
-				"error",
-				err,
-				"guildID",
-				guildID,
-				"gameID",
-				g.ID,
+				"error", err,
+				"guildID", guildID,
+				"gameID", g.ID,
 			)
 			return
 		}
@@ -527,7 +505,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 				s.points.RemoveGamePoints(
 					ctx,
 					guildID,
-					message.Author.ID,
+					message.Author.ID.String(),
 					pointsRemoved,
 				),
 			)
@@ -548,25 +526,35 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			pointText,
 		)
 
+		msgID := message.ID
+		channelID := message.ChannelID
+		guildIDPtr := message.GuildID
+
 		go func() {
-			_, sendErr := b.ChannelMessageSendReply(
-				message.ChannelID,
-				fmt.Sprintf(
-					`%s
+			_, sendErr := s.client.Client().Rest.CreateMessage(
+				channelID,
+				discord.MessageCreate{
+					Content: fmt.Sprintf(
+						`%s
 **The game has ended on a streak of %d!**%s%s
 
 **Want to save the game?** Make sure to **/vote** for Kazu and earn yourself saves to save the game!`,
-					failReason,
-					number,
-					highScoreText,
-					pointsRemovedText,
-				),
-				message.Reference(),
+						failReason,
+						number,
+						highScoreText,
+						pointsRemovedText,
+					),
+					MessageReference: &discord.MessageReference{
+						MessageID: &msgID,
+						ChannelID: &channelID,
+						GuildID:   guildIDPtr,
+					},
+				},
 			)
 			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 		}()
 
-		shame := ShameOptions{
+		shameOpts := ShameOptions{
 			message:  message,
 			settings: guildSettings,
 		}
@@ -576,13 +564,13 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			game.TypeNORMAL,
 			1,
 			true,
-			&shame,
+			&shameOpts,
 		); startErr != nil {
 			utils.Logger.Warnw(
 				"game: add number: restart failed",
 				"error", startErr,
 				"guildID", guildID,
-				"userID", message.Author.ID,
+				"userID", message.Author.ID.String(),
 			)
 		}
 
@@ -590,21 +578,17 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 
 	cooldown, err := s.checkCooldown(ctx,
-		message.Author.ID,
+		message.Author.ID.String(),
 		g.ID,
 		guildSettings.Cooldown,
 	)
 	if err != nil && !ent.IsNotFound(err) {
 		utils.Logger.Errorw(
 			"game: add number: check cooldown failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"gameID",
-			g.ID,
-			"userID",
-			message.Author.ID,
+			"error", err,
+			"guildID", guildID,
+			"gameID", g.ID,
+			"userID", message.Author.ID.String(),
 		)
 		return
 	}
@@ -628,29 +612,25 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		utils.LogIfErr(
 			utils.Logger,
 			"add-game-points",
-			s.points.AddGamePoints(ctx, guildID, message.Author.ID, 1),
+			s.points.AddGamePoints(ctx, guildID, message.Author.ID.String(), 1),
 		)
 	}()
 
+	msgIDStr := message.ID.String()
 	_, err = s.database.History.Create().
-		SetUserID(message.Author.ID).
+		SetUserID(message.Author.ID.String()).
 		SetGameID(g.ID).
 		SetNumber(number).
-		SetNillableMessageID(&message.ID).
+		SetNillableMessageID(&msgIDStr).
 		Save(ctx)
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: add number: create history failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"gameID",
-			g.ID,
-			"userID",
-			message.Author.ID,
-			"messageID",
-			message.ID,
+			"error", err,
+			"guildID", guildID,
+			"gameID", g.ID,
+			"userID", message.Author.ID.String(),
+			"messageID", message.ID.String(),
 		)
 		return
 	}
@@ -665,12 +645,9 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: add number: check streak failed after history",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"gameID",
-			g.ID,
+			"error", err,
+			"guildID", guildID,
+			"gameID", g.ID,
 		)
 	}
 
@@ -678,7 +655,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			b.MessageReactionAdd(message.ChannelID, message.ID, "🎉"),
+			s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, "🎉"),
 		)
 		go func() {
 			utils.LogIfErr(
@@ -697,25 +674,31 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	utils.LogIfErr(
 		utils.Logger,
 		"message-reaction-add",
-		b.MessageReactionAdd(message.ChannelID, message.ID, emoji),
+		s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, emoji),
 	)
 	s.checkSpecialReactions(message, number)
 }
 
 func (s *GameService) IsEqualToLast(
 	ctx context.Context,
-	message *discordgo.Message,
+	message discord.Message,
 	guildSettings *ent.Settings,
 	isDelete bool,
 ) (ok bool, number int) {
 	ok = true
 	number = -1
 
-	if message == nil {
+	// nil guard: zero ID means no message
+	if message.ID == 0 {
 		return ok, number
 	}
 
-	g, exists, err := s.GetCurrentGame(ctx, message.GuildID)
+	guildID := ""
+	if message.GuildID != nil {
+		guildID = message.GuildID.String()
+	}
+
+	g, exists, err := s.GetCurrentGame(ctx, guildID)
 	if err != nil || !exists {
 		utils.Logger.Info("Couldnt find game", err)
 		return ok, number
@@ -731,7 +714,7 @@ func (s *GameService) IsEqualToLast(
 		return ok, number
 	}
 
-	if *h.MessageID != message.ID {
+	if *h.MessageID != message.ID.String() {
 		return ok, number
 	}
 
@@ -879,22 +862,16 @@ func (s *GameService) checkCooldown(
 }
 
 func (s *GameService) replyAndDelete(
-	message *discordgo.Message,
+	message discord.Message,
 	messageToSend string,
 	deleteAfter bool,
 	emoji string,
 ) {
-	b, err := s.bot.ShardByChannel(message.ChannelID)
-	if err != nil {
-		utils.Logger.Errorw("game: reply and delete: ShardByChannel failed", "error", err, "channelID", message.ChannelID)
-		return
-	}
-
 	if len(emoji) > 0 {
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			b.MessageReactionAdd(
+			s.client.Client().Rest.AddReaction(
 				message.ChannelID,
 				message.ID,
 				emoji,
@@ -902,40 +879,47 @@ func (s *GameService) replyAndDelete(
 		)
 	}
 
-	sentMessage, sendErr := b.ChannelMessageSendReply(
+	msgID := message.ID
+	channelID := message.ChannelID
+	guildIDPtr := message.GuildID
+
+	sentMessage, sendErr := s.client.Client().Rest.CreateMessage(
 		message.ChannelID,
-		messageToSend,
-		message.Reference(),
+		discord.MessageCreate{
+			Content: messageToSend,
+			MessageReference: &discord.MessageReference{
+				MessageID: &msgID,
+				ChannelID: &channelID,
+				GuildID:   guildIDPtr,
+			},
+		},
 	)
 	if sendErr != nil {
 		utils.Logger.Errorw(
 			"game: reply and delete: send reply failed",
-			"error",
-			sendErr,
-			"channelID",
-			message.ChannelID,
-			"messageID",
-			message.ID,
+			"error", sendErr,
+			"channelID", message.ChannelID.String(),
+			"messageID", message.ID.String(),
 		)
 		return
 	}
 
 	if deleteAfter {
+		sentMsgID := sentMessage.ID
+		sentChannelID := sentMessage.ChannelID
 		time.AfterFunc(time.Second*5, func() {
 			utils.LogIfErr(
 				utils.Logger,
 				"channel-message-delete",
-				b.ChannelMessageDelete(
-					sentMessage.ChannelID,
-					sentMessage.ID,
+				s.client.Client().Rest.DeleteMessage(
+					sentChannelID,
+					sentMsgID,
 				),
 			)
 		})
 	}
 }
 
-// specialEmojisForNumber returns the extra emoji reactions a number earns.
-// Pure function — no side effects; tested directly.
 func (s *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, h int, err error) {
 	gameResult, err := s.database.Game.Query().
 		Where(game.GuildIDIn(guildIDs...)).
@@ -979,6 +963,28 @@ func (s *GameService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
 		Strings(ctx)
 }
 
+// specialEmojisForNumber returns the extra emoji reactions a number earns.
+// Pure function — no side effects; tested directly.
+func (s *GameService) checkSpecialReactions(
+	message discord.Message,
+	number int,
+) {
+	for _, emoji := range specialEmojisForNumber(number) {
+		emoji := emoji
+		go func() {
+			utils.LogIfErr(
+				utils.Logger,
+				"message-reaction-add",
+				s.client.Client().Rest.AddReaction(
+					message.ChannelID,
+					message.ID,
+					emoji,
+				),
+			)
+		}()
+	}
+}
+
 func specialEmojisForNumber(number int) []string {
 	var emojis []string
 
@@ -1010,30 +1016,4 @@ func specialEmojisForNumber(number int) []string {
 	}
 
 	return emojis
-}
-
-func (s *GameService) checkSpecialReactions(
-	message *discordgo.Message,
-	number int,
-) {
-	b, err := s.bot.ShardByGuild(message.GuildID)
-	if err != nil {
-		utils.Logger.Errorw("game: check special reactions: ShardByGuild failed", "error", err, "guildID", message.GuildID)
-		return
-	}
-
-	for _, emoji := range specialEmojisForNumber(number) {
-		emoji := emoji
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"message-reaction-add",
-				b.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					emoji,
-				),
-			)
-		}()
-	}
 }

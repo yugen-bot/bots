@@ -2,7 +2,7 @@
 package admin
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	prunegames "jurien.dev/yugen/kazu/internal/slashcommands/admin/prune-games"
@@ -13,7 +13,7 @@ import (
 )
 
 type adminSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 // AdminModule is the group root for /admin.
@@ -38,21 +38,21 @@ func GetAdminModule(container *di.Container) *AdminModule {
 }
 
 // Commands returns the /admin command with all sub-commands wired in.
-func (m *AdminModule) Commands() []*discordgoplus.Command {
-	var subCommands []*discordgoplus.Command
+func (m *AdminModule) Commands() []*disgoplus.Command {
+	var subCommands []*disgoplus.Command
 	for _, sub := range m.subModules {
 		subCommands = append(subCommands, sub.Commands()...)
 	}
 
-	return []*discordgoplus.Command{
+	return []*disgoplus.Command{
 		{
 			Name:        "admin",
 			Description: "Admin commands",
 			GuildID:     m.devGuildID,
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.OwnerMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.OwnerMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(subCommands),
+			SubCommands: disgoplus.NewRouter(subCommands),
 		},
 	}
 }

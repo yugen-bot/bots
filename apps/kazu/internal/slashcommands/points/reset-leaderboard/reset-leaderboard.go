@@ -2,8 +2,8 @@
 package resetleaderboard
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/middlewares"
@@ -15,30 +15,29 @@ import (
 
 type ResetLeaderboardModule struct {
 	container *di.Container
-	bot       *discordgoplus.Bot
+	bot       *disgoplus.Bot
 	points    *services.PointsService
 }
 
 func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
-		bot:       container.Get(static.DiBot).(*discordgoplus.Bot),
+		bot:       container.Get(static.DiClient).(*disgoplus.Bot),
 		points:    container.Get(local.DiPoints).(*services.PointsService),
 	}
 }
 
-func (m *ResetLeaderboardModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ResetLeaderboardModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "reset-leaderboard",
 			Description: "Reset all player points & completely reset the leaderboard.",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
 			},
-			Handler: discordgoplus.HandlerFunc(m.request),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
+			Handler: disgoplus.HandlerFunc(m.request),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionUser{
 					Name:        "member",
 					Description: "The member to reset from the leaderboard.",
 					Required:    false,
@@ -48,20 +47,21 @@ func (m *ResetLeaderboardModule) Commands() []*discordgoplus.Command {
 	}
 }
 
-func (m *ResetLeaderboardModule) MessageComponents() []*discordgoplus.MessageComponent {
-	return []*discordgoplus.MessageComponent{
+func (m *ResetLeaderboardModule) MessageComponents() []*disgoplus.MessageComponent {
+	return []*disgoplus.MessageComponent{
 		{
 			CustomID: "RESET_LEADERBOARD/:reset/:userID",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
 			},
-			Handler: discordgoplus.HandlerFunc(m.reset),
+			Handler: disgoplus.HandlerFunc(m.reset),
 		},
 	}
 }
 
-func (m *ResetLeaderboardModule) errResponse(ctx *discordgoplus.Ctx) {
-	discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+func (m *ResetLeaderboardModule) errResponse(ctx *disgoplus.Ctx) {
+	disgoplus.Respond(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: "Something wen't wrong, try again later.",
+		Flags:   discord.MessageFlagEphemeral,
 	})
 }

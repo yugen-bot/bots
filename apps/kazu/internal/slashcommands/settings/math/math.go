@@ -2,8 +2,8 @@
 package mathsetting
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -25,15 +25,14 @@ func GetMathSettingModule(container *di.Container) *MathSettingModule {
 }
 
 // Commands returns the math command definition.
-func (m *MathSettingModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *MathSettingModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "math",
 			Description: "Set wether Kazu will try to parse math.",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionBool{
 					Name:        "enabled",
 					Description: "Wether Kazu will try to parse math.",
 					Required:    true,

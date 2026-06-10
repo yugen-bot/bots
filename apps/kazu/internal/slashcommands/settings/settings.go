@@ -2,7 +2,7 @@
 package settings
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/slashcommands/settings/channel"
@@ -17,11 +17,11 @@ import (
 // SettingsModule is the group root for the /settings command.
 type SettingsModule struct {
 	container   *di.Container
-	subCommands []*discordgoplus.Command
+	subCommands []*disgoplus.Command
 }
 
 type settingsSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 // GetSettingsModule constructs a SettingsModule from the DI container.
@@ -35,7 +35,7 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 		reset.GetResetModule(container),
 	}
 
-	var subCommands []*discordgoplus.Command
+	var subCommands []*disgoplus.Command
 	for _, m := range subModules {
 		subCommands = append(subCommands, m.Commands()...)
 	}
@@ -47,15 +47,15 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 }
 
 // Commands returns the /settings command group definition.
-func (m *SettingsModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SettingsModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "settings",
 			Description: "Settings command group",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(m.subCommands),
+			SubCommands: disgoplus.NewRouter(m.subCommands),
 		},
 	}
 }

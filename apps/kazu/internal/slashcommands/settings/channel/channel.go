@@ -2,8 +2,8 @@
 package channel
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -25,15 +25,14 @@ func GetChannelModule(container *di.Container) *ChannelModule {
 }
 
 // Commands returns the channel command definition.
-func (m *ChannelModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ChannelModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "channel",
 			Description: "Set the channel Kazu will run in",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionChannel,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionChannel{
 					Name:        "channel",
 					Description: "The channel kazu will run in",
 					Required:    true,

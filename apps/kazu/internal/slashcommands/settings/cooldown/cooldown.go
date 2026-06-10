@@ -2,8 +2,8 @@
 package cooldown
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -25,23 +25,22 @@ func GetCooldownModule(container *di.Container) *CooldownModule {
 }
 
 // Commands returns the cooldown command definition.
-func (m *CooldownModule) Commands() []*discordgoplus.Command {
-	minValue := 0.0
-	maxValue := 3600.0
+func (m *CooldownModule) Commands() []*disgoplus.Command {
+	minValue := 0
+	maxValue := 3600
 
-	return []*discordgoplus.Command{
+	return []*disgoplus.Command{
 		{
 			Name:        "cooldown",
 			Description: "Set the cooldown between answers.",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "seconds",
 					Description: "The amount of seconds between answers.",
 					Required:    true,
 					MinValue:    &minValue,
-					MaxValue:    maxValue,
+					MaxValue:    &maxValue,
 				},
 			},
 		},

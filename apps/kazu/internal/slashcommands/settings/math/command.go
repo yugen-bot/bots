@@ -4,23 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *MathSettingModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *MathSettingModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
-	enabled := ctx.Options["enabled"].BoolValue()
+	enabled := ctx.CommandData.Bool("enabled")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -30,7 +30,7 @@ func (m *MathSettingModule) set(ctx *discordgoplus.Ctx) {
 		func(u *ent.SettingsUpdateOne) { u.SetMath(enabled) },
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -39,7 +39,8 @@ func (m *MathSettingModule) set(ctx *discordgoplus.Ctx) {
 		valueText = "enabled"
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: fmt.Sprintf("I **%s** math from being parsed.", valueText),
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

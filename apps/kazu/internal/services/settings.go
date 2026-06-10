@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
+	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/ent/settings"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
-
-	"github.com/jurienhamaker/discordgoplus"
-	"github.com/sarulabs/di/v2"
 )
 
 type SettingsService struct {
 	database *ent.Client
-	bot      *discordgoplus.Bot
+	client   *disgoplus.Bot
 }
 
 func CreateSettingsService(container *di.Container) *SettingsService {
@@ -24,7 +25,7 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 
 	return &SettingsService{
 		database: container.Get(static.DiDatabase).(*ent.Client),
-		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
+		client:   container.Get(static.DiClient).(*disgoplus.Bot),
 	}
 }
 
@@ -75,25 +76,35 @@ func (s *SettingsService) ResetShame(
 	ctx context.Context,
 	guildID string,
 ) error {
-	settings, err := s.GetByGuildID(ctx, guildID)
+	guildSettings, err := s.GetByGuildID(ctx, guildID)
 	if err != nil {
 		return fmt.Errorf("settings: reset shame: %w", err)
 	}
 
-	if settings.ShameRoleID == nil {
+	if guildSettings.ShameRoleID == nil {
 		return nil
 	}
 
-	if settings.LastShameUserID == nil {
+	if guildSettings.LastShameUserID == nil {
 		return nil
 	}
 
-	b, err := s.bot.ShardByGuild(guildID)
+	guildSnowflake, err := snowflake.Parse(guildID)
 	if err != nil {
-		b = s.bot
+		return fmt.Errorf("settings: reset shame: parse guild id: %w", err)
 	}
 
-	return b.GuildMemberRoleRemove(guildID, *settings.LastShameUserID, *settings.ShameRoleID)
+	userSnowflake, err := snowflake.Parse(*guildSettings.LastShameUserID)
+	if err != nil {
+		return fmt.Errorf("settings: reset shame: parse user id: %w", err)
+	}
+
+	roleSnowflake, err := snowflake.Parse(*guildSettings.ShameRoleID)
+	if err != nil {
+		return fmt.Errorf("settings: reset shame: parse role id: %w", err)
+	}
+
+	return s.client.Client().Rest.RemoveMemberRole(guildSnowflake, userSnowflake, roleSnowflake)
 }
 
 func (s *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {

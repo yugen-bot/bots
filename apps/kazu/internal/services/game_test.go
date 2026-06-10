@@ -8,17 +8,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/expr-lang/expr"
 )
 
-// newMsg is a helper that builds a minimal *discordgo.Message for testing
+// newMsg is a helper that builds a minimal discord.Message for testing
 // ParseNumber without requiring any DI, database, or Discord session.
-func newMsg(content string, isBot bool) *discordgo.Message {
-	return &discordgo.Message{
+func newMsg(content string, isBot bool) discord.Message {
+	return discord.Message{
 		Content: content,
-		Author: &discordgo.User{
-			ID:  "123",
+		Author: discord.User{
+			ID:  snowflake.ID(123),
 			Bot: isBot,
 		},
 	}

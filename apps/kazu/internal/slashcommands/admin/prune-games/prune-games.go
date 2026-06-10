@@ -2,8 +2,8 @@
 package prunegames
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -15,7 +15,7 @@ import (
 type PruneGamesModule struct {
 	container *di.Container
 	games     *services.GameService
-	bot       *discordgoplus.Bot
+	bot       *disgoplus.Bot
 }
 
 // GetPruneGamesModule constructs a PruneGamesModule from the DI container.
@@ -23,20 +23,19 @@ func GetPruneGamesModule(container *di.Container) *PruneGamesModule {
 	return &PruneGamesModule{
 		container: container,
 		games:     container.Get(localStatic.DiGame).(*services.GameService),
-		bot:       container.Get(static.DiBot).(*discordgoplus.Bot),
+		bot:       container.Get(static.DiClient).(*disgoplus.Bot),
 	}
 }
 
 // Commands returns the prune-games command definition.
-func (m *PruneGamesModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *PruneGamesModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "prune-games",
 			Description: "List or delete games/history for guilds the bot is no longer in",
-			Handler:     discordgoplus.HandlerFunc(m.run),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+			Handler:     disgoplus.HandlerFunc(m.run),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionBool{
 					Name:        "delete",
 					Description: "Delete the orphan games instead of listing them",
 					Required:    false,

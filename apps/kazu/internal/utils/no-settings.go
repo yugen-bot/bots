@@ -3,8 +3,8 @@ package utils
 import (
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
@@ -21,39 +21,38 @@ const NoSettingsDescription = `Someone with ` + "`Manage Server`" + ` permission
 That's it! Have fun playing!`
 
 func NoSettingsReply(
-	ctx *discordgoplus.Ctx,
+	ctx *disgoplus.Ctx,
 	container *di.Container,
 	ephemeral bool,
 ) {
 	cfg := container.Get(static.DiConfig).(*config.Config)
+	bot := container.Get(static.DiClient).(*disgoplus.Bot)
 	footer := shared.CreateEmbedFooter(
-		container.Get(static.DiBot).(*discordgoplus.Bot),
+		bot,
 		&shared.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Color: container.Get(static.DiEmbedColor).(int),
-		Title: "Kazu Setup",
-		Description: fmt.Sprintf(
+	embedColor := container.Get(static.DiEmbedColor).(int)
+
+	embed := discord.NewEmbed().
+		WithColor(embedColor).
+		WithTitle("Kazu Setup").
+		WithDescription(fmt.Sprintf(
 			"Kazu has not yet been set up in this server! %s",
 			NoSettingsDescription,
-		),
-		Footer: footer,
-	}
+		)).
+		WithEmbedFooter(footer)
 
+	flags := discord.MessageFlags(0)
 	if ephemeral {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Embeds: []*discordgo.MessageEmbed{embed},
-			Flags:  discordgo.MessageFlagsEphemeral,
-		}, true)
-
-		return
+		flags = discord.MessageFlagEphemeral
 	}
 
-	discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{embed},
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		Embeds: []discord.Embed{embed},
+		Flags:  flags,
 	})
 }

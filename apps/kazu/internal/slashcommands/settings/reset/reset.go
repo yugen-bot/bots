@@ -2,35 +2,20 @@
 package reset
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
 	"jurien.dev/yugen/shared/static"
 )
 
-var choices = []*discordgo.ApplicationCommandOptionChoice{
-	{
-		Name:  "Channel",
-		Value: "channelID",
-	},
-	{
-		Name:  "Cooldown",
-		Value: "cooldown",
-	},
-	{
-		Name:  "Math",
-		Value: "math",
-	},
-	{
-		Name:  "Shame role",
-		Value: "shameRoleID",
-	},
-	{
-		Name:  "Remove shame role on highscore",
-		Value: "removeShameRoleAfterHighscore",
-	},
+var choices = []discord.ApplicationCommandOptionChoiceString{
+	{Name: "Channel", Value: "channelID"},
+	{Name: "Cooldown", Value: "cooldown"},
+	{Name: "Math", Value: "math"},
+	{Name: "Shame role", Value: "shameRoleID"},
+	{Name: "Remove shame role on highscore", Value: "removeShameRoleAfterHighscore"},
 }
 
 // ResetModule handles the settings reset leaf command.
@@ -48,15 +33,14 @@ func GetResetModule(container *di.Container) *ResetModule {
 }
 
 // Commands returns the reset command definition.
-func (m *ResetModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ResetModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "reset",
 			Description: "Reset a Kazu setting to it's default value.",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "setting",
 					Description: "The setting to reset to it's default value.",
 					Required:    true,

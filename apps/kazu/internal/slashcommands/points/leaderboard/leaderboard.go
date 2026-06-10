@@ -2,7 +2,7 @@
 package leaderboard
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/utils"
@@ -23,12 +23,12 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 	}
 }
 
-func (m *LeaderboardModule) Commands() []*discordgoplus.Command {
-	return utils.GetLeaderboardCommands(discordgoplus.HandlerFunc(m.command))
+func (m *LeaderboardModule) Commands() []*disgoplus.Command {
+	return utils.GetLeaderboardCommands(disgoplus.HandlerFunc(m.command))
 }
 
-func (m *LeaderboardModule) MessageComponents() []*discordgoplus.MessageComponent {
+func (m *LeaderboardModule) MessageComponents() []*disgoplus.MessageComponent {
 	return utils.GetLeaderboardMessageComponents(
-		discordgoplus.HandlerFunc(m.messageComponent),
+		disgoplus.HandlerFunc(m.messageComponent),
 	)
 }

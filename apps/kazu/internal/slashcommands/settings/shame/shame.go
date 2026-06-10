@@ -2,8 +2,8 @@
 package shame
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -25,15 +25,14 @@ func GetShameModule(container *di.Container) *ShameModule {
 }
 
 // Commands returns the shame-role and remove-shame-role-on-highscore command definitions.
-func (m *ShameModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ShameModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "shame-role",
 			Description: "Set shame role Kazu will apply on failure.",
-			Handler:     discordgoplus.HandlerFunc(m.setRole),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionRole,
+			Handler:     disgoplus.HandlerFunc(m.setRole),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionRole{
 					Name:        "role",
 					Description: "The role Kazu will apply on failure.",
 					Required:    true,
@@ -43,10 +42,9 @@ func (m *ShameModule) Commands() []*discordgoplus.Command {
 		{
 			Name:        "remove-shame-role-on-highscore",
 			Description: "Set wether Kazu will reset the shame role after a highscore is reached.",
-			Handler:     discordgoplus.HandlerFunc(m.setRemoveShameRole),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+			Handler:     disgoplus.HandlerFunc(m.setRemoveShameRole),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionBool{
 					Name:        "remove",
 					Description: "Wether Kazu will remove the shame role when a highscore is reached.",
 					Required:    true,

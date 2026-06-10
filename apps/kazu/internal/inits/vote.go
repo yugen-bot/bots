@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 
@@ -20,22 +22,9 @@ func CreateVoteHandler(
 	container *di.Container,
 ) func(userID string, source string) error {
 	saves := container.Get(localStatic.DiSaves).(*services.SavesService)
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
-	shard, _ := bot.ShardByShardID(0)
+	bot := container.Get(static.DiClient).(*disgoplus.Bot)
 
 	return func(userID string, source string) error {
-		user, err := shard.User(userID)
-		if err != nil {
-			utils.Logger.Errorw(
-				"vote handler: get user failed",
-				"error",
-				err,
-				"userID",
-				userID,
-			)
-			return err
-		}
-
 		utils.Logger.With(
 			"userID", userID,
 			"source", source,
@@ -48,26 +37,38 @@ func CreateVoteHandler(
 			amount = localStatic.VoteRewardWeekend
 		}
 
-		saves, maxSaves, err := saves.AddSaveToPlayer(
+		playerSaves, maxSaves, err := saves.AddSaveToPlayer(
 			context.Background(),
-			user.ID,
+			userID,
 			amount,
 		)
-
-		userChannel, err := shard.UserChannelCreate(userID)
 		if err != nil {
+			utils.Logger.Errorw(
+				"vote handler: add save to player failed",
+				"error", err,
+				"userID", userID,
+			)
 			return err
 		}
 
-		_, err = shard.ChannelMessageSend(
-			userChannel.ID,
-			fmt.Sprintf(
+		userSnowflake, err := snowflake.Parse(userID)
+		if err != nil {
+			return fmt.Errorf("vote handler: parse user id: %w", err)
+		}
+
+		dmChannel, err := bot.Client().Rest.CreateDMChannel(userSnowflake)
+		if err != nil {
+			return fmt.Errorf("vote handler: create dm channel: %w", err)
+		}
+
+		_, err = bot.Client().Rest.CreateMessage(dmChannel.ID(), discord.MessageCreate{
+			Content: fmt.Sprintf(
 				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Kazu grow!\n\n**You have %s/%s saves available to use with Kazu!**",
 				source,
-				strconv.FormatFloat(saves, 'f', -1, 64),
+				strconv.FormatFloat(playerSaves, 'f', -1, 64),
 				strconv.FormatFloat(maxSaves, 'f', -1, 64),
 			),
-		)
+		})
 
 		return err
 	}
@@ -84,10 +85,8 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 		if err != nil {
 			utils.Logger.Errorw(
 				"vote reward: get player saves failed",
-				"error",
-				err,
-				"userID",
-				userID,
+				"error", err,
+				"userID", userID,
 			)
 			return ""
 		}

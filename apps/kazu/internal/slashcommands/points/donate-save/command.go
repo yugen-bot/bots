@@ -5,21 +5,21 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	local "jurien.dev/yugen/kazu/internal/static"
 )
 
-func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
-	err := discordgoplus.Defer(ctx, true)
+func (m *DonateSaveModule) donateSave(ctx *disgoplus.Ctx) {
+	err := disgoplus.Defer(ctx, true)
 	if err != nil {
 		return
 	}
 
 	player, err := m.saves.GetPlayerSavesByUserID(
 		context.Background(),
-		ctx.Interaction.Member.User.ID,
+		ctx.User.ID.String(),
 	)
 	if err != nil {
 		return
@@ -27,38 +27,38 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil {
 		return
 	}
 
 	if player.Saves < 1 {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 			Content: fmt.Sprintf(
 				"You currently don't have atleast 1 save to donate, you currently have **%d** saves!",
 				int(player.Saves),
 			),
-		}, true)
-
+			Flags: discord.MessageFlagEphemeral,
+		})
 		return
 	}
 
 	if settings.Saves >= settings.MaxSaves {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 			Content: fmt.Sprintf(
 				"The server already has **%s/%s** saves!",
 				strconv.FormatFloat(settings.Saves, 'f', -1, 64),
 				strconv.FormatFloat(settings.MaxSaves, 'f', -1, 64),
 			),
-		}, true)
-
+			Flags: discord.MessageFlagEphemeral,
+		})
 		return
 	}
 
-	go m.saves.DeductSaveFromPlayer(
+	go m.saves.DeductSaveFromPlayer( //nolint:errcheck
 		context.Background(),
-		ctx.Interaction.Member.User.ID,
+		ctx.User.ID.String(),
 		1,
 	)
 
@@ -72,12 +72,13 @@ func (m *DonateSaveModule) donateSave(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: fmt.Sprintf(
 			`**Save donated!**
 The server now has **%s/%s** saves!`,
 			strconv.FormatFloat(saves, 'f', -1, 64),
 			strconv.FormatFloat(maxSaves, 'f', -1, 64),
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

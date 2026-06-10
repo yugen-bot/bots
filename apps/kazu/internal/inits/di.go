@@ -1,20 +1,27 @@
 package inits
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/sharding"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/kazu/internal/services"
 	localStatic "jurien.dev/yugen/kazu/internal/static"
 	localUtils "jurien.dev/yugen/kazu/internal/utils"
-	"jurien.dev/yugen/shared/inits"
+	sharedInits "jurien.dev/yugen/shared/inits"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -25,33 +32,59 @@ func InitDI() (container di.Container, err error) {
 		utils.Logger.Fatalw("failed to create DI builder", "error", err)
 	}
 
-	// init database
-	diBuilder.Add(&di.Def{
-		Name: static.DiDatabase,
-		Build: func(ctn di.Container) (any, error) {
-			cfg, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
-			if err != nil {
-				return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
-			}
-
-			db := stdlib.OpenDB(*cfg)
-			drv := entsql.OpenDB(dialect.Postgres, db)
-
-			return ent.NewClient(ent.Driver(drv)), nil
-		},
-		Close: func(obj any) error {
-			utils.Logger.Info("Shutting down database connection...")
-			return obj.(*ent.Client).Close()
-		},
-	})
-
-	// Initialize shared DI
-	inits.InitSharedDi(diBuilder)
+	utils.Logger.Info("Building DI")
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiAppName,
 		Build: func(ctn di.Container) (any, error) {
 			return "Kazu", nil
+		},
+	})
+
+	sharedInits.InitSharedDi(diBuilder)
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiClient,
+		Build: func(ctn di.Container) (any, error) {
+			cfg := ctn.Get(static.DiConfig).(*config.Config)
+			gatewayOpts := []gateway.ConfigOpt{
+				gateway.WithIntents(
+					gateway.IntentGuilds,
+					gateway.IntentGuildMessages,
+					gateway.IntentMessageContent,
+					gateway.IntentGuildExpressions,
+					gateway.IntentGuildMessageReactions,
+				),
+				gateway.WithPresenceOpts(
+					gateway.WithPlayingActivity("Kazu 🧮"),
+				),
+			}
+			var discordOpt bot.ConfigOpt
+			if cfg.Shard {
+				discordOpt = bot.WithShardManagerConfigOpts(sharding.WithGatewayConfigOpts(gatewayOpts...))
+			} else {
+				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
+			}
+			return disgoplus.New(
+				cfg.DiscordToken,
+				cfg.Shard,
+				discordOpt,
+				bot.WithCacheConfigOpts(cache.WithCaches(static.DefaultCacheFlags|cache.FlagMessages)),
+			)
+		},
+		Close: func(obj any) error {
+			b := obj.(*disgoplus.Bot)
+			utils.Logger.Info("Shutting down bot...")
+			b.Close(context.Background())
+			return nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiEmbedColor,
+		Build: func(ctn di.Container) (any, error) {
+			// #5d7fed
+			return 0x5d7fed, nil
 		},
 	})
 
@@ -92,10 +125,49 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	diBuilder.Add(&di.Def{
-		Name: static.DiEmbedColor,
+		Name: static.DiDatabase,
 		Build: func(ctn di.Container) (any, error) {
-			// #5d7fed
-			return 0x5d7fed, nil
+			cfg, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
+			if err != nil {
+				return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
+			}
+
+			db := stdlib.OpenDB(*cfg)
+			drv := entsql.OpenDB(dialect.Postgres, db)
+
+			return ent.NewClient(ent.Driver(drv)), nil
+		},
+		Close: func(obj any) error {
+			utils.Logger.Info("Shutting down database connection...")
+			return obj.(*ent.Client).Close()
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiSettings,
+		Build: func(ctn di.Container) (any, error) {
+			return services.CreateSettingsService(&ctn), nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: localStatic.DiSaves,
+		Build: func(ctn di.Container) (any, error) {
+			return services.CreateSavesService(&ctn), nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: localStatic.DiPoints,
+		Build: func(ctn di.Container) (any, error) {
+			return services.CreatePointsService(&ctn), nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: localStatic.DiGame,
+		Build: func(ctn di.Container) (any, error) {
+			return services.CreateGameService(&ctn), nil
 		},
 	})
 
@@ -106,39 +178,6 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 		},
 	})
 
-	// init settings service
-	diBuilder.Add(&di.Def{
-		Name: static.DiSettings,
-		Build: func(ctn di.Container) (any, error) {
-			return services.CreateSettingsService(&ctn), nil
-		},
-	})
-
-	// init saves service
-	diBuilder.Add(&di.Def{
-		Name: localStatic.DiSaves,
-		Build: func(ctn di.Container) (any, error) {
-			return services.CreateSavesService(&ctn), nil
-		},
-	})
-
-	// init points service
-	diBuilder.Add(&di.Def{
-		Name: localStatic.DiPoints,
-		Build: func(ctn di.Container) (any, error) {
-			return services.CreatePointsService(&ctn), nil
-		},
-	})
-
-	// init game service
-	diBuilder.Add(&di.Def{
-		Name: localStatic.DiGame,
-		Build: func(ctn di.Container) (any, error) {
-			return services.CreateGameService(&ctn), nil
-		},
-	})
-
-	// create vote handler
 	diBuilder.Add(&di.Def{
 		Name: static.DiVoteHandler,
 		Build: func(ctn di.Container) (any, error) {

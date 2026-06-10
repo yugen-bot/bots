@@ -2,8 +2,8 @@
 package profile
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -24,28 +24,31 @@ func GetProfileModule(container *di.Container) *ProfileModule {
 	}
 }
 
-var profileOptions = []*discordgo.ApplicationCommandOption{
-	{
-		Type:        discordgo.ApplicationCommandOptionUser,
-		Name:        "player",
-		Description: "The player for which you want to load the profile",
-		Required:    false,
-	},
-}
-
-func (m *ProfileModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ProfileModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "profile",
 			Description: "Get your kazu profile!",
-			Handler:     discordgoplus.HandlerFunc(m.profile),
-			Options:     profileOptions,
+			Handler:     disgoplus.HandlerFunc(m.profile),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionUser{
+					Name:        "player",
+					Description: "The player for which you want to load the profile",
+					Required:    false,
+				},
+			},
 		},
 		{
 			Name:        "points",
 			Description: "[Deprecated] Get your current points!",
-			Handler:     discordgoplus.HandlerFunc(m.profile),
-			Options:     profileOptions,
+			Handler:     disgoplus.HandlerFunc(m.profile),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionUser{
+					Name:        "player",
+					Description: "The player for which you want to load the profile",
+					Required:    false,
+				},
+			},
 		},
 	}
 }
