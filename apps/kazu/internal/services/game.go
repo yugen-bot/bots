@@ -652,7 +652,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 
 	if isGameHighscored {
-		utils.LogIfErr(
+		utils.LogIfErrNoRateLimit(
 			utils.Logger,
 			"message-reaction-add",
 			s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, "🎉"),
@@ -671,7 +671,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		emoji = "☑️"
 	}
 
-	utils.LogIfErr(
+	utils.LogIfErrNoRateLimit(
 		utils.Logger,
 		"message-reaction-add",
 		s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, emoji),
@@ -972,7 +972,7 @@ func (s *GameService) checkSpecialReactions(
 	for _, emoji := range specialEmojisForNumber(number) {
 		emoji := emoji
 		go func() {
-			utils.LogIfErr(
+			utils.LogIfErrNoRateLimit(
 				utils.Logger,
 				"message-reaction-add",
 				s.client.Client().Rest.AddReaction(

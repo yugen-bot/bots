@@ -742,7 +742,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}
 
 	if isGameHighscored {
-		utils.LogIfErr(
+		utils.LogIfErrNoRateLimit(
 			utils.Logger,
 			"message-reaction-add",
 			client.Rest.AddReaction(message.ChannelID, message.ID, "🎉"),
@@ -754,7 +754,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		emoji = "☑️"
 	}
 
-	utils.LogIfErr(
+	utils.LogIfErrNoRateLimit(
 		utils.Logger,
 		"message-reaction-add",
 		client.Rest.AddReaction(message.ChannelID, message.ID, emoji),
@@ -764,7 +764,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 
 	if utils.IsPalindrome(word) {
 		go func() {
-			utils.LogIfErr(
+			utils.LogIfErrNoRateLimit(
 				utils.Logger,
 				"message-reaction-add",
 				client.Rest.AddReaction(
@@ -1123,7 +1123,7 @@ func (s *GameService) setNumber(message discord.Message, count int) {
 			}
 
 			usedEmojis = append(usedEmojis, emoji)
-			utils.LogIfErr(
+			utils.LogIfErrNoRateLimit(
 				utils.Logger,
 				"message-reaction-add",
 				client.Rest.AddReaction(
