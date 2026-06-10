@@ -5,36 +5,44 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *TresholdModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *TresholdModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	n := ctx.CommandData.Int("treshold")
+	n := data.Int("treshold")
 	if n < 1 {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Treshold must be at least 1.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	err := m.settings.Set(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		func(u *ent.SettingsUpdateOne) { u.SetTreshold(n) },
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf("Starboard treshold has been set to **%d**.", n),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }

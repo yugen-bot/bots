@@ -2,7 +2,11 @@
 package leaderboard
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"context"
+
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -22,12 +26,22 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 	}
 }
 
-func (m *LeaderboardModule) Commands() []*disgoplus.Command {
-	return utils.GetLeaderboardCommands(disgoplus.HandlerFunc(m.command))
+func (m *LeaderboardModule) Commands() []discord.ApplicationCommandCreate {
+	return utils.GetLeaderboardCommands()
 }
 
-func (m *LeaderboardModule) MessageComponents() []*disgoplus.MessageComponent {
-	return utils.GetLeaderboardMessageComponents(
-		disgoplus.HandlerFunc(m.messageComponent),
-	)
+func (m *LeaderboardModule) Register(r handler.Router) {
+	r.SlashCommand("/leaderboard", m.command)
+	r.Component("/LEADERBOARD/{page}", m.messageComponent)
 }
+
+func (m *LeaderboardModule) getItems(guildID snowflake.ID, page int) ([]any, int, error) {
+	items, total, err := m.points.GetLeaderboardByGuildID(
+		context.Background(),
+		guildID.String(),
+		page,
+	)
+
+	return utils.UnpackArray(items), total, err
+}
+

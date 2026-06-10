@@ -6,8 +6,7 @@ import (
 	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/snowflake/v2"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 
 	"jurien.dev/yugen/shared/config"
@@ -15,42 +14,45 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ServerModule) err(ctx *disgoplus.Ctx) {
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+func (m *ServerModule) errFollowup(e *handler.CommandEvent) error {
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Sorry couldn't retrieve the server information...",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }
 
-func (m *ServerModule) server(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
+
+	guildID := (*e.GuildID()).String()
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		guildID,
 	)
 	if err != nil {
 		utils.Logger.Errorw(
 			"server: get settings failed",
 			"error", err,
-			"guildID", ctx.GuildID.String(),
+			"guildID", guildID,
 		)
-		m.err(ctx)
-		return
+		return m.errFollowup(e)
 	}
 
 	game, gameExists, err := m.game.GetCurrentGame(
 		context.Background(),
-		ctx.GuildID.String(),
+		guildID,
 	)
 	if err != nil {
 		utils.Logger.Errorw(
 			"server: get current game failed",
 			"error", err,
-			"guildID", ctx.GuildID.String(),
+			"guildID", guildID,
 		)
-		m.err(ctx)
-		return
+		return m.errFollowup(e)
 	}
 
 	history, historyExists, err := m.game.GetLastHistory(
@@ -61,28 +63,26 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 		utils.Logger.Errorw(
 			"server: get last history failed",
 			"error", err,
-			"guildID", ctx.GuildID.String(),
+			"guildID", guildID,
 		)
-		m.err(ctx)
-		return
+		return m.errFollowup(e)
 	}
 
-	guild, err := ctx.Client.Rest.GetGuild(snowflake.MustParse(ctx.GuildID.String()), false)
+	guild, err := e.Client().Rest.GetGuild(*e.GuildID(), false)
 	if err != nil {
 		utils.Logger.Errorw(
 			"server: get guild failed",
 			"error", err,
-			"guildID", ctx.GuildID.String(),
+			"guildID", guildID,
 		)
-		m.err(ctx)
-		return
+		return m.errFollowup(e)
 	}
 
-	self, _ := ctx.Client.Caches.SelfUser()
+	self, _ := e.Client().Caches.SelfUser()
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgoplus.Bot),
+		m.bot,
 		&utils.CreateEmbedFooterParams{IsVote: false},
 		cfg.OwnerID,
 	)
@@ -159,7 +159,7 @@ Saves used: **%s**
 		)).
 		WithEmbedFooter(footer)
 
-	_, err = disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
@@ -167,7 +167,8 @@ Saves used: **%s**
 		utils.Logger.Errorw(
 			"server: follow up failed",
 			"error", err,
-			"guildID", ctx.GuildID.String(),
+			"guildID", guildID,
 		)
 	}
+	return err
 }

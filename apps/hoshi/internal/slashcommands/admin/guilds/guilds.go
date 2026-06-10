@@ -3,7 +3,7 @@ package guilds
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -22,28 +22,21 @@ func GetGuildsModule(container *di.Container) *GuildsModule {
 	}
 }
 
-func (m *GuildsModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "guilds",
-			Description: "Get a list of guilds sorted by member count",
-			Handler:     disgoplus.HandlerFunc(m.list),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionInt{
-					Name:        "page",
-					Description: "View a specific page.",
-					Required:    false,
-				},
+func (m *GuildsModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "guilds",
+		Description: "Get a list of guilds sorted by member count",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionInt{
+				Name:        "page",
+				Description: "View a specific page.",
+				Required:    false,
 			},
 		},
 	}
 }
 
-func (m *GuildsModule) MessageComponents() []*disgoplus.MessageComponent {
-	return []*disgoplus.MessageComponent{
-		{
-			CustomID: "ADMIN_GUILDS_LIST/:page",
-			Handler:  disgoplus.HandlerFunc(m.listPage),
-		},
-	}
+func (m *GuildsModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/guilds", m.list)
+	r.ButtonComponent("/ADMIN_GUILDS_LIST/{page}", m.listPage)
 }

@@ -3,11 +3,12 @@ package prunesettings
 
 import (
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
-	"jurien.dev/yugen/shared/static"
+	sharedStatic "jurien.dev/yugen/shared/static"
 )
 
 const pruneSettingsLineLimit = 1800
@@ -21,24 +22,25 @@ type PruneSettingsModule struct {
 func GetPruneSettingsModule(container *di.Container) *PruneSettingsModule {
 	return &PruneSettingsModule{
 		container: container,
-		settings:  container.Get(static.DiSettings).(*services.SettingsService),
-		bot:       container.Get(static.DiBot).(*disgoplus.Bot),
+		settings:  container.Get(sharedStatic.DiSettings).(*services.SettingsService),
+		bot:       container.Get(sharedStatic.DiBot).(*disgoplus.Bot),
 	}
 }
 
-func (m *PruneSettingsModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "prune-settings",
-			Description: "List or delete settings for guilds the bot is no longer in",
-			Handler:     disgoplus.HandlerFunc(m.run),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "delete",
-					Description: "Delete the orphan settings instead of listing them",
-					Required:    false,
-				},
+func (m *PruneSettingsModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "prune-settings",
+		Description: "List or delete settings for guilds the bot is no longer in",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "delete",
+				Description: "Delete the orphan settings instead of listing them",
+				Required:    false,
 			},
 		},
 	}
+}
+
+func (m *PruneSettingsModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/prune-settings", m.run)
 }

@@ -3,7 +3,7 @@ package recreate
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -27,24 +27,25 @@ func GetRecreateModule(container *di.Container) *RecreateModule {
 	}
 }
 
-func (m *RecreateModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "recreate-game",
-			Description: "Recreate a game for a guild",
-			Handler:     disgoplus.HandlerFunc(m.recreate),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionString{
-					Name:        "guild",
-					Description: "Use a guildId to recreate a game.",
-					Required:    false,
-				},
-				discord.ApplicationCommandOptionString{
-					Name:        "word",
-					Description: "Force a specific word on the game.",
-					Required:    false,
-				},
+func (m *RecreateModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "recreate-game",
+		Description: "Recreate a game for a guild",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionString{
+				Name:        "guild",
+				Description: "Use a guildId to recreate a game.",
+				Required:    false,
+			},
+			discord.ApplicationCommandOptionString{
+				Name:        "word",
+				Description: "Force a specific word on the game.",
+				Required:    false,
 			},
 		},
 	}
+}
+
+func (m *RecreateModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/recreate-game", m.recreate)
 }

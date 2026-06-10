@@ -5,14 +5,16 @@ import (
 	"strings"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *EmojisModule) emojis(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *EmojisModule) emojis(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	colors := []string{"GREEN", "YELLOW", "GRAY", "WHITE"}
 	letters := []string{
@@ -22,6 +24,8 @@ func (m *EmojisModule) emojis(ctx *disgoplus.Ctx) {
 	}
 
 	utils.Logger.Debug("Getting color emojis")
+
+	channelSnowflake := e.Channel().ID()
 
 	var sb strings.Builder
 	for _, color := range colors {
@@ -35,15 +39,13 @@ func (m *EmojisModule) emojis(ctx *disgoplus.Ctx) {
 			sb.WriteString(emoji)
 		}
 
-		ctx.Client.Rest.CreateMessage(ctx.ChannelID, discord.MessageCreate{Content: sb.String()}) //nolint:errcheck
+		e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{Content: sb.String()}) //nolint:errcheck
 		sb.Reset()
 	}
 
-	disgoplus.FollowUp(
-		ctx,
-		discord.MessageCreate{
-			Content: "There you go!",
-			Flags:   discord.MessageFlagEphemeral,
-		},
-	)
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+		Content: "There you go!",
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	return err
 }

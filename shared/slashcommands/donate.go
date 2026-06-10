@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -20,7 +21,7 @@ func GetDonateModule(container *di.Container) *DonateModule {
 	return &DonateModule{container: container}
 }
 
-func (m *DonateModule) donate(ctx *disgoplus.Ctx) {
+func (m *DonateModule) donate(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 
@@ -44,21 +45,22 @@ Thanks for playing!`,
 		)).
 		WithEmbedFooter(footer)
 
-	msg := discord.NewMessageCreate().
-		AddEmbeds(embed).
-		AddActionRow(static.ButtonKofi)
+	return e.CreateMessage(
+		discord.NewMessageCreate().
+			AddEmbeds(embed).
+			AddActionRow(static.ButtonKofi),
+	)
+}
 
-	if err := disgoplus.Respond(ctx, msg); err != nil {
-		utils.Logger.Error(err)
+func (m *DonateModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
+			Name:        "donate",
+			Description: "Get information about donating to the bot!",
+		},
 	}
 }
 
-func (m *DonateModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "donate",
-			Description: "Get information about donating to the bot!",
-			Handler:     disgoplus.HandlerFunc(m.donate),
-		},
-	}
+func (m *DonateModule) Register(r handler.Router) {
+	r.SlashCommand("/donate", m.donate)
 }

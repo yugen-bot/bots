@@ -6,15 +6,17 @@ import (
 	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *ProfileModule) profile(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	playerID := ctx.User.ID.String()
+	playerID := e.Member().User.ID.String()
 
-	if u, ok := ctx.CommandData.OptUser("player"); ok {
+	if u, ok := data.OptUser("player"); ok {
 		playerID = u.ID.String()
 	}
 
@@ -23,36 +25,36 @@ func (m *ProfileModule) profile(ctx *disgoplus.Ctx) {
 		playerID,
 	)
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-		return
+		return err
 	}
 
 	points, err := m.points.GetPlayer(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		playerID,
 		true,
 	)
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-		return
+		return err
 	}
 
 	name := "You"
 	addressing := "have"
 
-	if playerID != ctx.User.ID.String() {
+	if playerID != e.Member().User.ID.String() {
 		name = fmt.Sprintf("<@%s>", playerID)
 		addressing = "has"
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			`%s currently %s **%d** points!
 And you have **%s/%s** saves available!`,
@@ -64,4 +66,5 @@ And you have **%s/%s** saves available!`,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	return err
 }

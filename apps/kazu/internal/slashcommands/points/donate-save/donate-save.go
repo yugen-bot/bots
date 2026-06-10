@@ -2,7 +2,8 @@
 package donatesave
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/static"
@@ -11,12 +12,14 @@ import (
 	local "jurien.dev/yugen/kazu/internal/static"
 )
 
+// DonateSaveModule handles the donate-save slash command.
 type DonateSaveModule struct {
 	container *di.Container
 	settings  *services.SettingsService
 	saves     *services.SavesService
 }
 
+// GetDonateSaveModule constructs a DonateSaveModule from the DI container.
 func GetDonateSaveModule(container *di.Container) *DonateSaveModule {
 	return &DonateSaveModule{
 		container: container,
@@ -25,12 +28,17 @@ func GetDonateSaveModule(container *di.Container) *DonateSaveModule {
 	}
 }
 
-func (m *DonateSaveModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+// Commands returns the donate-save command definition.
+func (m *DonateSaveModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "donate-save",
 			Description: "Donate a personal save to the server.",
-			Handler:     disgoplus.HandlerFunc(m.donateSave),
 		},
 	}
+}
+
+// Register wires the donate-save command onto the router.
+func (m *DonateSaveModule) Register(r handler.Router) {
+	r.SlashCommand("/donate-save", m.donateSave)
 }

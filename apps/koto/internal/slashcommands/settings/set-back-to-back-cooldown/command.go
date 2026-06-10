@@ -4,22 +4,23 @@ import (
 	"context"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetBackToBackCooldownModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *SetBackToBackCooldownModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	guildID := ctx.GuildID.String()
-	enable := ctx.CommandData.Bool("enabled")
+	guildID := (*e.GuildID()).String()
+	enable := data.Bool("enabled")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || existing == nil {
-		localUtils.ReplyNoSettings(ctx)
-		return
+		return localUtils.ReplyNoSettings(e, true)
 	}
 
 	if _, err := m.settings.Update(
@@ -27,24 +28,28 @@ func (m *SetBackToBackCooldownModule) set(ctx *disgoplus.Ctx) {
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) {
 			u.SetEnableBackToBackCooldown(enable)
-			if v, ok := ctx.CommandData.OptInt("seconds"); ok {
+			if v, ok := data.OptInt("seconds"); ok {
 				u.SetBackToBackCooldown(v)
 			}
 		},
 	); err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	if enable {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Back-to-back cooldown has been **enabled**!",
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	} else {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Back-to-back cooldown has been **disabled**!",
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+	return err
 }

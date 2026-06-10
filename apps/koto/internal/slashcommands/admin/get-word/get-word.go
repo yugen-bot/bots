@@ -3,7 +3,7 @@ package getword
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,19 +22,20 @@ func GetGetWordModule(container *di.Container) *GetWordModule {
 	}
 }
 
-func (m *GetWordModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "get-word",
-			Description: "Get the current game's answer for a guild",
-			Handler:     disgoplus.HandlerFunc(m.getWord),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionString{
-					Name:        "guild",
-					Description: "The guildId to target.",
-					Required:    true,
-				},
+func (m *GetWordModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "get-word",
+		Description: "Get the current game's answer for a guild",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionString{
+				Name:        "guild",
+				Description: "The guildId to target.",
+				Required:    true,
 			},
 		},
 	}
+}
+
+func (m *GetWordModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/get-word", m.getWord)
 }

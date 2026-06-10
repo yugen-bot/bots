@@ -2,7 +2,8 @@
 package start
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -24,12 +25,13 @@ func GetStartModule(container *di.Container) *StartModule {
 	}
 }
 
-func (m *StartModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "start",
-			Description: "Start a new Koto game",
-			Handler:     disgoplus.HandlerFunc(m.start),
-		},
+func (m *StartModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "start",
+		Description: "Start a new Koto game",
 	}
+}
+
+func (m *StartModule) Register(r handler.Router) {
+	r.SlashCommand("/game/start", m.start)
 }

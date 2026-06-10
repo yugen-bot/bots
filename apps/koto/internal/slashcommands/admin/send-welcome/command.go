@@ -4,21 +4,23 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/jurienhamaker/disgoplus"
 
 	sharedUtils "jurien.dev/yugen/shared/utils"
 )
 
-func (m *SendWelcomeModule) sendWelcome(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *SendWelcomeModule) sendWelcome(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	guildID := ctx.CommandData.String("guild")
-	channelIDStr := ctx.CommandData.String("channel")
+	guildID := data.String("guild")
+	channelIDStr := data.String("channel")
 
 	channelID, err := snowflake.Parse(channelIDStr)
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Could not access channel `%s` in guild `%s`.",
 				channelIDStr,
@@ -26,8 +28,7 @@ func (m *SendWelcomeModule) sendWelcome(ctx *disgoplus.Ctx) {
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	footer := sharedUtils.CreateEmbedFooter(
@@ -41,19 +42,18 @@ func (m *SendWelcomeModule) sendWelcome(ctx *disgoplus.Ctx) {
 		WithColor(0xbaad6d).
 		WithEmbedFooter(footer)
 
-	msg, err := ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{
+	msg, err := e.Client().Rest.CreateMessage(channelID, discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 	})
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Failed to send welcome message.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Message has been sent: https://discord.com/channels/%s/%s/%s",
 			guildID,
@@ -62,4 +62,5 @@ func (m *SendWelcomeModule) sendWelcome(ctx *disgoplus.Ctx) {
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	return err
 }

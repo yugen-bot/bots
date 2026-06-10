@@ -3,7 +3,7 @@ package setcooldown
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -24,21 +24,22 @@ func GetSetCooldownModule(container *di.Container) *SetCooldownModule {
 	}
 }
 
-func (m *SetCooldownModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "cooldown",
-			Description: "Set the cooldown between guesses in seconds",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionInt{
-					Name:        "seconds",
-					Description: "Cooldown between guesses in seconds.",
-					Required:    true,
-					MinValue:    intPtr(0),
-					MaxValue:    intPtr(31_536_000),
-				},
+func (m *SetCooldownModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "cooldown",
+		Description: "Set the cooldown between guesses in seconds",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionInt{
+				Name:        "seconds",
+				Description: "Cooldown between guesses in seconds.",
+				Required:    true,
+				MinValue:    intPtr(0),
+				MaxValue:    intPtr(31_536_000),
 			},
 		},
 	}
+}
+
+func (m *SetCooldownModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/cooldown", m.set)
 }

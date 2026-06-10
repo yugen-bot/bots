@@ -2,7 +2,8 @@
 package starboard
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/slashcommands/starboard/add"
@@ -12,49 +13,46 @@ import (
 )
 
 type StarboardModule struct {
-	container   *di.Container
-	list        *list.ListModule
-	subCommands []*disgoplus.Command
+	container  *di.Container
+	subModules []starboardSubModule
 }
 
 type starboardSubModule interface {
-	Commands() []*disgoplus.Command
+	SubCommandOption() discord.ApplicationCommandOptionSubCommand
+	Register(r handler.Router)
 }
 
 func GetStarboardModule(container *di.Container) *StarboardModule {
-	listModule := list.GetListModule(container)
-
-	subModules := []starboardSubModule{
-		listModule,
-		add.GetAddModule(container),
-		remove.GetRemoveModule(container),
-	}
-
-	var subCommands []*disgoplus.Command
-	for _, m := range subModules {
-		subCommands = append(subCommands, m.Commands()...)
-	}
-
 	return &StarboardModule{
-		container:   container,
-		list:        listModule,
-		subCommands: subCommands,
-	}
-}
-
-func (m *StarboardModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "starboard",
-			Description: "Manage starboards",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter(m.subCommands),
+		container: container,
+		subModules: []starboardSubModule{
+			list.GetListModule(container),
+			add.GetAddModule(container),
+			remove.GetRemoveModule(container),
 		},
 	}
 }
 
-func (m *StarboardModule) MessageComponents() []*disgoplus.MessageComponent {
-	return m.list.MessageComponents()
+func (m *StarboardModule) Commands() []discord.ApplicationCommandCreate {
+	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
+	for _, sub := range m.subModules {
+		opts = append(opts, sub.SubCommandOption())
+	}
+
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
+			Name:        "starboard",
+			Description: "Manage starboards",
+			Options:     opts,
+		},
+	}
+}
+
+func (m *StarboardModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildModeratorMiddleware)
+		for _, sub := range m.subModules {
+			sub.Register(r)
+		}
+	})
 }

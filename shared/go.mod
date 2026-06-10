@@ -10,7 +10,7 @@ require (
 	github.com/getsentry/sentry-go/zap v0.46.2
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/jurienhamaker/disgoplus v0.1.0
+	github.com/jurienhamaker/disgoplus v0.2.0
 	github.com/paul-milne/zap-loki v0.5.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/robfig/cron/v3 v3.0.1

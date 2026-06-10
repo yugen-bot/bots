@@ -5,50 +5,49 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *RecreateModule) recreate(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *RecreateModule) recreate(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	guildID := ctx.GuildID.String()
-	if v, ok := ctx.CommandData.OptString("guild"); ok && v != "" {
+	guildID := (*e.GuildID()).String()
+	if v, ok := data.OptString("guild"); ok && v != "" {
 		guildID = v
 	}
 
 	word := ""
-	if v, ok := ctx.CommandData.OptString("word"); ok {
+	if v, ok := data.OptString("word"); ok {
 		word = v
 		if word != "" && !m.words.Exists(word) {
-			disgoplus.FollowUp(ctx, discord.MessageCreate{
+			_, err := e.CreateFollowupMessage(discord.MessageCreate{
 				Content: fmt.Sprintf(
 					"Word **`%s`** is not available in the database.",
 					word,
 				),
 				Flags: discord.MessageFlagEphemeral,
 			})
-
-			return
+			return err
 		}
 	}
 
 	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || settings == nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Could not find settings for the specified guild.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	if settings.ChannelID == nil || *settings.ChannelID == "" {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Guild has no channel configured.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	started, err := m.game.Start(
@@ -59,12 +58,15 @@ func (m *RecreateModule) recreate(ctx *disgoplus.Ctx) {
 		word,
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	if started {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"A game has been recreated in <#%s>.",
 				*settings.ChannelID,
@@ -72,9 +74,10 @@ func (m *RecreateModule) recreate(ctx *disgoplus.Ctx) {
 			Flags: discord.MessageFlagEphemeral,
 		})
 	} else {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Failed to recreate the game.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+	return err
 }

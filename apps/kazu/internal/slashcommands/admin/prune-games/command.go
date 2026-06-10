@@ -5,24 +5,29 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	utils.Logger.Infow("Game pruning started")
 	shouldDelete := false
-	if v, ok := ctx.CommandData.OptBool("delete"); ok {
+	if v, ok := data.OptBool("delete"); ok {
 		shouldDelete = v
 	}
 
 	rows, err := m.games.FindAllGuildIDs(context.Background())
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
@@ -34,14 +39,17 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 	}
 
 	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
-	channelID := ctx.ChannelID
+	channelID := e.Channel().ID()
 
 	if len(orphanGuildIDs) == 0 {
-		ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
+		e.Client().Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
 			Content: "**Orphan games: 0** — nothing to prune.",
 		})
-		disgoplus.FollowUp(ctx, discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral}) //nolint:errcheck
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Done.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	if !shouldDelete {
@@ -50,17 +58,20 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 			orphanGuildIDs,
 		)
 		if err != nil {
-			disgoplus.InteractionError(ctx, true)
-			return
+			_, err = e.CreateFollowupMessage(discord.MessageCreate{
+				Content: "Something went wrong, try again later.",
+				Flags:   discord.MessageFlagEphemeral,
+			})
+			return err
 		}
 
-		ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
+		e.Client().Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
 			Content: fmt.Sprintf(
 				"**Orphan games: %d** (history entries: %d) across %d guild(s)",
 				gameCount, historyCount, len(orphanGuildIDs),
 			),
 		})
-		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Found data for %d orphan guild(s). See <#%s>.",
 				len(orphanGuildIDs),
@@ -68,7 +79,7 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
-		return
+		return err
 	}
 
 	gameCount, historyCount, err := m.games.DeleteByGuildIDs(
@@ -76,8 +87,11 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 		orphanGuildIDs,
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	utils.Logger.Infof(
@@ -86,7 +100,7 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 		historyCount,
 		len(orphanGuildIDs),
 	)
-	ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
+	e.Client().Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
 		Content: fmt.Sprintf(
 			"Deleted **%d** game(s) and **%d** history entry/entries for %d orphan guild(s).",
 			gameCount,
@@ -94,5 +108,9 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 			len(orphanGuildIDs),
 		),
 	})
-	disgoplus.FollowUp(ctx, discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral}) //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: "Done.",
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	return err
 }

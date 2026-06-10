@@ -41,6 +41,8 @@ github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aN
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/jurienhamaker/disgoplus v0.1.0 h1:64+fqNlGmAxFRw3eh4hgYOo+ZemMa3/Gcsc0eN3d3no=
 github.com/jurienhamaker/disgoplus v0.1.0/go.mod h1:YXU/xN5sDwZSlCRh8z6AuVw9B4paQv2p77E4sUaFZlo=
+github.com/jurienhamaker/disgoplus v0.2.0 h1:GvrDKwydg5OlvII14Yq4F7gxm22watWHkxanzje0Da8=
+github.com/jurienhamaker/disgoplus v0.2.0/go.mod h1:YXU/xN5sDwZSlCRh8z6AuVw9B4paQv2p77E4sUaFZlo=
 github.com/klauspost/compress v1.18.4 h1:RPhnKRAQ4Fh8zU2FY/6ZFDwTVTxgJ/EMydqSTzE9a2c=
 github.com/klauspost/compress v1.18.4/go.mod h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=

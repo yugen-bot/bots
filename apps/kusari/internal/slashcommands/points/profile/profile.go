@@ -3,7 +3,7 @@ package profile
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -32,19 +32,23 @@ var profileOptions = []discord.ApplicationCommandOption{
 	},
 }
 
-func (m *ProfileModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *ProfileModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "profile",
 			Description: "Get your kusari profile!",
-			Handler:     disgoplus.HandlerFunc(m.profile),
 			Options:     profileOptions,
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "points",
 			Description: "[Deprecated] Get your current points!",
-			Handler:     disgoplus.HandlerFunc(m.profile),
 			Options:     profileOptions,
 		},
 	}
 }
+
+func (m *ProfileModule) Register(r handler.Router) {
+	r.SlashCommand("/profile", m.profile)
+	r.SlashCommand("/points", m.profile)
+}
+

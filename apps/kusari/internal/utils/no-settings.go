@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -21,10 +22,10 @@ const NoSettingsDescription = `Someone with ` + "`Manage Server`" + ` permission
 That's it! Have fun playing!`
 
 func NoSettingsReply(
-	ctx *disgoplus.Ctx,
+	e *handler.CommandEvent,
 	container *di.Container,
 	ephemeral bool,
-) {
+) error {
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 	footer := shared.CreateEmbedFooter(
@@ -46,15 +47,15 @@ func NoSettingsReply(
 		)).
 		WithEmbedFooter(footer)
 
-	msg := discord.MessageCreate{
-		Embeds: []discord.Embed{embed},
-	}
-
+	flags := discord.MessageFlags(0)
 	if ephemeral {
-		msg.Flags = discord.MessageFlagEphemeral
-		disgoplus.FollowUp(ctx, msg) //nolint:errcheck
-		return
+		flags = discord.MessageFlagEphemeral
 	}
 
-	disgoplus.Respond(ctx, msg) //nolint:errcheck
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Flags:  flags,
+	})
+
+	return err
 }

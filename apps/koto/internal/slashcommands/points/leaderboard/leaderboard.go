@@ -3,7 +3,7 @@ package leaderboard
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -12,6 +12,11 @@ import (
 )
 
 func intPtr(i int) *int { return &i }
+
+const (
+	customIDLeaderboard     = "/LEADERBOARD/{type}/{page}"
+	customIDLeaderboardPage = "/LEADERBOARD/%s/%d"
+)
 
 type LeaderboardModule struct {
 	container *di.Container
@@ -27,12 +32,11 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 	}
 }
 
-func (m *LeaderboardModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *LeaderboardModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "leaderboard",
 			Description: "View the Koto leaderboard",
-			Handler:     disgoplus.HandlerFunc(m.leaderboard),
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionString{
 					Name:        "type",
@@ -60,11 +64,7 @@ func (m *LeaderboardModule) Commands() []*disgoplus.Command {
 	}
 }
 
-func (m *LeaderboardModule) MessageComponents() []*disgoplus.MessageComponent {
-	return []*disgoplus.MessageComponent{
-		{
-			CustomID: "LEADERBOARD/:type/:page",
-			Handler:  disgoplus.HandlerFunc(m.leaderboardPage),
-		},
-	}
+func (m *LeaderboardModule) Register(r handler.Router) {
+	r.SlashCommand("/leaderboard", m.leaderboard)
+	r.Component(customIDLeaderboard, m.leaderboardPage)
 }

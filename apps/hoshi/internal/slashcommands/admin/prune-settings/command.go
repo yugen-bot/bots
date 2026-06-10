@@ -7,29 +7,37 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *PruneSettingsModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	shouldDelete := false
-	if v, ok := ctx.CommandData.OptBool("delete"); ok {
+	if v, ok := data.OptBool("delete"); ok {
 		shouldDelete = v
 	}
 
 	all, err := m.settings.FindAll(context.Background())
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
 	var orphans []string
 
 	for _, s := range all {
-		if !utils.IsBotInGuildClient(m.bot.Client(), s.GuildID) {
+		if !utils.IsBotInGuildClient(m.client, s.GuildID) {
 			orphans = append(orphans, fmt.Sprintf(
 				"`%s` — %s",
 				s.GuildID,
@@ -38,14 +46,13 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 		}
 	}
 
-	channelID := ctx.ChannelID
+	channelID := e.Channel().ID()
 
 	if !shouldDelete {
 		if len(orphans) == 0 {
-			ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: "**Orphan settings: 0** — nothing to prune."})
-			disgoplus.FollowUp(ctx, discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral})
-
-			return
+			m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: "**Orphan settings: 0** — nothing to prune."})
+			_, err = e.CreateFollowupMessage(discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral})
+			return err
 		}
 
 		var buf strings.Builder
@@ -53,7 +60,7 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 
 		for _, line := range orphans {
 			if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
-				ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
+				m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
 				buf.Reset()
 			}
 
@@ -62,22 +69,21 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 		}
 
 		if buf.Len() > 0 {
-			ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
+			m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
 		}
 
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf("Found %d orphan(s). See <#%s>.", len(orphans), channelID.String()),
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	deleted := 0
 	failed := 0
 
 	for _, s := range all {
-		if !utils.IsBotInGuildClient(m.bot.Client(), s.GuildID) {
+		if !utils.IsBotInGuildClient(m.client, s.GuildID) {
 			if delErr := m.settings.Delete(context.Background(), s.GuildID); delErr != nil {
 				failed++
 			} else {
@@ -91,7 +97,8 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 		msg += fmt.Sprintf(" Failed to delete **%d**.", failed)
 	}
 
-	ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: msg})
+	m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: msg})
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral})
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral})
+	return err
 }

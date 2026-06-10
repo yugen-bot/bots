@@ -5,27 +5,35 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *ChannelModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ChannelModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	ch, ok := ctx.CommandData.OptChannel("channel")
+	ch, ok := data.OptChannel("channel")
 	if !ok {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	channelIDStr := ch.ID.String()
@@ -36,12 +44,16 @@ func (m *ChannelModule) set(ctx *disgoplus.Ctx) {
 		func(u *ent.SettingsUpdateOne) { u.SetChannelID(channelIDStr) },
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf("I will run in <#%s> from now on.", ch.ID.String()),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }

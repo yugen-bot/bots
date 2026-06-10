@@ -2,7 +2,8 @@
 package settings
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/slashcommands/settings/channel"
@@ -13,7 +14,8 @@ import (
 )
 
 type settingsSubModule interface {
-	Commands() []*disgoplus.Command
+	SubCommandOption() discord.ApplicationCommandOptionSubCommand
+	Register(r handler.Router)
 }
 
 type SettingsModule struct {
@@ -33,19 +35,27 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	}
 }
 
-func (m *SettingsModule) Commands() []*disgoplus.Command {
-	var subCmds []*disgoplus.Command
-	for _, sm := range m.subModules {
-		subCmds = append(subCmds, sm.Commands()...)
+func (m *SettingsModule) Commands() []discord.ApplicationCommandCreate {
+	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
+	for _, sub := range m.subModules {
+		opts = append(opts, sub.SubCommandOption())
 	}
-	return []*disgoplus.Command{
-		{
+
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "settings",
 			Description: "Settings command group",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter(subCmds),
+			Options:     opts,
 		},
 	}
 }
+
+func (m *SettingsModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildModeratorMiddleware)
+		for _, sub := range m.subModules {
+			sub.Register(r)
+		}
+	})
+}
+

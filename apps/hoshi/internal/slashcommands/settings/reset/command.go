@@ -6,16 +6,18 @@ import (
 	"slices"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/lib/pq"
 
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	setting := ctx.CommandData.String("setting")
+	setting := data.String("setting")
 
 	var (
 		apply func(*ent.SettingsUpdateOne)
@@ -33,13 +35,22 @@ func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
 		apply = func(u *ent.SettingsUpdateOne) { u.SetIgnoredChannelIds(pq.StringArray{}) }
 		value = "[]"
 	default:
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Unknown setting.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
-	if err := m.settings.Set(context.Background(), ctx.GuildID.String(), apply); err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+	if err := m.settings.Set(context.Background(), (*e.GuildID()).String(), apply); err != nil {
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
 	idx := slices.IndexFunc(
@@ -50,7 +61,7 @@ func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
 	)
 	name := resetChoices[idx].Name
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"%s has been reset to its default value of `%s`",
 			name,
@@ -58,4 +69,5 @@ func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	return err
 }

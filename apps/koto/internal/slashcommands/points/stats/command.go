@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/koto/internal/static"
@@ -16,37 +17,40 @@ import (
 
 func boolPtr(b bool) *bool { return &b }
 
-func (m *StatsModule) points(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *StatsModule) points(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	settings, err := m.settingsSvc.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil || settings == nil {
-		localUtils.ReplyNoSettings(ctx)
-		return
+		return localUtils.ReplyNoSettings(e, true)
 	}
 
 	if settings.ChannelID == nil || *settings.ChannelID == "" {
-		localUtils.ReplyNoSettings(ctx)
-		return
+		return localUtils.ReplyNoSettings(e, true)
 	}
 
 	player, err := m.pointsSvc.GetPlayer(
 		context.Background(),
-		ctx.GuildID.String(),
-		ctx.Member.User.ID.String(),
+		(*e.GuildID()).String(),
+		e.Member().User.ID.String(),
 		false,
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	playerHints, _ := m.hintsSvc.GetPlayerHintsByUserID(
 		context.Background(),
-		ctx.Member.User.ID.String(),
+		e.Member().User.ID.String(),
 	)
 
 	bot := m.container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
@@ -76,11 +80,9 @@ func (m *StatsModule) points(ctx *disgoplus.Ctx) {
 		).
 		WithEmbedFooter(footer)
 
-	disgoplus.FollowUp(
-		ctx,
-		discord.MessageCreate{
-			Embeds: []discord.Embed{embed},
-			Flags:  discord.MessageFlagEphemeral,
-		},
-	)
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	})
+	return err
 }

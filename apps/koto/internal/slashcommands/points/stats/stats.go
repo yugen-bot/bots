@@ -2,7 +2,8 @@
 package stats
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -26,12 +27,15 @@ func GetStatsModule(container *di.Container) *StatsModule {
 	}
 }
 
-func (m *StatsModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *StatsModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "points",
 			Description: "View your Koto points",
-			Handler:     disgoplus.HandlerFunc(m.points),
 		},
 	}
+}
+
+func (m *StatsModule) Register(r handler.Router) {
+	r.SlashCommand("/points", m.points)
 }

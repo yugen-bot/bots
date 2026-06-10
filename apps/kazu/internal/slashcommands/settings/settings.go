@@ -2,7 +2,8 @@
 package settings
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/slashcommands/settings/channel"
@@ -14,48 +15,60 @@ import (
 	"jurien.dev/yugen/shared/middlewares"
 )
 
-// SettingsModule is the group root for the /settings command.
-type SettingsModule struct {
-	container   *di.Container
-	subCommands []*disgoplus.Command
+// settingsSubModule is implemented by leaf sub-commands contributing a single sub-command option.
+type settingsSubModule interface {
+	SubCommandOption() discord.ApplicationCommandOptionSubCommand
+	Register(r handler.Router)
 }
 
-type settingsSubModule interface {
-	Commands() []*disgoplus.Command
+// SettingsModule is the group root for the /settings command.
+type SettingsModule struct {
+	container  *di.Container
+	subModules []settingsSubModule
+	shame      *shame.ShameModule
 }
 
 // GetSettingsModule constructs a SettingsModule from the DI container.
 func GetSettingsModule(container *di.Container) *SettingsModule {
-	subModules := []settingsSubModule{
-		show.GetShowModule(container),
-		channel.GetChannelModule(container),
-		cooldown.GetCooldownModule(container),
-		mathsetting.GetMathSettingModule(container),
-		shame.GetShameModule(container),
-		reset.GetResetModule(container),
-	}
-
-	var subCommands []*disgoplus.Command
-	for _, m := range subModules {
-		subCommands = append(subCommands, m.Commands()...)
-	}
-
 	return &SettingsModule{
-		container:   container,
-		subCommands: subCommands,
+		container: container,
+		subModules: []settingsSubModule{
+			show.GetShowModule(container),
+			channel.GetChannelModule(container),
+			cooldown.GetCooldownModule(container),
+			mathsetting.GetMathSettingModule(container),
+			reset.GetResetModule(container),
+		},
+		shame: shame.GetShameModule(container),
 	}
 }
 
 // Commands returns the /settings command group definition.
-func (m *SettingsModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *SettingsModule) Commands() []discord.ApplicationCommandCreate {
+	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules)+2)
+	for _, sub := range m.subModules {
+		opts = append(opts, sub.SubCommandOption())
+	}
+	for _, opt := range m.shame.SubCommandOptions() {
+		opts = append(opts, opt)
+	}
+
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "settings",
 			Description: "Settings command group",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter(m.subCommands),
+			Options:     opts,
 		},
 	}
+}
+
+// Register wires all settings sub-commands onto the router under GuildModeratorMiddleware.
+func (m *SettingsModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildModeratorMiddleware)
+		for _, sub := range m.subModules {
+			sub.Register(r)
+		}
+		m.shame.Register(r)
+	})
 }

@@ -3,7 +3,7 @@ package resetemptygames
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -22,19 +22,20 @@ func GetResetEmptyGamesModule(container *di.Container) *ResetEmptyGamesModule {
 	}
 }
 
-func (m *ResetEmptyGamesModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "reset-empty-games",
-			Description: "List or reset in-progress games that have no history",
-			Handler:     disgoplus.HandlerFunc(m.run),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "reset",
-					Description: "Reset the empty games instead of listing them",
-					Required:    false,
-				},
+func (m *ResetEmptyGamesModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "reset-empty-games",
+		Description: "List or reset in-progress games that have no history",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "reset",
+				Description: "Reset the empty games instead of listing them",
+				Required:    false,
 			},
 		},
 	}
+}
+
+func (m *ResetEmptyGamesModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/reset-empty-games", m.run)
 }

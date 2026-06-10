@@ -2,7 +2,8 @@
 package cleardictionary
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -21,12 +22,13 @@ func GetClearDictionaryModule(container *di.Container) *ClearDictionaryModule {
 	}
 }
 
-func (m *ClearDictionaryModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "clear-dictionary",
-			Description: "Clear the in-memory Wiktionary lookup cache",
-			Handler:     disgoplus.HandlerFunc(m.run),
-		},
+func (m *ClearDictionaryModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "clear-dictionary",
+		Description: "Clear the in-memory Wiktionary lookup cache",
 	}
+}
+
+func (m *ClearDictionaryModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/clear-dictionary", m.run)
 }

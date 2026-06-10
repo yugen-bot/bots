@@ -2,68 +2,57 @@
 package admin
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/slashcommands/admin/guilds"
 	prunesettings "jurien.dev/yugen/hoshi/internal/slashcommands/admin/prune-settings"
 	prunestarboards "jurien.dev/yugen/hoshi/internal/slashcommands/admin/prune-starboards"
-	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/middlewares"
-	"jurien.dev/yugen/shared/static"
 )
 
 type AdminModule struct {
-	container   *di.Container
-	guilds      *guilds.GuildsModule
-	devGuildID  string
-	subCommands []*disgoplus.Command
+	container  *di.Container
+	subModules []adminSubModule
 }
 
 type adminSubModule interface {
-	Commands() []*disgoplus.Command
+	SubCommandOption() discord.ApplicationCommandOptionSubCommand
+	Register(r handler.Router)
 }
 
 func GetAdminModule(container *di.Container) *AdminModule {
-	cfg := container.Get(static.DiConfig).(*config.Config)
-
-	guildsModule := guilds.GetGuildsModule(container)
-	pruneSettingsModule := prunesettings.GetPruneSettingsModule(container)
-	pruneStarboardsModule := prunestarboards.GetPruneStarboardsModule(container)
-
-	subModules := []adminSubModule{
-		guildsModule,
-		pruneSettingsModule,
-		pruneStarboardsModule,
-	}
-
-	var subCommands []*disgoplus.Command
-	for _, m := range subModules {
-		subCommands = append(subCommands, m.Commands()...)
-	}
-
 	return &AdminModule{
-		container:   container,
-		guilds:      guildsModule,
-		devGuildID:  cfg.DiscordDevelopmentGuild,
-		subCommands: subCommands,
-	}
-}
-
-func (m *AdminModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "admin",
-			Description: "Admin commands",
-			GuildID:     m.devGuildID,
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.OwnerMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter(m.subCommands),
+		container: container,
+		subModules: []adminSubModule{
+			guilds.GetGuildsModule(container),
+			prunesettings.GetPruneSettingsModule(container),
+			prunestarboards.GetPruneStarboardsModule(container),
 		},
 	}
 }
 
-func (m *AdminModule) MessageComponents() []*disgoplus.MessageComponent {
-	return m.guilds.MessageComponents()
+func (m *AdminModule) Commands() []discord.ApplicationCommandCreate {
+	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
+	for _, sub := range m.subModules {
+		opts = append(opts, sub.SubCommandOption())
+	}
+
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
+			Name:        "admin",
+			Description: "Admin commands",
+			Options:     opts,
+		},
+	}
+}
+
+func (m *AdminModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.OwnerMiddleware)
+		for _, sub := range m.subModules {
+			sub.Register(r)
+		}
+	})
 }

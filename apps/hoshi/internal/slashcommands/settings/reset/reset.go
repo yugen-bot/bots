@@ -3,7 +3,7 @@ package reset
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -29,23 +29,24 @@ func GetResetModule(container *di.Container) *ResetModule {
 	}
 }
 
-func (m *ResetModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "reset",
-			Description: "Reset a Hoshi setting to its default value.",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
-			},
-			Handler: disgoplus.HandlerFunc(m.reset),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionString{
-					Name:        "setting",
-					Description: "The setting to reset to its default value.",
-					Required:    true,
-					Choices:     resetChoices,
-				},
+func (m *ResetModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "reset",
+		Description: "Reset a Hoshi setting to its default value.",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionString{
+				Name:        "setting",
+				Description: "The setting to reset to its default value.",
+				Required:    true,
+				Choices:     resetChoices,
 			},
 		},
 	}
+}
+
+func (m *ResetModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildAdminMiddleware)
+		r.SlashCommand("/settings/reset", m.reset)
+	})
 }

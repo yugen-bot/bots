@@ -3,6 +3,7 @@ package prunegames
 
 import (
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -25,19 +26,20 @@ func GetPruneGamesModule(container *di.Container) *PruneGamesModule {
 	}
 }
 
-func (m *PruneGamesModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "prune-games",
-			Description: "List or delete games/guesses for guilds the bot is no longer in",
-			Handler:     disgoplus.HandlerFunc(m.run),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "delete",
-					Description: "Delete the orphan games instead of listing them",
-					Required:    false,
-				},
+func (m *PruneGamesModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "prune-games",
+		Description: "List or delete games/guesses for guilds the bot is no longer in",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "delete",
+				Description: "Delete the orphan games instead of listing them",
+				Required:    false,
 			},
 		},
 	}
+}
+
+func (m *PruneGamesModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/prune-games", m.run)
 }

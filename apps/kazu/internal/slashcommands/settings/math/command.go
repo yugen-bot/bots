@@ -5,23 +5,28 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *MathSettingModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *MathSettingModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	enabled := ctx.CommandData.Bool("enabled")
+	enabled := data.Bool("enabled")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	_, err = m.settings.Update(
@@ -30,8 +35,11 @@ func (m *MathSettingModule) set(ctx *disgoplus.Ctx) {
 		func(u *ent.SettingsUpdateOne) { u.SetMath(enabled) },
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	valueText := "disabled"
@@ -39,8 +47,9 @@ func (m *MathSettingModule) set(ctx *disgoplus.Ctx) {
 		valueText = "enabled"
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf("I **%s** math from being parsed.", valueText),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }

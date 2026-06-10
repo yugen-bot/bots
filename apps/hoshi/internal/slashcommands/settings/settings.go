@@ -2,7 +2,8 @@
 package settings
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	authorstarring "jurien.dev/yugen/hoshi/internal/slashcommands/settings/author-starring"
@@ -15,44 +16,49 @@ import (
 )
 
 type SettingsModule struct {
-	container   *di.Container
-	subCommands []*disgoplus.Command
+	container  *di.Container
+	subModules []settingsSubModule
 }
 
 type settingsSubModule interface {
-	Commands() []*disgoplus.Command
+	SubCommandOption() discord.ApplicationCommandOptionSubCommand
+	Register(r handler.Router)
 }
 
 func GetSettingsModule(container *di.Container) *SettingsModule {
-	subModules := []settingsSubModule{
-		show.GetShowModule(container),
-		treshold.GetTresholdModule(container),
-		authorstarring.GetAuthorStarringModule(container),
-		ignore.GetIgnoreModule(container),
-		unignore.GetUnignoreModule(container),
-		reset.GetResetModule(container),
-	}
-
-	var subCommands []*disgoplus.Command
-	for _, m := range subModules {
-		subCommands = append(subCommands, m.Commands()...)
-	}
-
 	return &SettingsModule{
-		container:   container,
-		subCommands: subCommands,
+		container: container,
+		subModules: []settingsSubModule{
+			show.GetShowModule(container),
+			treshold.GetTresholdModule(container),
+			authorstarring.GetAuthorStarringModule(container),
+			ignore.GetIgnoreModule(container),
+			unignore.GetUnignoreModule(container),
+			reset.GetResetModule(container),
+		},
 	}
 }
 
-func (m *SettingsModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *SettingsModule) Commands() []discord.ApplicationCommandCreate {
+	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
+	for _, sub := range m.subModules {
+		opts = append(opts, sub.SubCommandOption())
+	}
+
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "settings",
 			Description: "Hoshi settings",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter(m.subCommands),
+			Options:     opts,
 		},
 	}
+}
+
+func (m *SettingsModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildModeratorMiddleware)
+		for _, sub := range m.subModules {
+			sub.Register(r)
+		}
+	})
 }

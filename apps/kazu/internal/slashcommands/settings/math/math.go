@@ -3,7 +3,7 @@ package mathsetting
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -24,20 +24,22 @@ func GetMathSettingModule(container *di.Container) *MathSettingModule {
 	}
 }
 
-// Commands returns the math command definition.
-func (m *MathSettingModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "math",
-			Description: "Set wether Kazu will try to parse math.",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "enabled",
-					Description: "Wether Kazu will try to parse math.",
-					Required:    true,
-				},
+// SubCommandOption returns the sub-command option definition for /settings math.
+func (m *MathSettingModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "math",
+		Description: "Set wether Kazu will try to parse math.",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "enabled",
+				Description: "Wether Kazu will try to parse math.",
+				Required:    true,
 			},
 		},
 	}
+}
+
+// Register registers the math route on the given router.
+func (m *MathSettingModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/math", m.set)
 }

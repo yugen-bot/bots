@@ -2,7 +2,8 @@
 package show
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -21,12 +22,13 @@ func GetShowModule(container *di.Container) *ShowModule {
 	}
 }
 
-func (m *ShowModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "show",
-			Description: "Show the current settings",
-			Handler:     disgoplus.HandlerFunc(m.show),
-		},
+func (m *ShowModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "show",
+		Description: "Show the current settings",
 	}
+}
+
+func (m *ShowModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/show", m.show)
 }

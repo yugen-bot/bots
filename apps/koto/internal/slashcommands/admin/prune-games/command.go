@@ -5,25 +5,30 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	utils.Logger.Infow("Game pruning started")
 
 	shouldDelete := false
-	if v, ok := ctx.CommandData.OptBool("delete"); ok {
+	if v, ok := data.OptBool("delete"); ok {
 		shouldDelete = v
 	}
 
 	rows, err := m.games.FindAllGuildIDs(context.Background())
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
@@ -38,19 +43,16 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 
 	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
 
-	channelID := ctx.ChannelID
+	channelSnowflake := e.Channel().ID()
+	channelID := e.Channel().ID().String()
 
 	if len(orphanGuildIDs) == 0 {
-		ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: "**Orphan games: 0** — nothing to prune."}) //nolint:errcheck
-		disgoplus.FollowUp(
-			ctx,
-			discord.MessageCreate{
-				Content: "Done.",
-				Flags:   discord.MessageFlagEphemeral,
-			},
-		)
-
-		return
+		e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{Content: "**Orphan games: 0** — nothing to prune."}) //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Done.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	if !shouldDelete {
@@ -59,26 +61,28 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 			orphanGuildIDs,
 		)
 		if err != nil {
-			disgoplus.InteractionError(ctx, true)
-			return
+			_, err = e.CreateFollowupMessage(discord.MessageCreate{
+				Content: "Something went wrong, try again later.",
+				Flags:   discord.MessageFlagEphemeral,
+			})
+			return err
 		}
 
-		ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
+		e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{ //nolint:errcheck
 			Content: fmt.Sprintf(
 				"**Orphan games: %d** (guesses: %d) across %d guild(s)",
 				gameCount, guessCount, len(orphanGuildIDs),
 			),
 		})
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Found data for %d orphan guild(s). See <#%s>.",
 				len(orphanGuildIDs),
-				channelID.String(),
+				channelID,
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	gameCount, guessCount, err := m.games.DeleteByGuildIDs(
@@ -86,8 +90,11 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 		orphanGuildIDs,
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	utils.Logger.Infof(
@@ -96,17 +103,15 @@ func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
 		guessCount,
 		len(orphanGuildIDs),
 	)
-	ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
+	e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{ //nolint:errcheck
 		Content: fmt.Sprintf(
 			"Deleted **%d** game(s) and **%d** guess(es) for %d orphan guild(s).",
 			gameCount, guessCount, len(orphanGuildIDs),
 		),
 	})
-	disgoplus.FollowUp(
-		ctx,
-		discord.MessageCreate{
-			Content: "Done.",
-			Flags:   discord.MessageFlagEphemeral,
-		},
-	)
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: "Done.",
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	return err
 }

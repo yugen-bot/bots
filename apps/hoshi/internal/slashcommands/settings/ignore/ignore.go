@@ -3,7 +3,7 @@ package ignore
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -22,19 +22,20 @@ func GetIgnoreModule(container *di.Container) *IgnoreModule {
 	}
 }
 
-func (m *IgnoreModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "ignore",
-			Description: "Ignore the current channel",
-			Handler:     disgoplus.HandlerFunc(m.ignore),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionChannel{
-					Name:        "channel",
-					Description: "The channel to ignore",
-					Required:    false,
-				},
+func (m *IgnoreModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "ignore",
+		Description: "Ignore the current channel",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionChannel{
+				Name:        "channel",
+				Description: "The channel to ignore",
+				Required:    false,
 			},
 		},
 	}
+}
+
+func (m *IgnoreModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/ignore", m.ignore)
 }

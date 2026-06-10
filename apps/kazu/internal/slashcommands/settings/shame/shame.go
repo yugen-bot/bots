@@ -3,7 +3,7 @@ package shame
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -24,13 +24,13 @@ func GetShameModule(container *di.Container) *ShameModule {
 	}
 }
 
-// Commands returns the shame-role and remove-shame-role-on-highscore command definitions.
-func (m *ShameModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
+// SubCommandOptions returns the sub-command option definitions for the shame leaf commands.
+// Note: This module contributes two sub-commands, so it returns a slice instead of a single option.
+func (m *ShameModule) SubCommandOptions() []discord.ApplicationCommandOptionSubCommand {
+	return []discord.ApplicationCommandOptionSubCommand{
 		{
 			Name:        "shame-role",
 			Description: "Set shame role Kazu will apply on failure.",
-			Handler:     disgoplus.HandlerFunc(m.setRole),
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionRole{
 					Name:        "role",
@@ -42,7 +42,6 @@ func (m *ShameModule) Commands() []*disgoplus.Command {
 		{
 			Name:        "remove-shame-role-on-highscore",
 			Description: "Set wether Kazu will reset the shame role after a highscore is reached.",
-			Handler:     disgoplus.HandlerFunc(m.setRemoveShameRole),
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionBool{
 					Name:        "remove",
@@ -52,4 +51,10 @@ func (m *ShameModule) Commands() []*disgoplus.Command {
 			},
 		},
 	}
+}
+
+// Register registers the shame-role and remove-shame-role-on-highscore routes on the given router.
+func (m *ShameModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/shame-role", m.setRole)
+	r.SlashCommand("/settings/remove-shame-role-on-highscore", m.setRemoveShameRole)
 }

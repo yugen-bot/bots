@@ -5,16 +5,18 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetEmptyGamesModule) run(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ResetEmptyGamesModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	shouldReset := false
-	if v, ok := ctx.CommandData.OptBool("reset"); ok {
+	if v, ok := data.OptBool("reset"); ok {
 		shouldReset = v
 	}
 
@@ -26,12 +28,15 @@ func (m *ResetEmptyGamesModule) run(ctx *disgoplus.Ctx) {
 				"error",
 				err,
 			)
-			disgoplus.InteractionError(ctx, true)
-			return
+			_, err = e.CreateFollowupMessage(discord.MessageCreate{
+				Content: "Something went wrong, try again later.",
+				Flags:   discord.MessageFlagEphemeral,
+			})
+			return err
 		}
 
 		utils.Logger.Infow("Empty games found", "count", count)
-		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Found **%d** in-progress game(s) with no history.",
 				count,
@@ -39,7 +44,7 @@ func (m *ResetEmptyGamesModule) run(ctx *disgoplus.Ctx) {
 			Flags: discord.MessageFlagEphemeral,
 		})
 
-		return
+		return err
 	}
 
 	count, err := m.games.ResetEmptyGames(context.Background())
@@ -49,16 +54,21 @@ func (m *ResetEmptyGamesModule) run(ctx *disgoplus.Ctx) {
 			"error",
 			err,
 		)
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	utils.Logger.Infow("Empty games reset", "count", count)
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Reset **%d** in-progress game(s) with no history.",
 			count,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
+	return err
 }

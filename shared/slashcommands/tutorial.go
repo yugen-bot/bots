@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -20,7 +21,7 @@ func GetTutorialModule(container *di.Container) *TutorialModule {
 	return &TutorialModule{container: container}
 }
 
-func (m *TutorialModule) tutorial(ctx *disgoplus.Ctx) {
+func (m *TutorialModule) tutorial(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 
@@ -39,20 +40,18 @@ func (m *TutorialModule) tutorial(ctx *disgoplus.Ctx) {
 		WithDescription(tutorialText).
 		WithEmbedFooter(footer)
 
-	if err := disgoplus.Respond(
-		ctx,
-		discord.NewMessageCreate().AddEmbeds(embed),
-	); err != nil {
-		utils.Logger.Error(err)
+	return e.CreateMessage(discord.NewMessageCreate().AddEmbeds(embed))
+}
+
+func (m *TutorialModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
+			Name:        "tutorial",
+			Description: "The rules of the game!",
+		},
 	}
 }
 
-func (m *TutorialModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "tutorial",
-			Description: "The rules of the game!",
-			Handler:     disgoplus.HandlerFunc(m.tutorial),
-		},
-	}
+func (m *TutorialModule) Register(r handler.Router) {
+	r.SlashCommand("/tutorial", m.tutorial)
 }

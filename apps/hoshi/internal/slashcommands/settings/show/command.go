@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
@@ -14,17 +15,25 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ShowModule) show(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		true,
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
 	ignoredText := "-"
@@ -63,10 +72,11 @@ func (m *ShowModule) show(ctx *disgoplus.Ctx) {
 			discord.EmbedField{Name: "Ignored Channels", Value: ignoredText, Inline: boolPtr(false)},
 		)
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+	return err
 }
 
 func boolPtr(b bool) *bool { return &b }

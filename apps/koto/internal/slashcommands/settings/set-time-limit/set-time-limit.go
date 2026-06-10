@@ -3,7 +3,7 @@ package settimelimit
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -24,20 +24,21 @@ func GetSetTimeLimitModule(container *di.Container) *SetTimeLimitModule {
 	}
 }
 
-func (m *SetTimeLimitModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "time-limit",
-			Description: "Set the time limit per game in minutes",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionInt{
-					Name:        "minutes",
-					Description: "Time limit per game in minutes.",
-					Required:    true,
-					MinValue:    intPtr(1),
-				},
+func (m *SetTimeLimitModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "time-limit",
+		Description: "Set the time limit per game in minutes",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionInt{
+				Name:        "minutes",
+				Description: "Time limit per game in minutes.",
+				Required:    true,
+				MinValue:    intPtr(1),
 			},
 		},
 	}
+}
+
+func (m *SetTimeLimitModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/time-limit", m.set)
 }

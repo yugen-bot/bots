@@ -20,8 +20,8 @@ import (
 	"jurien.dev/yugen/kazu/internal/services"
 	localStatic "jurien.dev/yugen/kazu/internal/static"
 	localUtils "jurien.dev/yugen/kazu/internal/utils"
-	sharedInits "jurien.dev/yugen/shared/inits"
 	"jurien.dev/yugen/shared/config"
+	sharedInits "jurien.dev/yugen/shared/inits"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -61,7 +61,9 @@ func InitDI() (container di.Container, err error) {
 			}
 			var discordOpt bot.ConfigOpt
 			if cfg.Shard {
-				discordOpt = bot.WithShardManagerConfigOpts(sharding.WithGatewayConfigOpts(gatewayOpts...))
+				discordOpt = bot.WithShardManagerConfigOpts(
+					sharding.WithGatewayConfigOpts(gatewayOpts...),
+				)
 			} else {
 				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
 			}
@@ -69,7 +71,9 @@ func InitDI() (container di.Container, err error) {
 				cfg.DiscordToken,
 				cfg.Shard,
 				discordOpt,
-				bot.WithCacheConfigOpts(cache.WithCaches(static.DefaultCacheFlags|cache.FlagMessages)),
+				bot.WithCacheConfigOpts(
+					cache.WithCaches(static.DefaultCacheFlags),
+				),
 				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
 			)
 		},

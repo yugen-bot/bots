@@ -3,7 +3,7 @@ package setmembersprivilege
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,19 +22,20 @@ func GetSetMembersPrivilegeModule(container *di.Container) *SetMembersPrivilegeM
 	}
 }
 
-func (m *SetMembersPrivilegeModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "members-privilege",
-			Description: "Set whether members can start games",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "value",
-					Description: "Whether members can start games using /game start.",
-					Required:    true,
-				},
+func (m *SetMembersPrivilegeModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "members-privilege",
+		Description: "Set whether members can start games",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "value",
+				Description: "Whether members can start games using /game start.",
+				Required:    true,
 			},
 		},
 	}
+}
+
+func (m *SetMembersPrivilegeModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/members-privilege", m.set)
 }

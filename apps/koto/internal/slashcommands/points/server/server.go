@@ -2,6 +2,8 @@
 package server
 
 import (
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -28,12 +30,15 @@ func GetServerModule(container *di.Container) *ServerModule {
 	}
 }
 
-func (m *ServerModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *ServerModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "server",
 			Description: "View server hint stats.",
-			Handler:     disgoplus.HandlerFunc(m.server),
 		},
 	}
+}
+
+func (m *ServerModule) Register(r handler.Router) {
+	r.SlashCommand("/server", m.server)
 }

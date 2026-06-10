@@ -6,23 +6,28 @@ import (
 	"slices"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *ResetModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ResetModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	setting := ctx.CommandData.String("setting")
+	setting := data.String("setting")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	var (
@@ -49,8 +54,11 @@ func (m *ResetModule) set(ctx *disgoplus.Ctx) {
 	}
 
 	if apply == nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	_, err = m.settings.Update(
@@ -59,8 +67,11 @@ func (m *ResetModule) set(ctx *disgoplus.Ctx) {
 		apply,
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	choiceIdx := slices.IndexFunc(
@@ -69,7 +80,7 @@ func (m *ResetModule) set(ctx *disgoplus.Ctx) {
 	)
 	name := choices[choiceIdx].Name
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"%s has been reset to it's default value of `%s`",
 			name,
@@ -77,4 +88,5 @@ func (m *ResetModule) set(ctx *disgoplus.Ctx) {
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	return err
 }

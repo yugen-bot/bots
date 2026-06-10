@@ -3,7 +3,7 @@ package startafterfirstguess
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,19 +22,20 @@ func GetStartAfterFirstGuessModule(container *di.Container) *StartAfterFirstGues
 	}
 }
 
-func (m *StartAfterFirstGuessModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "start-after-first-guess",
-			Description: "Set whether the game timer starts after the first guess",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "value",
-					Description: "Whether the game timer starts after the first guess.",
-					Required:    true,
-				},
+func (m *StartAfterFirstGuessModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "start-after-first-guess",
+		Description: "Set whether the game timer starts after the first guess",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "value",
+				Description: "Whether the game timer starts after the first guess.",
+				Required:    true,
 			},
 		},
 	}
+}
+
+func (m *StartAfterFirstGuessModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/start-after-first-guess", m.set)
 }

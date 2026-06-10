@@ -2,7 +2,8 @@
 package admin
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/slashcommands/admin/emojis"
@@ -12,30 +13,24 @@ import (
 	prunesettings "jurien.dev/yugen/koto/internal/slashcommands/admin/prune-settings"
 	"jurien.dev/yugen/koto/internal/slashcommands/admin/recreate"
 	sendwelcome "jurien.dev/yugen/koto/internal/slashcommands/admin/send-welcome"
-	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/middlewares"
-	"jurien.dev/yugen/shared/static"
 )
 
 type adminSubModule interface {
-	Commands() []*disgoplus.Command
+	SubCommandOption() discord.ApplicationCommandOptionSubCommand
+	Register(r handler.Router)
 }
 
 type AdminModule struct {
 	container  *di.Container
-	guilds     *guilds.GuildsModule
-	devGuildID string
 	subModules []adminSubModule
 }
 
 func GetAdminModule(container *di.Container) *AdminModule {
-	cfg := container.Get(static.DiConfig).(*config.Config)
 	g := guilds.GetGuildsModule(container)
 
 	return &AdminModule{
-		container:  container,
-		guilds:     g,
-		devGuildID: cfg.DiscordDevelopmentGuild,
+		container: container,
 		subModules: []adminSubModule{
 			emojis.GetEmojisModule(container),
 			g,
@@ -48,25 +43,26 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	}
 }
 
-func (m *AdminModule) Commands() []*disgoplus.Command {
-	var subCmds []*disgoplus.Command
-	for _, sm := range m.subModules {
-		subCmds = append(subCmds, sm.Commands()...)
+func (m *AdminModule) Commands() []discord.ApplicationCommandCreate {
+	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
+	for _, sub := range m.subModules {
+		opts = append(opts, sub.SubCommandOption())
 	}
 
-	return []*disgoplus.Command{
-		{
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "admin",
 			Description: "Admin commands",
-			GuildID:     m.devGuildID,
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.OwnerMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter(subCmds),
+			Options:     opts,
 		},
 	}
 }
 
-func (m *AdminModule) MessageComponents() []*disgoplus.MessageComponent {
-	return m.guilds.MessageComponents()
+func (m *AdminModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.OwnerMiddleware)
+		for _, sub := range m.subModules {
+			sub.Register(r)
+		}
+	})
 }

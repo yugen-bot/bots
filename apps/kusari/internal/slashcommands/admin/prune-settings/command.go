@@ -7,23 +7,28 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *PruneSettingsModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	shouldDelete := false
-	if v, ok := ctx.CommandData.OptBool("delete"); ok {
+	if v, ok := data.OptBool("delete"); ok {
 		shouldDelete = v
 	}
 
 	all, err := m.settings.FindAll(context.Background())
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	var orphans []string
@@ -38,20 +43,20 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 		}
 	}
 
-	channelID := ctx.ChannelID.String()
+	channelID := e.Channel().ID().String()
+	channelSnowflake := e.Channel().ID()
 
 	if !shouldDelete {
 		if len(orphans) == 0 {
-			ctx.Client.Rest.CreateMessage( //nolint:errcheck
-				ctx.ChannelID,
+			e.Client().Rest.CreateMessage( //nolint:errcheck
+				channelSnowflake,
 				discord.MessageCreate{Content: "**Orphan settings: 0** — nothing to prune."},
 			)
-			disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+			_, err = e.CreateFollowupMessage(discord.MessageCreate{
 				Content: "Done.",
 				Flags:   discord.MessageFlagEphemeral,
 			})
-
-			return
+			return err
 		}
 
 		var buf strings.Builder
@@ -59,8 +64,8 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 
 		for _, line := range orphans {
 			if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
-				ctx.Client.Rest.CreateMessage( //nolint:errcheck
-					ctx.ChannelID,
+				e.Client().Rest.CreateMessage( //nolint:errcheck
+					channelSnowflake,
 					discord.MessageCreate{Content: buf.String()},
 				)
 				buf.Reset()
@@ -71,18 +76,18 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 		}
 
 		if buf.Len() > 0 {
-			ctx.Client.Rest.CreateMessage( //nolint:errcheck
-				ctx.ChannelID,
+			e.Client().Rest.CreateMessage( //nolint:errcheck
+				channelSnowflake,
 				discord.MessageCreate{Content: buf.String()},
 			)
 		}
 
-		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf("Found %d orphan(s). See <#%s>.", len(orphans), channelID),
 			Flags:   discord.MessageFlagEphemeral,
 		})
 
-		return
+		return err
 	}
 
 	deleted := 0
@@ -103,13 +108,15 @@ func (m *PruneSettingsModule) run(ctx *disgoplus.Ctx) {
 		msg += fmt.Sprintf(" Failed to delete **%d**.", failed)
 	}
 
-	ctx.Client.Rest.CreateMessage( //nolint:errcheck
-		ctx.ChannelID,
+	e.Client().Rest.CreateMessage( //nolint:errcheck
+		channelSnowflake,
 		discord.MessageCreate{Content: msg},
 	)
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Done.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
+	return err
 }

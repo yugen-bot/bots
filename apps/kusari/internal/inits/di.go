@@ -60,14 +60,23 @@ func InitDI() (container di.Container, err error) {
 					gateway.WithPlayingActivity("Kusari 📖"),
 				),
 			}
-			cacheOpt := bot.WithCacheConfigOpts(cache.WithCaches(static.DefaultCacheFlags | cache.FlagMessages))
+			cacheOpt := bot.WithCacheConfigOpts(
+				cache.WithCaches(static.DefaultCacheFlags),
+			)
+
 			var discordOpt bot.ConfigOpt
 			if cfg.Shard {
-				discordOpt = bot.WithShardManagerConfigOpts(sharding.WithGatewayConfigOpts(gatewayOpts...))
+				discordOpt = bot.WithShardManagerConfigOpts(
+					sharding.WithGatewayConfigOpts(gatewayOpts...),
+				)
 			} else {
 				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
 			}
-			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt, cacheOpt,
+			return disgoplus.New(
+				cfg.DiscordToken,
+				cfg.Shard,
+				discordOpt,
+				cacheOpt,
 				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
 			)
 		},

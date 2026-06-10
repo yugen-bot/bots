@@ -3,12 +3,18 @@ package resetleaderboard
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
 	local "jurien.dev/yugen/kusari/internal/static"
 	"jurien.dev/yugen/shared/middlewares"
+)
+
+const (
+	customIDResetLeaderboard      = "/RESET_LEADERBOARD/{reset}/{userID}"
+	customIDResetLeaderboardTrue  = "/RESET_LEADERBOARD/true/%s"
+	customIDResetLeaderboardFalse = "/RESET_LEADERBOARD/false/%s"
 )
 
 type ResetLeaderboardModule struct {
@@ -23,15 +29,11 @@ func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule 
 	}
 }
 
-func (m *ResetLeaderboardModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *ResetLeaderboardModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "reset-leaderboard",
 			Description: "Reset all player points & completely reset the leaderboard.",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
-			},
-			Handler: disgoplus.HandlerFunc(m.request),
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionUser{
 					Name:        "member",
@@ -43,14 +45,11 @@ func (m *ResetLeaderboardModule) Commands() []*disgoplus.Command {
 	}
 }
 
-func (m *ResetLeaderboardModule) MessageComponents() []*disgoplus.MessageComponent {
-	return []*disgoplus.MessageComponent{
-		{
-			CustomID: "RESET_LEADERBOARD/:reset/:userID",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildAdminMiddleware),
-			},
-			Handler: disgoplus.HandlerFunc(m.reset),
-		},
-	}
+func (m *ResetLeaderboardModule) Register(r handler.Router) {
+	r.SlashCommand("/reset-leaderboard", m.request)
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildAdminMiddleware)
+		r.Component(customIDResetLeaderboard, m.reset)
+	})
 }
+

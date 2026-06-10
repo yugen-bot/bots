@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -20,7 +21,7 @@ func GetSupportModule(container *di.Container) *SupportModule {
 	return &SupportModule{container: container}
 }
 
-func (m *SupportModule) support(ctx *disgoplus.Ctx) {
+func (m *SupportModule) support(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 
@@ -42,21 +43,22 @@ Join our support server with the button below, we'll try to help you out the bes
 		)).
 		WithEmbedFooter(footer)
 
-	msg := discord.NewMessageCreate().
-		AddEmbeds(embed).
-		AddActionRow(static.ButtonDiscordSupportServer)
+	return e.CreateMessage(
+		discord.NewMessageCreate().
+			AddEmbeds(embed).
+			AddActionRow(static.ButtonDiscordSupportServer),
+	)
+}
 
-	if err := disgoplus.Respond(ctx, msg); err != nil {
-		utils.Logger.Error(err)
+func (m *SupportModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
+			Name:        "support",
+			Description: "Get a support discord invite to join the support server!",
+		},
 	}
 }
 
-func (m *SupportModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "support",
-			Description: "Get a support discord invite to join the support server!",
-			Handler:     disgoplus.HandlerFunc(m.support),
-		},
-	}
+func (m *SupportModule) Register(r handler.Router) {
+	r.SlashCommand("/support", m.support)
 }

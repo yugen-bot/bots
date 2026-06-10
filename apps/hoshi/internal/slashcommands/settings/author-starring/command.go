@@ -4,24 +4,32 @@ import (
 	"context"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *AuthorStarringModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *AuthorStarringModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	allowed := ctx.CommandData.Bool("allowed")
+	allowed := data.Bool("allowed")
 
 	err := m.settings.Set(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		func(u *ent.SettingsUpdateOne) { u.SetSelf(allowed) },
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
 	state := "disallowed"
@@ -29,8 +37,9 @@ func (m *AuthorStarringModule) set(ctx *disgoplus.Ctx) {
 		state = "allowed"
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Message authors are now **" + state + "** to star their own message.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }

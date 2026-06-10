@@ -2,7 +2,9 @@
 package prunestarboards
 
 import (
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -16,30 +18,31 @@ const pruneStarboardsLineLimit = 1800
 type PruneStarboardsModule struct {
 	container  *di.Container
 	starboards *services.StarboardService
-	bot        *disgoplus.Bot
+	client     *bot.Client
 }
 
 func GetPruneStarboardsModule(container *di.Container) *PruneStarboardsModule {
 	return &PruneStarboardsModule{
 		container:  container,
 		starboards: container.Get(localStatic.DiStarboard).(*services.StarboardService),
-		bot:        container.Get(static.DiBot).(*disgoplus.Bot),
+		client:     container.Get(static.DiBot).(*disgoplus.Bot).Client(),
 	}
 }
 
-func (m *PruneStarboardsModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "prune-starboards",
-			Description: "List or delete starboards for guilds the bot is no longer in",
-			Handler:     disgoplus.HandlerFunc(m.run),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "delete",
-					Description: "Delete the orphan starboards instead of listing them",
-					Required:    false,
-				},
+func (m *PruneStarboardsModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "prune-starboards",
+		Description: "List or delete starboards for guilds the bot is no longer in",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "delete",
+				Description: "Delete the orphan starboards instead of listing them",
+				Required:    false,
 			},
 		},
 	}
+}
+
+func (m *PruneStarboardsModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/prune-starboards", m.run)
 }

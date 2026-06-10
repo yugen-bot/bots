@@ -8,112 +8,132 @@ import (
 	"strings"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 
+	"jurien.dev/yugen/hoshi/internal/ent"
 	localStatic "jurien.dev/yugen/hoshi/internal/static"
 	localUtils "jurien.dev/yugen/hoshi/internal/utils"
 	"jurien.dev/yugen/shared/static"
 )
 
-func (m *ListModule) list(ctx *disgoplus.Ctx) {
+func (m *ListModule) list(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	page := 1
-	if v, ok := ctx.CommandData.OptInt("page"); ok {
+	if v, ok := data.OptInt("page"); ok {
 		page = v
 	}
 
-	m.showList(ctx, page, false)
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
+
+	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
+	guildID := (*e.GuildID()).String()
+
+	items, total, err := m.starboard.GetStarboards(context.Background(), guildID, page)
+	if err != nil {
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
+	}
+
+	if total == 0 {
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "No starboards have been configured yet.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return ferr
+	}
+
+	if len(items) == 0 {
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: fmt.Sprintf("No starboards found for page %d", page),
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return ferr
+	}
+
+	embed, components := buildListContent(bot, items, total, page, guildID)
+
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Embeds:     []discord.Embed{embed},
+		Components: components,
+		Flags:      discord.MessageFlagEphemeral,
+	})
+	return err
 }
 
-func (m *ListModule) listPage(ctx *disgoplus.Ctx) {
+func (m *ListModule) listPage(_ discord.ButtonInteractionData, e *handler.ComponentEvent) error {
 	page := 1
 
-	if p, ok := ctx.MessageComponentOptions["page"]; ok {
+	if p, ok := e.Vars["page"]; ok {
 		page64, err := strconv.ParseInt(p, 10, 64)
 		if err != nil {
-			page = 1 // fallback to first page
+			page = 1
 		} else {
 			page = int(page64)
 		}
 	}
 
-	m.showList(ctx, page, true)
-}
-
-func (m *ListModule) showList(
-	ctx *disgoplus.Ctx,
-	page int,
-	isComponent bool,
-) {
-	if !isComponent {
-		disgoplus.Defer(ctx, true)
-	}
-
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
+	guildID := (*e.GuildID()).String()
 
-	items, total, err := m.starboard.GetStarboards(
-		context.Background(),
-		ctx.GuildID.String(),
-		page,
-	)
+	items, total, err := m.starboard.GetStarboards(context.Background(), guildID, page)
 	if err != nil {
-		if isComponent {
-			disgoplus.MessageComponentError(ctx)
-		} else {
-			disgoplus.InteractionError(ctx, true)
-		}
-
-		return
+		content := "Something went wrong."
+		empty := []discord.Embed{}
+		emptyComponents := []discord.LayoutComponent{}
+		return e.UpdateMessage(discord.MessageUpdate{
+			Content:    &content,
+			Embeds:     &empty,
+			Components: &emptyComponents,
+		})
 	}
 
 	if total == 0 {
 		content := "No starboards have been configured yet."
-		if isComponent {
-			empty := []discord.Embed{}
-			emptyComponents := []discord.LayoutComponent{}
-			disgoplus.Update(
-				ctx,
-				discord.MessageUpdate{
-					Content:    &content,
-					Embeds:     &empty,
-					Components: &emptyComponents,
-				},
-			)
-		} else {
-			disgoplus.FollowUp(
-				ctx,
-				discord.MessageCreate{Content: content, Flags: discord.MessageFlagEphemeral},
-			)
-		}
-
-		return
+		empty := []discord.Embed{}
+		emptyComponents := []discord.LayoutComponent{}
+		return e.UpdateMessage(discord.MessageUpdate{
+			Content:    &content,
+			Embeds:     &empty,
+			Components: &emptyComponents,
+		})
 	}
 
 	if len(items) == 0 {
 		content := fmt.Sprintf("No starboards found for page %d", page)
-		if isComponent {
-			empty := []discord.Embed{}
-			emptyComponents := []discord.LayoutComponent{}
-			disgoplus.Update(
-				ctx,
-				discord.MessageUpdate{
-					Content:    &content,
-					Embeds:     &empty,
-					Components: &emptyComponents,
-				},
-			)
-		} else {
-			disgoplus.FollowUp(
-				ctx,
-				discord.MessageCreate{Content: content, Flags: discord.MessageFlagEphemeral},
-			)
-		}
-
-		return
+		empty := []discord.Embed{}
+		emptyComponents := []discord.LayoutComponent{}
+		return e.UpdateMessage(discord.MessageUpdate{
+			Content:    &content,
+			Embeds:     &empty,
+			Components: &emptyComponents,
+		})
 	}
 
+	embed, components := buildListContent(bot, items, total, page, guildID)
+
+	embeds := []discord.Embed{embed}
+	return e.UpdateMessage(discord.MessageUpdate{
+		Embeds:     &embeds,
+		Components: &components,
+	})
+}
+
+func buildListContent(
+	bot *disgoplus.Bot,
+	items []*ent.Starboards,
+	total, page int,
+	guildID string,
+) (discord.Embed, []discord.LayoutComponent) {
 	maxPage := int(math.Ceil(float64(total) / 10))
 
-	// Build display rows
 	ids := make([]string, len(items))
 	emojiSources := make([]string, len(items))
 	destinations := make([]string, len(items))
@@ -139,7 +159,7 @@ func (m *ListModule) showList(
 
 	embed := discord.NewEmbed().
 		WithColor(localStatic.EmbedColor).
-		WithTitle(fmt.Sprintf("Starboards for %s", ctx.GuildID.String())).
+		WithTitle(fmt.Sprintf("Starboards for %s", guildID)).
 		WithFields(
 			discord.EmbedField{Name: "ID", Value: strings.Join(ids, "\n"), Inline: boolPtr(true)},
 			discord.EmbedField{Name: "Emoji | Source", Value: strings.Join(emojiSources, "\n"), Inline: boolPtr(true)},
@@ -154,11 +174,11 @@ func (m *ListModule) showList(
 
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("STARBOARD_LIST/%d", page-1)))
+		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("/STARBOARD_LIST/%d", page-1)))
 	}
 
 	if page < maxPage {
-		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("STARBOARD_LIST/%d", page+1)))
+		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("/STARBOARD_LIST/%d", page+1)))
 	}
 
 	components := []discord.LayoutComponent{}
@@ -166,19 +186,7 @@ func (m *ListModule) showList(
 		components = append(components, discord.NewActionRow(buttons...))
 	}
 
-	if isComponent {
-		embeds := []discord.Embed{embed}
-		disgoplus.Update(ctx, discord.MessageUpdate{
-			Embeds:     &embeds,
-			Components: &components,
-		})
-	} else {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
-			Embeds:     []discord.Embed{embed},
-			Components: components,
-			Flags:      discord.MessageFlagEphemeral,
-		})
-	}
+	return embed, components
 }
 
 func boolPtr(b bool) *bool { return &b }

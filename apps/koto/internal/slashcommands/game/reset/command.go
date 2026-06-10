@@ -4,53 +4,45 @@ import (
 	"context"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	guildID := ctx.GuildID.String()
+	guildID := (*e.GuildID()).String()
 
 	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || guildSettings == nil {
-		localUtils.ReplyNoSettings(ctx, true)
-		return
+		return localUtils.ReplyNoSettings(e, true)
 	}
 
 	if guildSettings.ChannelID == nil || *guildSettings.ChannelID == "" {
-		localUtils.ReplyNoSettings(ctx, true)
-		return
+		return localUtils.ReplyNoSettings(e, true)
 	}
 
 	started, err := m.game.Start(context.Background(), guildID, true, true, "")
 	if err != nil {
 		utils.Logger.Warnw("game: start: start failed: %w", err)
-		localUtils.HandleChannelInaccessible(ctx, *guildSettings.ChannelID, err)
-
-		return
+		return localUtils.HandleChannelInaccessible(e, *guildSettings.ChannelID, err)
 	}
 
 	if !started {
-		disgoplus.FollowUp(
-			ctx,
-			discord.MessageCreate{
-				Content: "Failed to reset the game.",
-				Flags:   discord.MessageFlagEphemeral,
-			},
-		)
-
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Failed to reset the game.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
-	disgoplus.FollowUp(
-		ctx,
-		discord.MessageCreate{
-			Content: "Game has been reset and a new one started!",
-			Flags:   discord.MessageFlagEphemeral,
-		},
-	)
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: "Game has been reset and a new one started!",
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	return err
 }

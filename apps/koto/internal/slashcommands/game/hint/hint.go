@@ -2,7 +2,7 @@
 package hint
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -24,11 +24,6 @@ func GetHintModule(container *di.Container) *HintModule {
 	}
 }
 
-func (m *HintModule) MessageComponents() []*disgoplus.MessageComponent {
-	return []*disgoplus.MessageComponent{
-		{
-			CustomID: "GAME_HINT/:gameId",
-			Handler:  disgoplus.HandlerFunc(m.hint),
-		},
-	}
+func (m *HintModule) Register(r handler.Router) {
+	r.Component("/GAME_HINT/{gameId}", m.hint)
 }

@@ -105,7 +105,6 @@ Last word was **%s**!`,
 }
 
 func (l *GameListener) MessageDeleteHandler(e *events.GuildMessageDelete) {
-	// e.Message is populated from the message cache when FlagMessages is enabled.
 	// If it wasn't cached, ID will be zero — nothing to act on.
 	if e.Message.ID == 0 {
 		return

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/ent/game"
@@ -31,39 +31,47 @@ func GetGameModule(container *di.Container) *GameModule {
 	}
 }
 
-func (m *GameModule) startGame(ctx *disgoplus.Ctx, recreate bool) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *GameModule) startGame(data discord.SlashCommandInteractionData, e *handler.CommandEvent, recreate bool) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil {
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	channelId := settings.ChannelID
 	if channelId == nil {
-		localUtils.NoSettingsReply(ctx, m.container, true)
-		return
+		return localUtils.NoSettingsReply(e, m.container, true)
 	}
 
 	startingNumber := 1
 
-	if v, ok := ctx.CommandData.OptInt("starting-number"); ok {
+	if v, ok := data.OptInt("starting-number"); ok {
 		startingNumber = v
 	}
 
 	_, started, err := m.game.Start(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		game.TypeNORMAL,
 		startingNumber,
 		recreate,
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	respond := "A game has been started"
@@ -71,13 +79,13 @@ func (m *GameModule) startGame(ctx *disgoplus.Ctx, recreate bool) {
 		respond = "There is already an ongoing game"
 	}
 
-	if *channelId != ctx.ChannelID.String() {
+	if *channelId != e.Channel().ID().String() {
 		respond = fmt.Sprintf("%s in the <#%s> channel.", respond, *channelId)
 	} else {
 		respond = respond + "."
 	}
 
-	_, err = disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: respond,
 		Flags:   discord.MessageFlagEphemeral,
 	})
@@ -85,32 +93,30 @@ func (m *GameModule) startGame(ctx *disgoplus.Ctx, recreate bool) {
 		utils.Logger.Errorw(
 			"game: start game: follow up failed",
 			"error", err,
-			"guildID", ctx.GuildID.String(),
+			"guildID", (*e.GuildID()).String(),
 		)
 	}
+	return err
 }
 
-func (m *GameModule) start(ctx *disgoplus.Ctx) {
-	m.startGame(ctx, false)
+func (m *GameModule) start(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	return m.startGame(data, e, false)
 }
 
-func (m *GameModule) reset(ctx *disgoplus.Ctx) {
-	m.startGame(ctx, true)
+func (m *GameModule) reset(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	return m.startGame(data, e, true)
 }
 
-func (m *GameModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+// Commands returns the /game command group definition.
+func (m *GameModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "game",
 			Description: "Game command group",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter([]*disgoplus.Command{
-				{
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionSubCommand{
 					Name:        "start",
 					Description: "Start a game when there is none ongoing.",
-					Handler:     disgoplus.HandlerFunc(m.start),
 					Options: []discord.ApplicationCommandOption{
 						discord.ApplicationCommandOptionInt{
 							Name:        "starting-number",
@@ -119,10 +125,9 @@ func (m *GameModule) Commands() []*disgoplus.Command {
 						},
 					},
 				},
-				{
+				discord.ApplicationCommandOptionSubCommand{
 					Name:        "reset",
 					Description: "Reset the current game and any points earned.",
-					Handler:     disgoplus.HandlerFunc(m.reset),
 					Options: []discord.ApplicationCommandOption{
 						discord.ApplicationCommandOptionInt{
 							Name:        "starting-number",
@@ -131,7 +136,16 @@ func (m *GameModule) Commands() []*disgoplus.Command {
 						},
 					},
 				},
-			}),
+			},
 		},
 	}
+}
+
+// Register wires the game sub-commands onto the router under GuildModeratorMiddleware.
+func (m *GameModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildModeratorMiddleware)
+		r.SlashCommand("/game/start", m.start)
+		r.SlashCommand("/game/reset", m.reset)
+	})
 }

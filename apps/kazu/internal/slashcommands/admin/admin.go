@@ -2,7 +2,8 @@
 package admin
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	prunegames "jurien.dev/yugen/kazu/internal/slashcommands/admin/prune-games"
@@ -13,7 +14,8 @@ import (
 )
 
 type adminSubModule interface {
-	Commands() []*disgoplus.Command
+	SubCommandOption() discord.ApplicationCommandOptionSubCommand
+	Register(r handler.Router)
 }
 
 // AdminModule is the group root for /admin.
@@ -38,21 +40,27 @@ func GetAdminModule(container *di.Container) *AdminModule {
 }
 
 // Commands returns the /admin command with all sub-commands wired in.
-func (m *AdminModule) Commands() []*disgoplus.Command {
-	var subCommands []*disgoplus.Command
+func (m *AdminModule) Commands() []discord.ApplicationCommandCreate {
+	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
 	for _, sub := range m.subModules {
-		subCommands = append(subCommands, sub.Commands()...)
+		opts = append(opts, sub.SubCommandOption())
 	}
 
-	return []*disgoplus.Command{
-		{
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "admin",
 			Description: "Admin commands",
-			GuildID:     m.devGuildID,
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.OwnerMiddleware),
-			},
-			SubCommands: disgoplus.NewRouter(subCommands),
+			Options:     opts,
 		},
 	}
+}
+
+// Register wires all admin sub-commands onto the router under OwnerMiddleware.
+func (m *AdminModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.OwnerMiddleware)
+		for _, sub := range m.subModules {
+			sub.Register(r)
+		}
+	})
 }

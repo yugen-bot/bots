@@ -2,7 +2,8 @@
 package reset
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -25,15 +26,16 @@ func GetResetModule(container *di.Container) *ResetModule {
 	}
 }
 
-func (m *ResetModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "reset",
-			Description: "Reset the current game and start a new one",
-			Middlewares: []disgoplus.Handler{
-				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
-			},
-			Handler: disgoplus.HandlerFunc(m.reset),
-		},
+func (m *ResetModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "reset",
+		Description: "Reset the current game and start a new one",
 	}
+}
+
+func (m *ResetModule) Register(r handler.Router) {
+	r.Group(func(r handler.Router) {
+		r.Use(middlewares.GuildModeratorMiddleware)
+		r.SlashCommand("/game/reset", m.reset)
+	})
 }

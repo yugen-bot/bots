@@ -6,25 +6,33 @@ import (
 	"strings"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneStarboardsModule) run(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	utils.Logger.Infow("Starboard pruning started")
 
 	shouldDelete := false
-	if v, ok := ctx.CommandData.OptBool("delete"); ok {
+	if v, ok := data.OptBool("delete"); ok {
 		shouldDelete = v
 	}
 
 	rows, err := m.starboards.FindAllGuildIDs(context.Background())
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
@@ -32,36 +40,37 @@ func (m *PruneStarboardsModule) run(ctx *disgoplus.Ctx) {
 	var orphanGuildIDs []string
 
 	for _, row := range rows {
-		if !utils.IsBotInGuildClient(m.bot.Client(), row) {
+		if !utils.IsBotInGuildClient(m.client, row) {
 			orphanGuildIDs = append(orphanGuildIDs, row)
 		}
 	}
 
 	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
 
-	channelID := ctx.ChannelID
+	channelID := e.Channel().ID()
 
 	if len(orphanGuildIDs) == 0 {
-		ctx.Client.Rest.CreateMessage(
-			channelID,
-			discord.MessageCreate{Content: "**Orphan starboards: 0** — nothing to prune."},
-		)
-		disgoplus.FollowUp(
-			ctx,
-			discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral},
-		)
-
-		return
+		m.client.Rest.CreateMessage(channelID, discord.MessageCreate{
+			Content: "**Orphan starboards: 0** — nothing to prune.",
+		})
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Done.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	if !shouldDelete {
-		all, err := m.starboards.FindByGuildIDs(
-			context.Background(),
-			orphanGuildIDs,
-		)
+		all, err := m.starboards.FindByGuildIDs(context.Background(), orphanGuildIDs)
 		if err != nil {
-			disgoplus.InteractionError(ctx, true)
-			return
+			_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+				Content: "Something went wrong.",
+				Flags:   discord.MessageFlagEphemeral,
+			})
+			if ferr != nil {
+				return ferr
+			}
+			return err
 		}
 
 		counts := make(map[string]int, len(orphanGuildIDs))
@@ -70,33 +79,26 @@ func (m *PruneStarboardsModule) run(ctx *disgoplus.Ctx) {
 		}
 
 		var buf strings.Builder
-		buf.WriteString(
-			fmt.Sprintf(
-				"**Orphan starboards: %d** across %d guild(s)\n",
-				len(all),
-				len(orphanGuildIDs),
-			),
-		)
+		buf.WriteString(fmt.Sprintf(
+			"**Orphan starboards: %d** across %d guild(s)\n",
+			len(all),
+			len(orphanGuildIDs),
+		))
 
 		for _, guildID := range orphanGuildIDs {
-			line := fmt.Sprintf(
-				"`%s` — %d starboard(s)\n",
-				guildID,
-				counts[guildID],
-			)
+			line := fmt.Sprintf("`%s` — %d starboard(s)\n", guildID, counts[guildID])
 			if buf.Len()+len(line) > pruneStarboardsLineLimit {
-				ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
+				m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
 				buf.Reset()
 			}
-
 			buf.WriteString(line)
 		}
 
 		if buf.Len() > 0 {
-			ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
+			m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
 		}
 
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Found %d orphan guild(s). See <#%s>.",
 				len(orphanGuildIDs),
@@ -104,31 +106,35 @@ func (m *PruneStarboardsModule) run(ctx *disgoplus.Ctx) {
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
-	deleted, err := m.starboards.DeleteByGuildIDs(
-		context.Background(),
-		orphanGuildIDs,
-	)
+	deleted, err := m.starboards.DeleteByGuildIDs(context.Background(), orphanGuildIDs)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
 	utils.Logger.Infof(
 		"Deleted **%d** starboard(s) for %d orphan guild(s).",
 		deleted, len(orphanGuildIDs),
 	)
-	ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{
+	m.client.Rest.CreateMessage(channelID, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Deleted **%d** starboard(s) for %d orphan guild(s).",
 			deleted, len(orphanGuildIDs),
 		),
 	})
-	disgoplus.FollowUp(
-		ctx,
-		discord.MessageCreate{Content: "Done.", Flags: discord.MessageFlagEphemeral},
-	)
+
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: "Done.",
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	return err
 }

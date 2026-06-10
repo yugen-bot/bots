@@ -3,7 +3,7 @@ package channel
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -24,20 +24,22 @@ func GetChannelModule(container *di.Container) *ChannelModule {
 	}
 }
 
-// Commands returns the channel command definition.
-func (m *ChannelModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "channel",
-			Description: "Set the channel Kazu will run in",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionChannel{
-					Name:        "channel",
-					Description: "The channel kazu will run in",
-					Required:    true,
-				},
+// SubCommandOption returns the sub-command option definition for /settings channel.
+func (m *ChannelModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "channel",
+		Description: "Set the channel Kazu will run in",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionChannel{
+				Name:        "channel",
+				Description: "The channel kazu will run in",
+				Required:    true,
 			},
 		},
 	}
+}
+
+// Register registers the channel route on the given router.
+func (m *ChannelModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/channel", m.set)
 }

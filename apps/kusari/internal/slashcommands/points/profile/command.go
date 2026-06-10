@@ -6,14 +6,16 @@ import (
 	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *ProfileModule) profile(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	player := ctx.User
-	if u, ok := ctx.CommandData.OptUser("player"); ok {
+	player := e.Member().User
+	if u, ok := data.OptUser("player"); ok {
 		player = u
 	}
 
@@ -22,38 +24,36 @@ func (m *ProfileModule) profile(ctx *disgoplus.Ctx) {
 		player.ID.String(),
 	)
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	points, err := m.points.GetPlayer(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		player.ID.String(),
 		true,
 	)
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	name := "You"
 	addressing := "have"
 
-	if _, isOther := ctx.CommandData.OptUser("player"); isOther && player.ID != ctx.User.ID {
+	if _, isOther := data.OptUser("player"); isOther && player.ID != e.Member().User.ID {
 		name = fmt.Sprintf("<@%s>", player.ID)
 		addressing = "has"
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			`%s currently %s **%d** points!
 And you have **%s/%s** saves available!`,
@@ -65,4 +65,6 @@ And you have **%s/%s** saves available!`,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
+	return err
 }

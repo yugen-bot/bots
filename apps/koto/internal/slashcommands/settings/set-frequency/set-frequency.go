@@ -3,7 +3,7 @@ package setfrequency
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -24,21 +24,22 @@ func GetSetFrequencyModule(container *di.Container) *SetFrequencyModule {
 	}
 }
 
-func (m *SetFrequencyModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "frequency",
-			Description: "Set how many minutes between games",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionInt{
-					Name:        "minutes",
-					Description: "How many minutes between games (1-525600).",
-					Required:    true,
-					MinValue:    intPtr(1),
-					MaxValue:    intPtr(525_600),
-				},
+func (m *SetFrequencyModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "frequency",
+		Description: "Set how many minutes between games",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionInt{
+				Name:        "minutes",
+				Description: "How many minutes between games (1-525600).",
+				Required:    true,
+				MinValue:    intPtr(1),
+				MaxValue:    intPtr(525_600),
 			},
 		},
 	}
+}
+
+func (m *SetFrequencyModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/frequency", m.set)
 }

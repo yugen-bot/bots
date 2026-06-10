@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
@@ -20,90 +20,81 @@ func InitMiddlewares(container *di.Container) {
 	ownerIDs = cfg.OwnerIDs
 }
 
-func checkBase(ctx *disgoplus.Ctx) (bool, error) {
-	if ctx.Member == nil {
+func checkBase(e *handler.InteractionEvent) (bool, error) {
+	member := e.Member()
+	if member == nil {
 		return false, errors.New("member not accessible")
 	}
-
-	if len(ownerIDs) > 0 &&
-		slices.Contains(ownerIDs, ctx.Member.User.ID.String()) {
+	if len(ownerIDs) > 0 && slices.Contains(ownerIDs, member.User.ID.String()) {
 		return true, nil
 	}
-
 	return false, nil
 }
 
-func checkAdmin(ctx *disgoplus.Ctx) (bool, error) {
-	base, err := checkBase(ctx)
+func checkAdmin(e *handler.InteractionEvent) (bool, error) {
+	base, err := checkBase(e)
 	if base || err != nil {
 		return base, err
 	}
-
-	perms := ctx.Member.Permissions
-
-	if perms.Has(discord.PermissionAdministrator) {
+	perms := e.Member().Permissions
+	if perms.Has(discord.PermissionAdministrator) || perms.Has(discord.PermissionManageGuild) {
 		return true, nil
 	}
-
-	if perms.Has(discord.PermissionManageGuild) {
-		return true, nil
-	}
-
 	return false, nil
 }
 
-func checkModerator(ctx *disgoplus.Ctx) (bool, error) {
-	admin, err := checkAdmin(ctx)
+func checkModerator(e *handler.InteractionEvent) (bool, error) {
+	admin, err := checkAdmin(e)
 	if admin || err != nil {
 		return admin, err
 	}
-
-	return ctx.Member.Permissions.Has(discord.PermissionBanMembers), nil
+	return e.Member().Permissions.Has(discord.PermissionBanMembers), nil
 }
 
-func checkResponse(ctx *disgoplus.Ctx, pass bool, err error) {
+func checkResponse(e *handler.InteractionEvent, next handler.Handler, pass bool, err error) error {
 	if err != nil {
 		utils.Logger.Error(err)
-
-		resErr := disgoplus.ErrorResponse(ctx)
-		if resErr != nil {
-			utils.Logger.Error(resErr)
-		}
-
-		return
+		return e.CreateMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
 	}
-
 	if !pass {
-		err := disgoplus.ForbiddenResponse(ctx)
-		if err != nil {
-			utils.Logger.Errorw(
-				"roles: forbidden response failed",
-				"error",
-				err,
-				"guildID",
-				ctx.GuildID,
-				"userID",
-				ctx.Member.User.ID,
-			)
-		}
-
-		return
+		utils.Logger.Debugw(
+			"roles: forbidden",
+			"guildID", e.GuildID(),
+			"userID", func() string {
+				if m := e.Member(); m != nil {
+					return m.User.ID.String()
+				}
+				return ""
+			}(),
+		)
+		return e.CreateMessage(discord.MessageCreate{
+			Content: "You don't have permission to use this command.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
 	}
-
-	ctx.Next()
+	return next(e)
 }
 
-func OwnerMiddleware(ctx *disgoplus.Ctx) {
-	pass, err := checkBase(ctx)
-	checkResponse(ctx, pass, err)
+func OwnerMiddleware(next handler.Handler) handler.Handler {
+	return func(e *handler.InteractionEvent) error {
+		pass, err := checkBase(e)
+		return checkResponse(e, next, pass, err)
+	}
 }
 
-func GuildAdminMiddleware(ctx *disgoplus.Ctx) {
-	pass, err := checkAdmin(ctx)
-	checkResponse(ctx, pass, err)
+func GuildAdminMiddleware(next handler.Handler) handler.Handler {
+	return func(e *handler.InteractionEvent) error {
+		pass, err := checkAdmin(e)
+		return checkResponse(e, next, pass, err)
+	}
 }
 
-func GuildModeratorMiddleware(ctx *disgoplus.Ctx) {
-	pass, err := checkModerator(ctx)
-	checkResponse(ctx, pass, err)
+func GuildModeratorMiddleware(next handler.Handler) handler.Handler {
+	return func(e *handler.InteractionEvent) error {
+		pass, err := checkModerator(e)
+		return checkResponse(e, next, pass, err)
+	}
 }

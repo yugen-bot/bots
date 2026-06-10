@@ -3,6 +3,7 @@ package prunegames
 
 import (
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -27,20 +28,22 @@ func GetPruneGamesModule(container *di.Container) *PruneGamesModule {
 	}
 }
 
-// Commands returns the prune-games command definition.
-func (m *PruneGamesModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "prune-games",
-			Description: "List or delete games/history for guilds the bot is no longer in",
-			Handler:     disgoplus.HandlerFunc(m.run),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionBool{
-					Name:        "delete",
-					Description: "Delete the orphan games instead of listing them",
-					Required:    false,
-				},
+// SubCommandOption returns the sub-command option definition for /admin prune-games.
+func (m *PruneGamesModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "prune-games",
+		Description: "List or delete games/history for guilds the bot is no longer in",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionBool{
+				Name:        "delete",
+				Description: "Delete the orphan games instead of listing them",
+				Required:    false,
 			},
 		},
 	}
+}
+
+// Register registers the prune-games route on the given router.
+func (m *PruneGamesModule) Register(r handler.Router) {
+	r.SlashCommand("/admin/prune-games", m.run)
 }

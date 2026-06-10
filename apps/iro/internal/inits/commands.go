@@ -1,27 +1,36 @@
 package inits
 
 import (
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 )
 
 func InitCommands(container *di.Container) error {
 	bot := container.Get(static.DiBot).(*disgoplus.Bot)
+	cfg := container.Get(static.DiConfig).(*config.Config)
 
-	modules := []utils.CommandsModule{
+	modules := []disgoplus.RoutableModule{
 		slashcommands.GetDonateModule(container),
 		slashcommands.GetInviteModule(container),
 		slashcommands.GetSupportModule(container),
 		slashcommands.GetVoteModule(container),
 	}
 
-	utils.RegisterCommandModules(bot, modules)
+	disgoplus.RegisterCommandModules(bot, modules)
 
-	cfg := container.Get(static.DiConfig).(*config.Config)
-	return utils.SyncCommands(bot, cfg, len(modules))
+	if !cfg.SyncCommands {
+		return nil
+	}
+
+	var guildID snowflake.ID
+	if cfg.Env != "production" {
+		guildID, _ = snowflake.Parse(cfg.DiscordDevelopmentGuild)
+	}
+
+	return disgoplus.SyncCommands(bot, modules, guildID)
 }

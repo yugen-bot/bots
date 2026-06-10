@@ -5,22 +5,23 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetTimeLimitModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *SetTimeLimitModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	guildID := ctx.GuildID.String()
-	minutes := ctx.CommandData.Int("minutes")
+	guildID := (*e.GuildID()).String()
+	minutes := data.Int("minutes")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || existing == nil {
-		localUtils.ReplyNoSettings(ctx)
-		return
+		return localUtils.ReplyNoSettings(e, true)
 	}
 
 	if _, err := m.settings.Update(
@@ -28,15 +29,19 @@ func (m *SetTimeLimitModule) set(ctx *disgoplus.Ctx) {
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetTimeLimit(minutes) },
 	); err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Koto games will have a time limit of **%d** minutes!",
 			minutes,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	return err
 }

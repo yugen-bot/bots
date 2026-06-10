@@ -3,7 +3,7 @@ package list
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -24,29 +24,22 @@ func GetListModule(container *di.Container) *ListModule {
 
 func intPtr(i int) *int { return &i }
 
-func (m *ListModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "list",
-			Description: "List the starboards",
-			Handler:     disgoplus.HandlerFunc(m.list),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionInt{
-					Name:        "page",
-					Description: "The page to view",
-					Required:    false,
-					MinValue:    intPtr(1),
-				},
+func (m *ListModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "list",
+		Description: "List the starboards",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionInt{
+				Name:        "page",
+				Description: "The page to view",
+				Required:    false,
+				MinValue:    intPtr(1),
 			},
 		},
 	}
 }
 
-func (m *ListModule) MessageComponents() []*disgoplus.MessageComponent {
-	return []*disgoplus.MessageComponent{
-		{
-			CustomID: "STARBOARD_LIST/:page",
-			Handler:  disgoplus.HandlerFunc(m.listPage),
-		},
-	}
+func (m *ListModule) Register(r handler.Router) {
+	r.SlashCommand("/starboard/list", m.list)
+	r.ButtonComponent("/STARBOARD_LIST/{page}", m.listPage)
 }

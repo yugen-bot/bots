@@ -5,32 +5,41 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *UnignoreModule) unignore(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *UnignoreModule) unignore(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	channelID := ctx.ChannelID.String()
+	channelID := e.Channel().ID().String()
 	label := "this channel"
 
-	if ch, ok := ctx.CommandData.OptChannel("channel"); ok {
+	if ch, ok := data.OptChannel("channel"); ok {
 		channelID = ch.ID.String()
 		label = fmt.Sprintf("<#%s>", ch.ID.String())
 	}
 
 	if err := m.settings.IgnoreChannel(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		channelID,
 		false,
 	); err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return ferr
+		}
+		return err
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf("Starboards are now **unignored** for %s!", label),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }

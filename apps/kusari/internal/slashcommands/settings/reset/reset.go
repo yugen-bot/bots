@@ -3,7 +3,7 @@ package reset
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -33,20 +33,21 @@ func GetResetModule(container *di.Container) *ResetModule {
 	}
 }
 
-func (m *ResetModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "reset",
-			Description: "Reset a Kusari setting to it's default value.",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionString{
-					Name:        "setting",
-					Description: "The setting to reset to it's default value.",
-					Required:    true,
-					Choices:     choices,
-				},
+func (m *ResetModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "reset",
+		Description: "Reset a Kusari setting to it's default value.",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionString{
+				Name:        "setting",
+				Description: "The setting to reset to it's default value.",
+				Required:    true,
+				Choices:     choices,
 			},
 		},
 	}
+}
+
+func (m *ResetModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/reset", m.set)
 }

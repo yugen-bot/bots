@@ -3,18 +3,18 @@ package resetleaderboard
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetLeaderboardModule) resetLeaderboard(ctx *disgoplus.Ctx) {
+func (m *ResetLeaderboardModule) resetLeaderboard(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	var memberID *string
 
-	if user, ok := ctx.CommandData.OptUser("member"); ok {
+	if user, ok := data.OptUser("member"); ok {
 		id := user.ID.String()
 		memberID = &id
 	}
@@ -25,62 +25,52 @@ func (m *ResetLeaderboardModule) resetLeaderboard(ctx *disgoplus.Ctx) {
 	}
 
 	modal := discord.NewModalCreate(
-		fmt.Sprintf("RESET_LEADERBOARD/%s", userIDValue),
+		fmt.Sprintf(customIDResetLeaderboardFormat, userIDValue),
 		"Reset Leaderboard",
 	).AddLabel(
 		"Type CONFIRM to reset the leaderboard",
 		discord.NewShortTextInput("confirm").WithRequired(true),
 	)
 
-	err := disgoplus.ModalRespond(ctx, modal)
-	if err != nil {
-		utils.Logger.Errorw("reset-leaderboard: modal respond failed",
-			"error", err,
-			"guildID", ctx.GuildID.String(),
-		)
-	}
+	return e.Modal(modal)
 }
 
-func (m *ResetLeaderboardModule) handleModal(ctx *disgoplus.Ctx) {
-	fields := disgoplus.ParseModalData(*ctx.ModalData)
+func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
+	fields := disgoplus.ParseModalData(e.Data)
 
 	confirm := fields["confirm"]
 	if confirm != "CONFIRM" {
-		ctx.CreateMessage(discord.MessageCreate{ //nolint:errcheck
+		return e.CreateMessage(discord.MessageCreate{
 			Content: "Reset cancelled — you must type exactly `CONFIRM`.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
 	}
 
-	customID := ctx.ModalData.CustomID
-	parts := strings.SplitN(customID, "/", 2)
-
+	userIDStr := e.Vars["userID"]
 	var userID *string
 
-	if len(parts) > 1 && parts[1] != "" {
-		id := parts[1]
-		userID = &id
+	if userIDStr != "" {
+		userID = &userIDStr
 	}
 
-	ctx.DeferCreateMessage(true) //nolint:errcheck
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
 	if err := m.points.ResetLeaderboard(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 		userID,
 	); err != nil {
 		utils.Logger.Warnw("reset leaderboard failed",
 			"error", err,
-			"guildID", ctx.GuildID.String(),
+			"guildID", (*e.GuildID()).String(),
 		)
-		ctx.CreateFollowupMessage(discord.MessageCreate{ //nolint:errcheck
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Failed to reset leaderboard.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-
-		return
+		return err
 	}
 
 	msg := "Leaderboard has been reset!"
@@ -88,8 +78,9 @@ func (m *ResetLeaderboardModule) handleModal(ctx *disgoplus.Ctx) {
 		msg = fmt.Sprintf("Leaderboard for <@%s> has been reset!", *userID)
 	}
 
-	ctx.CreateFollowupMessage(discord.MessageCreate{ //nolint:errcheck
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: msg,
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }

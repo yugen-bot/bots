@@ -3,7 +3,7 @@ package remove
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -22,19 +22,20 @@ func GetRemoveModule(container *di.Container) *RemoveModule {
 	}
 }
 
-func (m *RemoveModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "remove",
-			Description: "Remove a starboard configuration",
-			Handler:     disgoplus.HandlerFunc(m.remove),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionInt{
-					Name:        "id",
-					Description: "The id of a configuration to remove",
-					Required:    true,
-				},
+func (m *RemoveModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "remove",
+		Description: "Remove a starboard configuration",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionInt{
+				Name:        "id",
+				Description: "The id of a configuration to remove",
+				Required:    true,
 			},
 		},
 	}
+}
+
+func (m *RemoveModule) Register(r handler.Router) {
+	r.SlashCommand("/starboard/remove", m.remove)
 }

@@ -1,24 +1,25 @@
 package inits
 
 import (
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
+	sharedSlashcommands "jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"
-	"jurien.dev/yugen/shared/utils"
 
 	admin "jurien.dev/yugen/koto/internal/slashcommands/admin"
 	gameCmd "jurien.dev/yugen/koto/internal/slashcommands/game"
 	"jurien.dev/yugen/koto/internal/slashcommands/points"
 	settingsCmd "jurien.dev/yugen/koto/internal/slashcommands/settings"
-	sharedSlashcommands "jurien.dev/yugen/shared/slashcommands"
 )
 
 func InitCommands(container *di.Container) error {
 	bot := container.Get(static.DiBot).(*disgoplus.Bot)
+	cfg := container.Get(static.DiConfig).(*config.Config)
 
-	modules := []utils.CommandsModule{
+	modules := []disgoplus.RoutableModule{
 		sharedSlashcommands.GetDonateModule(container),
 		sharedSlashcommands.GetInviteModule(container),
 		sharedSlashcommands.GetSupportModule(container),
@@ -32,8 +33,16 @@ func InitCommands(container *di.Container) error {
 		points.GetPointsModule(container),
 	}
 
-	utils.RegisterCommandModules(bot, modules)
+	disgoplus.RegisterCommandModules(bot, modules)
 
-	cfg := container.Get(static.DiConfig).(*config.Config)
-	return utils.SyncCommands(bot, cfg, len(modules))
+	if !cfg.SyncCommands {
+		return nil
+	}
+
+	var guildID snowflake.ID
+	if cfg.Env != "production" {
+		guildID, _ = snowflake.Parse(cfg.DiscordDevelopmentGuild)
+	}
+
+	return disgoplus.SyncCommands(bot, modules, guildID)
 }

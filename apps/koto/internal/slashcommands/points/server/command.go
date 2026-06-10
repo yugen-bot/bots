@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	"jurien.dev/yugen/shared/config"
@@ -17,37 +17,39 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ServerModule) server(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true)
+func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	guildID := ctx.GuildID.String()
+	guildID := (*e.GuildID()).String()
 	bg := context.Background()
 
 	settings, err := m.settingsSvc.GetByGuildID(bg, guildID)
 	if err != nil || settings == nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry, couldn't retrieve the server information.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-		return
+		return err
 	}
 
 	guildSnowflake, err := snowflake.Parse(guildID)
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry, couldn't retrieve the server information.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-		return
+		return err
 	}
 
 	guild, err := m.bot.Client().Rest.GetGuild(guildSnowflake, false)
 	if err != nil {
-		disgoplus.FollowUp(ctx, discord.MessageCreate{
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry, couldn't retrieve the server information.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
-		return
+		return err
 	}
 
 	currentGame, _ := m.gameSvc.GetCurrentGame(bg, guildID)
@@ -115,8 +117,9 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 		embed = embed.WithThumbnail(*iconURL)
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+	return err
 }

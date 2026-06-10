@@ -2,7 +2,8 @@
 package donatesave
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -24,12 +25,16 @@ func GetDonateSaveModule(container *di.Container) *DonateSaveModule {
 	}
 }
 
-func (m *DonateSaveModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
+func (m *DonateSaveModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "donate-save",
 			Description: "Donate a personal save to the server.",
-			Handler:     disgoplus.HandlerFunc(m.donateSave),
 		},
 	}
 }
+
+func (m *DonateSaveModule) Register(r handler.Router) {
+	r.SlashCommand("/donate-save", m.donateSave)
+}
+

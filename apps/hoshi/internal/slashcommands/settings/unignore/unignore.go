@@ -3,7 +3,7 @@ package unignore
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/hoshi/internal/services"
@@ -22,19 +22,20 @@ func GetUnignoreModule(container *di.Container) *UnignoreModule {
 	}
 }
 
-func (m *UnignoreModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "unignore",
-			Description: "Unignore the current channel",
-			Handler:     disgoplus.HandlerFunc(m.unignore),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionChannel{
-					Name:        "channel",
-					Description: "The channel to unignore",
-					Required:    false,
-				},
+func (m *UnignoreModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "unignore",
+		Description: "Unignore the current channel",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionChannel{
+				Name:        "channel",
+				Description: "The channel to unignore",
+				Required:    false,
 			},
 		},
 	}
+}
+
+func (m *UnignoreModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/unignore", m.unignore)
 }

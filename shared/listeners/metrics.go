@@ -29,19 +29,6 @@ func reloadGauges(client *bot.Client) {
 	metrics.TotalChannels.Set(float64(client.Caches.ChannelsLen()))
 }
 
-func countCommands(bot *disgoplus.Bot) int {
-	n := 0
-
-	for _, cmd := range bot.Router.Commands() {
-		if cmd.SubCommands != nil && cmd.SubCommands.Count() > 0 {
-			n += cmd.SubCommands.Count()
-		} else {
-			n++
-		}
-	}
-
-	return n
-}
 
 func getCPUPercentage(proc *process.Process) float64 {
 	if pct, err := proc.Percent(0); err == nil {
@@ -134,7 +121,7 @@ func AddMetricsListeners(container *di.Container) {
 
 			go reloadGauges(client)
 
-			metrics.TotalInteractions.Set(float64(countCommands(disgoBot)))
+			metrics.TotalInteractions.Set(float64(utils.TotalRegisteredCommands()))
 		}),
 		bot.NewListenerFunc(func(e *events.Resumed) {
 			shardID := e.ShardID()

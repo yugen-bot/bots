@@ -2,7 +2,8 @@
 package points
 
 import (
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	donatesave "jurien.dev/yugen/kusari/internal/slashcommands/points/donate-save"
@@ -10,48 +11,44 @@ import (
 	"jurien.dev/yugen/kusari/internal/slashcommands/points/profile"
 	resetleaderboard "jurien.dev/yugen/kusari/internal/slashcommands/points/reset-leaderboard"
 	"jurien.dev/yugen/kusari/internal/slashcommands/points/server"
+	"jurien.dev/yugen/shared/utils"
 )
 
 type pointsSubModule interface {
-	Commands() []*disgoplus.Command
+	utils.RoutableModule
 }
 
 // PointsModule aggregates all points-related slash commands.
 type PointsModule struct {
-	container   *di.Container
-	subModules  []pointsSubModule
-	leaderboard *leaderboard.LeaderboardModule
-	resetLeader *resetleaderboard.ResetLeaderboardModule
+	container  *di.Container
+	subModules []pointsSubModule
 }
 
 func GetPointsModule(container *di.Container) *PointsModule {
-	lb := leaderboard.GetLeaderboardModule(container)
-	rl := resetleaderboard.GetResetLeaderboardModule(container)
 	return &PointsModule{
-		container:   container,
-		leaderboard: lb,
-		resetLeader: rl,
+		container: container,
 		subModules: []pointsSubModule{
 			donatesave.GetDonateSaveModule(container),
-			lb,
+			leaderboard.GetLeaderboardModule(container),
 			profile.GetProfileModule(container),
-			rl,
+			resetleaderboard.GetResetLeaderboardModule(container),
 			server.GetServerModule(container),
 		},
 	}
 }
 
-func (m *PointsModule) Commands() []*disgoplus.Command {
-	var all []*disgoplus.Command
+func (m *PointsModule) Commands() []discord.ApplicationCommandCreate {
+	var all []discord.ApplicationCommandCreate
 	for _, sm := range m.subModules {
 		all = append(all, sm.Commands()...)
 	}
+
 	return all
 }
 
-func (m *PointsModule) MessageComponents() []*disgoplus.MessageComponent {
-	var all []*disgoplus.MessageComponent
-	all = append(all, m.leaderboard.MessageComponents()...)
-	all = append(all, m.resetLeader.MessageComponents()...)
-	return all
+func (m *PointsModule) Register(r handler.Router) {
+	for _, sm := range m.subModules {
+		sm.Register(r)
+	}
 }
+

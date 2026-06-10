@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -20,7 +21,7 @@ func GetInviteModule(container *di.Container) *InviteModule {
 	return &InviteModule{container: container}
 }
 
-func (m *InviteModule) invite(ctx *disgoplus.Ctx) {
+func (m *InviteModule) invite(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 
@@ -48,21 +49,22 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 		cfg.InviteLink,
 	)
 
-	msg := discord.NewMessageCreate().
-		AddEmbeds(embed).
-		AddActionRow(inviteButton)
+	return e.CreateMessage(
+		discord.NewMessageCreate().
+			AddEmbeds(embed).
+			AddActionRow(inviteButton),
+	)
+}
 
-	if err := disgoplus.Respond(ctx, msg); err != nil {
-		utils.Logger.Error(err)
+func (m *InviteModule) Commands() []discord.ApplicationCommandCreate {
+	return []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
+			Name:        "invite",
+			Description: "Get a bot invite to add it to your server!",
+		},
 	}
 }
 
-func (m *InviteModule) Commands() []*disgoplus.Command {
-	return []*disgoplus.Command{
-		{
-			Name:        "invite",
-			Description: "Get a bot invite to add it to your server!",
-			Handler:     disgoplus.HandlerFunc(m.invite),
-		},
-	}
+func (m *InviteModule) Register(r handler.Router) {
+	r.SlashCommand("/invite", m.invite)
 }

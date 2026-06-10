@@ -5,23 +5,28 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *CooldownModule) set(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	seconds := ctx.CommandData.Int("seconds")
+	seconds := data.Int("seconds")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	_, err = m.settings.Update(
@@ -30,8 +35,11 @@ func (m *CooldownModule) set(ctx *disgoplus.Ctx) {
 		func(u *ent.SettingsUpdateOne) { u.SetCooldown(seconds) },
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	secondsText := "seconds"
@@ -48,8 +56,9 @@ func (m *CooldownModule) set(ctx *disgoplus.Ctx) {
 		content = "Cooldown has been removed!"
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: content,
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }

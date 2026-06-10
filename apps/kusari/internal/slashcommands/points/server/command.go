@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
@@ -15,17 +16,20 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ServerModule) err(ctx *disgoplus.Ctx) {
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+func (m *ServerModule) err(e *handler.CommandEvent) error {
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Sorry couldn't retrieve the server information...",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	return err
 }
 
-func (m *ServerModule) server(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	guildID := ctx.GuildID.String()
+	guildID := (*e.GuildID()).String()
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
@@ -39,9 +43,7 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 			"guildID",
 			guildID,
 		)
-		m.err(ctx)
-
-		return
+		return m.err(e)
 	}
 
 	gameResult, gameExists, err := m.game.GetCurrentGame(
@@ -56,9 +58,7 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 			"guildID",
 			guildID,
 		)
-		m.err(ctx)
-
-		return
+		return m.err(e)
 	}
 
 	history, historyExists, err := m.game.GetLastHistory(
@@ -73,18 +73,15 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 			"guildID",
 			guildID,
 		)
-		m.err(ctx)
-
-		return
+		return m.err(e)
 	}
 
 	guildSnowflake, parseErr := snowflake.Parse(guildID)
 	if parseErr != nil {
-		m.err(ctx)
-		return
+		return m.err(e)
 	}
 
-	guild, err := ctx.Client.Rest.GetGuild(guildSnowflake, false)
+	guild, err := e.Client().Rest.GetGuild(guildSnowflake, false)
 	if err != nil {
 		utils.Logger.Errorw(
 			"server: get guild failed",
@@ -93,12 +90,10 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 			"guildID",
 			guildID,
 		)
-		m.err(ctx)
-
-		return
+		return m.err(e)
 	}
 
-	self, _ := ctx.Client.Caches.SelfUser()
+	self, _ := e.Client().Caches.SelfUser()
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
@@ -166,7 +161,7 @@ Saves used: **%s**
 		)).
 		WithEmbedFooter(footer)
 
-	_, err = disgoplus.FollowUp(ctx, discord.MessageCreate{
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
@@ -179,4 +174,6 @@ Saves used: **%s**
 			guildID,
 		)
 	}
+
+	return err
 }

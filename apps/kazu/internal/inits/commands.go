@@ -1,6 +1,7 @@
 package inits
 
 import (
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
@@ -18,7 +19,7 @@ import (
 func InitCommands(container *di.Container) error {
 	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 
-	modules := []utils.CommandsModule{
+	modules := []utils.RoutableModule{
 		// shared
 		sharedSlashcommands.GetDonateModule(container),
 		sharedSlashcommands.GetInviteModule(container),
@@ -37,5 +38,18 @@ func InitCommands(container *di.Container) error {
 	utils.RegisterCommandModules(bot, modules)
 
 	cfg := container.Get(static.DiConfig).(*config.Config)
-	return utils.SyncCommands(bot, cfg, len(modules))
+	if !cfg.SyncCommands {
+		return nil
+	}
+
+	var guildID snowflake.ID
+	if cfg.Env != "production" {
+		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
+		if err != nil {
+			return err
+		}
+		guildID = id
+	}
+
+	return utils.SyncCommands(bot, modules, guildID)
 }

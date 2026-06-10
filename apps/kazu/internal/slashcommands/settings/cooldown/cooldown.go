@@ -3,7 +3,7 @@ package cooldown
 
 import (
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -24,25 +24,27 @@ func GetCooldownModule(container *di.Container) *CooldownModule {
 	}
 }
 
-// Commands returns the cooldown command definition.
-func (m *CooldownModule) Commands() []*disgoplus.Command {
+// SubCommandOption returns the sub-command option definition for /settings cooldown.
+func (m *CooldownModule) SubCommandOption() discord.ApplicationCommandOptionSubCommand {
 	minValue := 0
 	maxValue := 3600
 
-	return []*disgoplus.Command{
-		{
-			Name:        "cooldown",
-			Description: "Set the cooldown between answers.",
-			Handler:     disgoplus.HandlerFunc(m.set),
-			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionInt{
-					Name:        "seconds",
-					Description: "The amount of seconds between answers.",
-					Required:    true,
-					MinValue:    &minValue,
-					MaxValue:    &maxValue,
-				},
+	return discord.ApplicationCommandOptionSubCommand{
+		Name:        "cooldown",
+		Description: "Set the cooldown between answers.",
+		Options: []discord.ApplicationCommandOption{
+			discord.ApplicationCommandOptionInt{
+				Name:        "seconds",
+				Description: "The amount of seconds between answers.",
+				Required:    true,
+				MinValue:    &minValue,
+				MaxValue:    &maxValue,
 			},
 		},
 	}
+}
+
+// Register registers the cooldown route on the given router.
+func (m *CooldownModule) Register(r handler.Router) {
+	r.SlashCommand("/settings/cooldown", m.set)
 }

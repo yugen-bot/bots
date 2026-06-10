@@ -5,27 +5,35 @@ import (
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/jurienhamaker/disgoplus"
+	"github.com/disgoorg/disgo/handler"
 
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *ShameModule) setRole(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ShameModule) setRole(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	role, ok := ctx.CommandData.OptRole("role")
+	role, ok := data.OptRole("role")
 	if !ok {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	roleIDStr := role.ID.String()
@@ -36,31 +44,40 @@ func (m *ShameModule) setRole(ctx *disgoplus.Ctx) {
 		func(u *ent.SettingsUpdateOne) { u.SetShameRoleID(roleIDStr) },
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"I will apply <@&%s> to the person that breaks the count chain.",
 			role.ID.String(),
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	return err
 }
 
-func (m *ShameModule) setRemoveShameRole(ctx *disgoplus.Ctx) {
-	disgoplus.Defer(ctx, true) //nolint:errcheck
+func (m *ShameModule) setRemoveShameRole(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return err
+	}
 
-	remove := ctx.CommandData.Bool("remove")
+	remove := data.Bool("remove")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.GuildID.String(),
+		(*e.GuildID()).String(),
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	_, err = m.settings.Update(
@@ -69,8 +86,11 @@ func (m *ShameModule) setRemoveShameRole(ctx *disgoplus.Ctx) {
 		func(u *ent.SettingsUpdateOne) { u.SetRemoveShameRoleAfterHighscore(remove) },
 	)
 	if err != nil {
-		disgoplus.InteractionError(ctx, true)
-		return
+		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return err
 	}
 
 	valueText := "remove"
@@ -78,11 +98,12 @@ func (m *ShameModule) setRemoveShameRole(ctx *disgoplus.Ctx) {
 		valueText = "not " + valueText
 	}
 
-	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"I will **%s** the shame role  after a highscore is reached.",
 			valueText,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	return err
 }
