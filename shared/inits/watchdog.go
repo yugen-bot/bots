@@ -44,10 +44,20 @@ func StartShardWatchdog(bot *discordgoplus.Bot, ctx context.Context) {
 					)
 
 					if err := shard.Close(); err != nil {
-						utils.Logger.Errorf("watchdog: shard %d close: %v", shard.ShardID, err)
+						utils.Logger.Errorf(
+							"watchdog: shard %d close: %v",
+							shard.ShardID,
+							err,
+						)
 					}
-					if err := shard.Open(); err != nil && !errors.Is(err, discordgo.ErrWSAlreadyOpen) {
-						utils.Logger.Errorf("watchdog: shard %d open: %v", shard.ShardID, err)
+
+					if err := shard.Open(); err != nil &&
+						!errors.Is(err, discordgo.ErrWSAlreadyOpen) {
+						utils.Logger.Errorf(
+							"watchdog: shard %d open: %v",
+							shard.ShardID,
+							err,
+						)
 					}
 				})
 			}

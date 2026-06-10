@@ -24,7 +24,11 @@ func (m *TutorialModule) tutorial(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 
-	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, cfg.OwnerID)
+	footer := utils.CreateEmbedFooter(
+		bot,
+		&utils.CreateEmbedFooterParams{IsVote: false},
+		cfg.OwnerID,
+	)
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	tutorialText := m.container.Get(static.DiTutorialText).(string)
 	appName := m.container.Get(static.DiAppName).(string)
@@ -35,7 +39,10 @@ func (m *TutorialModule) tutorial(ctx *disgoplus.Ctx) {
 		WithDescription(tutorialText).
 		WithEmbedFooter(footer)
 
-	if err := disgoplus.Respond(ctx, discord.NewMessageCreate().AddEmbeds(embed)); err != nil {
+	if err := disgoplus.Respond(
+		ctx,
+		discord.NewMessageCreate().AddEmbeds(embed),
+	); err != nil {
 		utils.Logger.Error(err)
 	}
 }

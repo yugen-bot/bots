@@ -25,7 +25,13 @@ func sendLogMessage(
 ) {
 	guild, err := client.Rest.GetGuild(guildID, false)
 	if err != nil {
-		utils.Logger.Errorw("log: get guild failed", "error", err, "guildID", guildID)
+		utils.Logger.Errorw(
+			"log: get guild failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		return
 	}
 
@@ -44,7 +50,10 @@ func sendLogMessage(
 		return
 	}
 
-	_, sendErr := client.Rest.CreateMessage(logChannelID, discord.NewMessageCreate().WithContent(message))
+	_, sendErr := client.Rest.CreateMessage(
+		logChannelID,
+		discord.NewMessageCreate().WithContent(message),
+	)
 	utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
 }
 
@@ -54,43 +63,50 @@ func AddLogListeners(container *di.Container) {
 	cfg := container.Get(static.DiConfig).(*config.Config)
 
 	client.EventManager.AddEventListeners(
-		bot.NewListenerFunc(func(e *events.ApplicationCommandInteractionCreate) {
-			if e.Data.Type() != discord.ApplicationCommandTypeSlash {
-				return
-			}
+		bot.NewListenerFunc(
+			func(e *events.ApplicationCommandInteractionCreate) {
+				if e.Data.Type() != discord.ApplicationCommandTypeSlash {
+					return
+				}
 
-			var userID snowflake.ID
-			var username string
-			if m := e.Member(); m != nil {
-				userID = m.User.ID
-				username = m.User.Username
-			}
+				var (
+					userID   snowflake.ID
+					username string
+				)
 
-			data := e.Data.(discord.SlashCommandInteractionData)
-			name := disgoplus.GetInteractionName(data)
-			guildID := snowflake.ID(0)
-			if gid := e.GuildID(); gid != nil {
-				guildID = *gid
-			}
+				if m := e.Member(); m != nil {
+					userID = m.User.ID
+					username = m.User.Username
+				}
 
-			utils.Logger.With(
-				"interaction", name,
-				"username", username,
-				"userID", userID,
-				"guildID", guildID,
-				"shard ID", e.ShardID()+1,
-			).Infof("Interaction %q used by %s", name, username)
+				data := e.Data.(discord.SlashCommandInteractionData)
+				name := disgoplus.GetInteractionName(data)
 
-			go sendLogMessage(client, cfg, guildID, name, username, userID)
-		}),
+				guildID := snowflake.ID(0)
+				if gid := e.GuildID(); gid != nil {
+					guildID = *gid
+				}
 
+				utils.Logger.With(
+					"interaction", name,
+					"username", username,
+					"userID", userID,
+					"guildID", guildID,
+					"shard ID", e.ShardID()+1,
+				).Infof("Interaction %q used by %s", name, username)
+
+				go sendLogMessage(client, cfg, guildID, name, username, userID)
+			},
+		),
 		bot.NewListenerFunc(func(e *events.ComponentInteractionCreate) {
-			customID := e.ComponentInteraction.Data.CustomID()
+			customID := e.Data.CustomID()
+
 			var username, userID string
 			if m := e.Member(); m != nil {
 				username = m.User.Username
 				userID = m.User.ID.String()
 			}
+
 			guildID := snowflake.ID(0)
 			if gid := e.GuildID(); gid != nil {
 				guildID = *gid

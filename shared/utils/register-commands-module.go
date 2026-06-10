@@ -25,6 +25,7 @@ func getStructName(m interface{}) string {
 	if t.Kind() == reflect.Pointer {
 		return t.Elem().Name()
 	}
+
 	return t.Name()
 }
 
@@ -39,6 +40,7 @@ func RegisterCommandModules(bot *disgoplus.Bot, modules []CommandsModule) {
 				commandsLen += command.SubCommands.Count()
 				continue
 			}
+
 			commandsLen++
 		}
 
@@ -55,10 +57,12 @@ func RegisterCommandModules(bot *disgoplus.Bot, modules []CommandsModule) {
 
 		if a, ok := m.(CommandsAndMessageComponentsModule); ok {
 			messageComponents := a.MessageComponents()
+
 			messageComponentsLen = len(messageComponents)
 			if messageComponentsLen == 1 {
 				messageComponentsStr = "message component"
 			}
+
 			for _, mc := range messageComponents {
 				bot.Router.RegisterMessageComponent(mc)
 			}
@@ -69,10 +73,12 @@ func RegisterCommandModules(bot *disgoplus.Bot, modules []CommandsModule) {
 
 		if a, ok := m.(ModalsModule); ok {
 			modals := a.Modals()
+
 			modalsLen = len(modals)
 			if modalsLen == 1 {
 				modalsStr = "modal"
 			}
+
 			for _, modal := range modals {
 				bot.Router.RegisterModal(modal)
 			}

@@ -35,15 +35,21 @@ func (m *VoteModule) Run(ctx *disgoplus.Ctx) {
 	}
 
 	var voteReward string
+
 	voteRewardFunc := m.container.Get(static.DiVoteReward).(func(userId string) string)
 	if voteRewardFunc != nil && ctx.Member != nil {
 		voteReward = voteRewardFunc(ctx.Member.User.ID.String())
 	}
+
 	if len(voteReward) > 0 {
 		voteReward = "\n" + voteReward
 	}
 
-	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: true}, cfg.OwnerID)
+	footer := utils.CreateEmbedFooter(
+		bot,
+		&utils.CreateEmbedFooterParams{IsVote: true},
+		cfg.OwnerID,
+	)
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 
@@ -59,10 +65,20 @@ Please use any of the links below to vote for %s!%s`,
 
 	var buttons []discord.InteractiveComponent
 	if cfg.TopGGVoteLink != "" {
-		buttons = append(buttons, discord.NewLinkButton("Vote on Top.GG", cfg.TopGGVoteLink))
+		buttons = append(
+			buttons,
+			discord.NewLinkButton("Vote on Top.GG", cfg.TopGGVoteLink),
+		)
 	}
+
 	if cfg.DiscordBotListVoteLink != "" {
-		buttons = append(buttons, discord.NewLinkButton("Vote on Discord Bot List", cfg.DiscordBotListVoteLink))
+		buttons = append(
+			buttons,
+			discord.NewLinkButton(
+				"Vote on Discord Bot List",
+				cfg.DiscordBotListVoteLink,
+			),
+		)
 	}
 
 	msg := discord.NewMessageCreate().AddEmbeds(embed)

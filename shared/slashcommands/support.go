@@ -24,7 +24,11 @@ func (m *SupportModule) support(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 
-	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, cfg.OwnerID)
+	footer := utils.CreateEmbedFooter(
+		bot,
+		&utils.CreateEmbedFooterParams{IsVote: false},
+		cfg.OwnerID,
+	)
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	appName := m.container.Get(static.DiAppName).(string)
 
@@ -38,7 +42,9 @@ Join our support server with the button below, we'll try to help you out the bes
 		)).
 		WithEmbedFooter(footer)
 
-	msg := discord.NewMessageCreate().AddEmbeds(embed).AddActionRow(static.ButtonDiscordSupportServer)
+	msg := discord.NewMessageCreate().
+		AddEmbeds(embed).
+		AddActionRow(static.ButtonDiscordSupportServer)
 
 	if err := disgoplus.Respond(ctx, msg); err != nil {
 		utils.Logger.Error(err)

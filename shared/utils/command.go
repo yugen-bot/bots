@@ -17,6 +17,7 @@ func SyncCommands(bot *disgoplus.Bot, cfg *config.Config, amount int) error {
 	appID := bot.ApplicationID()
 
 	var guildID snowflake.ID
+
 	if cfg.Env != productionEnv {
 		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
 		if err == nil {

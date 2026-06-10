@@ -25,7 +25,8 @@ func checkBase(ctx *disgoplus.Ctx) (bool, error) {
 		return false, errors.New("member not accessible")
 	}
 
-	if len(ownerIDs) > 0 && slices.Contains(ownerIDs, ctx.Member.User.ID.String()) {
+	if len(ownerIDs) > 0 &&
+		slices.Contains(ownerIDs, ctx.Member.User.ID.String()) {
 		return true, nil
 	}
 
@@ -63,10 +64,12 @@ func checkModerator(ctx *disgoplus.Ctx) (bool, error) {
 func checkResponse(ctx *disgoplus.Ctx, pass bool, err error) {
 	if err != nil {
 		utils.Logger.Error(err)
+
 		resErr := disgoplus.ErrorResponse(ctx)
 		if resErr != nil {
 			utils.Logger.Error(resErr)
 		}
+
 		return
 	}
 
@@ -83,6 +86,7 @@ func checkResponse(ctx *disgoplus.Ctx, pass bool, err error) {
 				ctx.Member.User.ID,
 			)
 		}
+
 		return
 	}
 

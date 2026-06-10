@@ -61,14 +61,17 @@ func (handler *VoteHandler) handleTopGG(c *fiber.Ctx) error {
 	if err := c.BodyParser(body); err != nil {
 		return err
 	}
+
 	if len(body.BotID) == 0 {
 		return c.Status(400).SendString("Missing bot ID in body")
 	}
+
 	if len(body.ID) == 0 {
 		return c.Status(400).SendString("Missing user ID in body")
 	}
 
 	disgoBot := handler.container.Get(static.DiClient).(*disgoplus.Bot)
+
 	self, ok := disgoBot.Client().Caches.SelfUser()
 	if !ok {
 		return c.Status(500).SendString("Self user not in cache")
@@ -88,9 +91,11 @@ func (handler *VoteHandler) handleDiscordBotList(c *fiber.Ctx) error {
 	if err := c.BodyParser(body); err != nil {
 		return err
 	}
+
 	if body.Admin {
 		return c.SendStatus(200)
 	}
+
 	if len(body.ID) == 0 {
 		return c.Status(400).SendString("Missing user ID in body")
 	}

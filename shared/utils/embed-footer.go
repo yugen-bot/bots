@@ -38,10 +38,12 @@ func CreateEmbedFooter(
 		if self, ok := bot.Client().Caches.SelfUser(); ok {
 			name = self.Username
 		}
+
 		text = fmt.Sprintf("Like %s? Please vote using /vote! | %s", name, text)
 	}
 
 	iconURL := owner.EffectiveAvatarURL()
+
 	return &discord.EmbedFooter{
 		IconURL: iconURL,
 		Text:    text,

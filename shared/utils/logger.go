@@ -10,6 +10,7 @@ import (
 	prettyconsole "github.com/thessem/zap-prettyconsole"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
 	"jurien.dev/yugen/shared/static"
 )
 

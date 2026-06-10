@@ -24,7 +24,11 @@ func (m *InviteModule) invite(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 
-	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, cfg.OwnerID)
+	footer := utils.CreateEmbedFooter(
+		bot,
+		&utils.CreateEmbedFooterParams{IsVote: false},
+		cfg.OwnerID,
+	)
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	appName := m.container.Get(static.DiAppName).(string)
 
@@ -44,7 +48,9 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 		cfg.InviteLink,
 	)
 
-	msg := discord.NewMessageCreate().AddEmbeds(embed).AddActionRow(inviteButton)
+	msg := discord.NewMessageCreate().
+		AddEmbeds(embed).
+		AddActionRow(inviteButton)
 
 	if err := disgoplus.Respond(ctx, msg); err != nil {
 		utils.Logger.Error(err)

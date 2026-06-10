@@ -31,6 +31,7 @@ func reloadGauges(client *bot.Client) {
 
 func countCommands(bot *disgoplus.Bot) int {
 	n := 0
+
 	for _, cmd := range bot.Router.Commands() {
 		if cmd.SubCommands != nil && cmd.SubCommands.Count() > 0 {
 			n += cmd.SubCommands.Count()
@@ -38,6 +39,7 @@ func countCommands(bot *disgoplus.Bot) int {
 			n++
 		}
 	}
+
 	return n
 }
 
@@ -45,6 +47,7 @@ func getCPUPercentage(proc *process.Process) float64 {
 	if pct, err := proc.Percent(0); err == nil {
 		return pct
 	}
+
 	return 0
 }
 
@@ -75,12 +78,16 @@ func AddMetricsListeners(container *di.Container) {
 		lastHeartbeatTime.Range(func(k, v any) bool {
 			shardID := k.(int)
 			t := v.(time.Time)
+
 			shard := strconv.Itoa(shardID)
 			if shardID < 0 {
 				shard = "0"
 			}
+
 			elapsed := time.Since(t)
-			metrics.DiscordLatency.WithLabelValues(shard).Set(float64(elapsed.Milliseconds()))
+			metrics.DiscordLatency.WithLabelValues(shard).
+				Set(float64(elapsed.Milliseconds()))
+
 			return true
 		})
 	}); err != nil {
@@ -91,15 +98,18 @@ func AddMetricsListeners(container *di.Container) {
 		bot.NewListenerFunc(func(e *events.HeartbeatAck) {
 			lastHeartbeatTime.Store(e.ShardID(), time.Now())
 			latency := e.NewHeartbeat.Sub(e.LastHeartbeat)
+
 			shard := strconv.Itoa(e.ShardID())
 			if e.ShardID() < 0 {
 				shard = "0"
 			}
-			metrics.DiscordLatency.WithLabelValues(shard).Set(float64(latency.Milliseconds()))
-		}),
 
+			metrics.DiscordLatency.WithLabelValues(shard).
+				Set(float64(latency.Milliseconds()))
+		}),
 		bot.NewListenerFunc(func(e *events.Ready) {
 			shardID := e.ShardID()
+
 			metrics.DiscordConnected.Set(1)
 
 			if lh, ok := lastHeartbeatTime.Load(shardID); ok {
@@ -111,19 +121,24 @@ func AddMetricsListeners(container *di.Container) {
 						gap.Round(time.Second),
 					)
 				} else {
-					utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
+					utils.Logger.Infof(
+						"Connected to Discord (shard %d)",
+						shardID,
+					)
 				}
 			} else {
 				utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
 			}
 
 			metrics.DiscordShards.Inc()
+
 			go reloadGauges(client)
+
 			metrics.TotalInteractions.Set(float64(countCommands(disgoBot)))
 		}),
-
 		bot.NewListenerFunc(func(e *events.Resumed) {
 			shardID := e.ShardID()
+
 			metrics.DiscordConnected.Set(1)
 
 			if lh, ok := lastHeartbeatTime.Load(shardID); ok {
@@ -134,46 +149,46 @@ func AddMetricsListeners(container *di.Container) {
 					gap.Round(time.Second),
 				)
 			} else {
-				utils.Logger.Infof("Resumed connection to Discord (shard %d)", shardID)
+				utils.Logger.Infof(
+					"Resumed connection to Discord (shard %d)",
+					shardID,
+				)
 			}
 		}),
-
 		bot.NewListenerFunc(func(e *events.GuildJoin) {
 			go reloadGauges(client)
 		}),
-
 		bot.NewListenerFunc(func(e *events.GuildAvailable) {
 			go reloadGauges(client)
 		}),
-
 		bot.NewListenerFunc(func(e *events.GuildLeave) {
 			go reloadGauges(client)
 		}),
-
 		bot.NewListenerFunc(func(e *events.GuildUnavailable) {
 			go reloadGauges(client)
 		}),
-
 		bot.NewListenerFunc(func(e *events.GuildChannelCreate) {
 			go reloadGauges(client)
 		}),
-
 		bot.NewListenerFunc(func(e *events.GuildChannelDelete) {
 			go reloadGauges(client)
 		}),
+		bot.NewListenerFunc(
+			func(e *events.ApplicationCommandInteractionCreate) {
+				if e.Data.Type() != discord.ApplicationCommandTypeSlash {
+					return
+				}
 
-		bot.NewListenerFunc(func(e *events.ApplicationCommandInteractionCreate) {
-			if e.Data.Type() != discord.ApplicationCommandTypeSlash {
-				return
-			}
-			data := e.Data.(discord.SlashCommandInteractionData)
-			name := disgoplus.GetInteractionName(data)
-			metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).Inc()
-		}),
-
+				data := e.Data.(discord.SlashCommandInteractionData)
+				name := disgoplus.GetInteractionName(data)
+				metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).
+					Inc()
+			},
+		),
 		bot.NewListenerFunc(func(e *events.ComponentInteractionCreate) {
-			customID := e.ComponentInteraction.Data.CustomID()
-			metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", customID).Inc()
+			customID := e.Data.CustomID()
+			metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", customID).
+				Inc()
 		}),
 	)
 }
