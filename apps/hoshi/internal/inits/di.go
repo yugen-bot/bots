@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/sharding"
 	"github.com/jackc/pgx/v5"
@@ -63,7 +64,9 @@ func InitDI() (container di.Container, err error) {
 			} else {
 				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
 			}
-			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt)
+			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt,
+				bot.WithCacheConfigOpts(cache.WithCaches(static.DefaultCacheFlags|cache.FlagMessages)),
+			)
 		},
 		Close: func(obj any) error {
 			b := obj.(*disgoplus.Bot)

@@ -134,6 +134,12 @@ func (m *LeaderboardModule) showLeaderboard(
 		WithDescription(sb.String()).
 		WithEmbedFooter(footer)
 
+	if guild, ok := ctx.Client.Caches.Guild(ctx.GuildID); ok {
+		if iconURL := guild.IconURL(); iconURL != nil {
+			embed = embed.WithThumbnail(*iconURL)
+		}
+	}
+
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
 		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page-1)))
