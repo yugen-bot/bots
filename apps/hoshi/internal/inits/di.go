@@ -71,7 +71,9 @@ func InitDI() (container di.Container, err error) {
 				cfg.Shard,
 				discordOpt,
 				bot.WithCacheConfigOpts(
-					cache.WithCaches(static.DefaultCacheFlags),
+					cache.WithCaches(
+						static.DefaultCacheFlags,
+					),
 				),
 				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
 			)

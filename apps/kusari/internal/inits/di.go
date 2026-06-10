@@ -9,6 +9,7 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
+	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/sharding"
 	"github.com/jackc/pgx/v5"
@@ -61,7 +62,19 @@ func InitDI() (container di.Container, err error) {
 				),
 			}
 			cacheOpt := bot.WithCacheConfigOpts(
-				cache.WithCaches(static.DefaultCacheFlags),
+				cache.WithCaches(static.DefaultCacheFlags|cache.FlagMessages),
+				cache.WithMessageCachePolicy(func(msg discord.Message) bool {
+					if msg.Author.Bot {
+						return false
+					}
+					if msg.Content == "" {
+						return false
+					}
+					if msg.GuildID == nil {
+						return false
+					}
+					return utils.ActiveGames.IsActiveChannel(msg.ChannelID)
+				}),
 			)
 
 			var discordOpt bot.ConfigOpt

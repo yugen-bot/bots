@@ -110,7 +110,10 @@ func (s *GameService) Start(
 
 	channelSnowflake, parseErr := snowflake.Parse(*channelID)
 	if parseErr != nil {
-		return g, started, fmt.Errorf("game: start: parse channel id: %w", parseErr)
+		return g, started, fmt.Errorf(
+			"game: start: parse channel id: %w",
+			parseErr,
+		)
 	}
 
 	channel, err := s.client.Client().Rest.GetChannel(channelSnowflake)
@@ -165,6 +168,11 @@ func (s *GameService) Start(
 		return g, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
+	if guildSnowflake, parseErr := snowflake.Parse(guildID); parseErr == nil {
+		utils.ActiveGames.Register(guildSnowflake, channelSnowflake)
+		s.client.Client().Caches.RemoveMessagesByChannelID(channelSnowflake)
+	}
+
 	self, _ := s.client.Client().Caches.SelfUser()
 
 	if len(word) <= 0 {
@@ -216,6 +224,10 @@ func (s *GameService) End(
 		Save(ctx)
 	if err != nil {
 		return g, fmt.Errorf("game: end: update game: %w", err)
+	}
+
+	if guildSnowflake, parseErr := snowflake.Parse(g.GuildID); parseErr == nil {
+		utils.ActiveGames.Unregister(guildSnowflake)
 	}
 
 	if _, delErr := s.database.History.Delete().
@@ -394,7 +406,11 @@ func (s *GameService) AddWord(
 			client.Rest.AddReaction(message.ChannelID, message.ID, "❌"),
 		)
 
-		saves, err := s.saves.GetSaves(ctx, settings, message.Author.ID.String())
+		saves, err := s.saves.GetSaves(
+			ctx,
+			settings,
+			message.Author.ID.String(),
+		)
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add word: get saves failed",
@@ -451,7 +467,11 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 						},
 					},
 				)
-				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+				utils.LogIfErr(
+					utils.Logger,
+					"channel-message-send-reply",
+					sendErr,
+				)
 			}()
 
 			return
@@ -492,7 +512,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 						},
 					},
 				)
-				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+				utils.LogIfErr(
+					utils.Logger,
+					"channel-message-send-reply",
+					sendErr,
+				)
 			}()
 
 			return
@@ -920,7 +944,11 @@ func (s *GameService) checkStreak(
 
 	isHighscore = true
 
-	go s.settings.SetHighscoreByGuildID(ctx, settings.GuildID, count) //nolint:errcheck
+	go s.settings.SetHighscoreByGuildID(
+		ctx,
+		settings.GuildID,
+		count,
+	) //nolint:errcheck
 
 	if g.IsHighscored {
 		return isHighscore, false, nil
@@ -1266,4 +1294,37 @@ func (s *GameService) FindAllGuildIDs(
 	}
 
 	return rows, nil
+}
+
+// LoadActiveGameChannels pre-populates the shared active-game registry from
+// the database. Call this once on bot startup so the message cache policy
+// works correctly for games that were running before the bot restarted.
+func (s *GameService) LoadActiveGameChannels(ctx context.Context) error {
+	games, err := s.database.Game.Query().
+		Where(game.StatusEQ(game.StatusIN_PROGRESS)).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("load active game channels: query: %w", err)
+	}
+
+	for _, g := range games {
+		settings, settErr := s.settings.GetByGuildID(ctx, g.GuildID)
+		if settErr != nil || settings.ChannelID == nil ||
+			*settings.ChannelID == "" {
+			continue
+		}
+		guildSnowflake, guildErr := snowflake.Parse(g.GuildID)
+		channelSnowflake, chanErr := snowflake.Parse(*settings.ChannelID)
+		if guildErr != nil || chanErr != nil {
+			continue
+		}
+		utils.ActiveGames.Register(guildSnowflake, channelSnowflake)
+	}
+
+	utils.Logger.Infof(
+		"pre-populated active games cache with %d games",
+		len(games),
+	)
+
+	return nil
 }

@@ -2,11 +2,10 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
-
-	"errors"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/snowflake/v2"
@@ -154,6 +153,11 @@ func (s *GameService) Start(
 		return g, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
+	if guildSnowflake, parseErr := snowflake.Parse(guildID); parseErr == nil {
+		utils.ActiveGames.Register(guildSnowflake, channelSnowflake)
+		s.client.Client().Caches.RemoveMessagesByChannelID(channelSnowflake)
+	}
+
 	self, _ := s.client.Client().Caches.SelfUser()
 
 	if number < 0 {
@@ -203,6 +207,10 @@ func (s *GameService) End(
 		return g, fmt.Errorf("game: end: update game: %w", err)
 	}
 
+	if guildSnowflake, parseErr := snowflake.Parse(g.GuildID); parseErr == nil {
+		utils.ActiveGames.Unregister(guildSnowflake)
+	}
+
 	if hasShame {
 		shameOpts := shame[0]
 		roleID := shameOpts.settings.ShameRoleID
@@ -213,31 +221,49 @@ func (s *GameService) End(
 
 		guildSnowflake, parseErr := snowflake.Parse(shameOpts.settings.GuildID)
 		if parseErr != nil {
-			utils.Logger.Warnw("game: end: parse guild id failed", "error", parseErr, "guildID", shameOpts.settings.GuildID)
+			utils.Logger.Warnw(
+				"game: end: parse guild id failed",
+				"error",
+				parseErr,
+				"guildID",
+				shameOpts.settings.GuildID,
+			)
 		} else {
 			if okLastShameUserID && okRoleID {
-				lastUserSnowflake, lastUserErr := snowflake.Parse(*lastShameUserID)
+				lastUserSnowflake, lastUserErr := snowflake.Parse(
+					*lastShameUserID,
+				)
 				roleSnowflake, roleErr := snowflake.Parse(*roleID)
 				if lastUserErr == nil && roleErr == nil {
 					go func() {
 						utils.LogIfErr(
 							utils.Logger,
 							"guild-member-role-remove",
-							s.client.Client().Rest.RemoveMemberRole(guildSnowflake, lastUserSnowflake, roleSnowflake),
+							s.client.Client().Rest.RemoveMemberRole(
+								guildSnowflake,
+								lastUserSnowflake,
+								roleSnowflake,
+							),
 						)
 					}()
 				}
 			}
 
 			if okRoleID {
-				authorSnowflake, authorErr := snowflake.Parse(shameOpts.message.Author.ID.String())
+				authorSnowflake, authorErr := snowflake.Parse(
+					shameOpts.message.Author.ID.String(),
+				)
 				roleSnowflake, roleErr := snowflake.Parse(*roleID)
 				if authorErr == nil && roleErr == nil {
 					go func() {
 						utils.LogIfErr(
 							utils.Logger,
 							"guild-member-role-add",
-							s.client.Client().Rest.AddMemberRole(guildSnowflake, authorSnowflake, roleSnowflake),
+							s.client.Client().Rest.AddMemberRole(
+								guildSnowflake,
+								authorSnowflake,
+								roleSnowflake,
+							),
 						)
 					}()
 				}
@@ -375,10 +401,18 @@ func (s *GameService) AddNumber(
 		utils.LogIfErr(
 			utils.Logger,
 			"message-reaction-add",
-			s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, "❌"),
+			s.client.Client().Rest.AddReaction(
+				message.ChannelID,
+				message.ID,
+				"❌",
+			),
 		)
 
-		saves, err := s.saves.GetSaves(ctx, guildSettings, message.Author.ID.String())
+		saves, err := s.saves.GetSaves(
+			ctx,
+			guildSettings,
+			message.Author.ID.String(),
+		)
 		if err != nil {
 			utils.Logger.Errorw(
 				"game: add number: get saves failed",
@@ -428,7 +462,11 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 						},
 					},
 				)
-				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+				utils.LogIfErr(
+					utils.Logger,
+					"channel-message-send-reply",
+					sendErr,
+				)
 			}()
 
 			return
@@ -473,7 +511,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 						},
 					},
 				)
-				utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+				utils.LogIfErr(
+					utils.Logger,
+					"channel-message-send-reply",
+					sendErr,
+				)
 			}()
 
 			return
@@ -655,7 +697,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		utils.LogIfErrNoRateLimit(
 			utils.Logger,
 			"message-reaction-add",
-			s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, "🎉"),
+			s.client.Client().Rest.AddReaction(
+				message.ChannelID,
+				message.ID,
+				"🎉",
+			),
 		)
 		go func() {
 			utils.LogIfErr(
@@ -674,7 +720,11 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	utils.LogIfErrNoRateLimit(
 		utils.Logger,
 		"message-reaction-add",
-		s.client.Client().Rest.AddReaction(message.ChannelID, message.ID, emoji),
+		s.client.Client().Rest.AddReaction(
+			message.ChannelID,
+			message.ID,
+			emoji,
+		),
 	)
 	s.checkSpecialReactions(message, number)
 }
@@ -808,7 +858,11 @@ func (s *GameService) checkStreak(
 
 	isHighscore = true
 
-	go s.settings.SetHighscoreByGuildID(ctx, guildSettings.GuildID, number) //nolint:errcheck
+	go s.settings.SetHighscoreByGuildID(
+		ctx,
+		guildSettings.GuildID,
+		number,
+	) //nolint:errcheck
 
 	if g.IsHighscored {
 		return isHighscore, false, nil
@@ -920,7 +974,10 @@ func (s *GameService) replyAndDelete(
 	}
 }
 
-func (s *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (games int, h int, err error) {
+func (s *GameService) CountByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) (games int, h int, err error) {
 	gameResult, err := s.database.Game.Query().
 		Where(game.GuildIDIn(guildIDs...)).
 		Count(ctx)
@@ -938,7 +995,10 @@ func (s *GameService) CountByGuildIDs(ctx context.Context, guildIDs []string) (g
 	return gameResult, historyResult, nil
 }
 
-func (s *GameService) DeleteByGuildIDs(ctx context.Context, guildIDs []string) (games int, h int, err error) {
+func (s *GameService) DeleteByGuildIDs(
+	ctx context.Context,
+	guildIDs []string,
+) (games int, h int, err error) {
 	historyResult, hErr := s.database.History.Delete().
 		Where(history.HasGameWith(game.GuildIDIn(guildIDs...))).
 		Exec(ctx)
@@ -961,6 +1021,39 @@ func (s *GameService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
 		Unique(true).
 		Select(game.FieldGuildID).
 		Strings(ctx)
+}
+
+// LoadActiveGameChannels pre-populates the shared active-game registry from
+// the database. Call this once on bot startup so the message cache policy
+// works correctly for games that were running before the bot restarted.
+func (s *GameService) LoadActiveGameChannels(ctx context.Context) error {
+	games, err := s.database.Game.Query().
+		Where(game.StatusEQ(game.StatusIN_PROGRESS)).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("load active game channels: query: %w", err)
+	}
+
+	for _, g := range games {
+		settings, settErr := s.settings.GetByGuildID(ctx, g.GuildID)
+		if settErr != nil || settings.ChannelID == nil ||
+			*settings.ChannelID == "" {
+			continue
+		}
+		guildSnowflake, guildErr := snowflake.Parse(g.GuildID)
+		channelSnowflake, chanErr := snowflake.Parse(*settings.ChannelID)
+		if guildErr != nil || chanErr != nil {
+			continue
+		}
+		utils.ActiveGames.Register(guildSnowflake, channelSnowflake)
+	}
+
+	utils.Logger.Infof(
+		"pre-populated active games cache with %d games",
+		len(games),
+	)
+
+	return nil
 }
 
 // specialEmojisForNumber returns the extra emoji reactions a number earns.

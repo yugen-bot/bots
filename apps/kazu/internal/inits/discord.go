@@ -10,6 +10,8 @@ import (
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/listeners"
+	"jurien.dev/yugen/kazu/internal/services"
+	localStatic "jurien.dev/yugen/kazu/internal/static"
 	sharedListeners "jurien.dev/yugen/shared/listeners"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
@@ -33,6 +35,11 @@ func InitDiscordBot(ctx context.Context, container *di.Container) error {
 	sharedListeners.AddVoteListeners(container)
 
 	listeners.AddGameListeners(container)
+
+	gameService := container.Get(localStatic.DiGame).(*services.GameService)
+	if err := gameService.LoadActiveGameChannels(ctx); err != nil {
+		utils.Logger.Warnw("discord: load active game channels failed", "error", err)
+	}
 
 	if err := InitCommands(container); err != nil {
 		return fmt.Errorf("discord: init commands: %w", err)
