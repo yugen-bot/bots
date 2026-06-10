@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 
 	"jurien.dev/yugen/shared/config"
@@ -14,18 +15,21 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ServerModule) err(ctx *discordgoplus.Ctx) {
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+func (m *ServerModule) err(ctx *disgoplus.Ctx) {
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: "Sorry couldn't retrieve the server information...",
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }
 
-func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ServerModule) server(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
+
+	guildID := ctx.GuildID.String()
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		guildID,
 	)
 	if err != nil {
 		utils.Logger.Errorw(
@@ -33,7 +37,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			guildID,
 		)
 		m.err(ctx)
 
@@ -42,7 +46,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 
 	gameResult, gameExists, err := m.game.GetCurrentGame(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		guildID,
 	)
 	if err != nil {
 		utils.Logger.Errorw(
@@ -50,7 +54,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			guildID,
 		)
 		m.err(ctx)
 
@@ -67,32 +71,39 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			guildID,
 		)
 		m.err(ctx)
 
 		return
 	}
 
-	guild, err := m.bot.Guild(ctx.Interaction.GuildID)
+	guildSnowflake, parseErr := snowflake.Parse(guildID)
+	if parseErr != nil {
+		m.err(ctx)
+		return
+	}
+
+	guild, err := ctx.Client.Rest.GetGuild(guildSnowflake, false)
 	if err != nil {
 		utils.Logger.Errorw(
 			"server: get guild failed",
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			guildID,
 		)
 		m.err(ctx)
 
 		return
 	}
 
-	self := ctx.State.User
+	self, _ := ctx.Client.Caches.SelfUser()
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*discordgoplus.Bot),
+		bot,
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
@@ -117,7 +128,7 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 	}
 
 	lastWordText := "-"
-	if historyExists && history.UserID != self.ID {
+	if historyExists && history.UserID != self.ID.String() {
 		lastWordText = fmt.Sprintf("<@%s>", history.UserID)
 	}
 
@@ -126,13 +137,16 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		lastWord = history.Word
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Color: embedColor,
-		Title: guild.Name,
-		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: guild.IconURL("64"),
-		},
-		Description: fmt.Sprintf(
+	iconURL := ""
+	if url := guild.IconURL(); url != nil {
+		iconURL = *url
+	}
+
+	embed := discord.NewEmbed().
+		WithColor(embedColor).
+		WithTitle(guild.Name).
+		WithThumbnail(iconURL).
+		WithDescription(fmt.Sprintf(
 			`Ongoing game: **%s**
 High score: **%d%s**
 Last word: **%s**
@@ -149,20 +163,20 @@ Saves used: **%s**
 			strconv.FormatFloat(settings.Saves, 'f', -1, 64),
 			strconv.FormatFloat(settings.MaxSaves, 'f', -1, 64),
 			strconv.FormatFloat(settings.SavesUsed, 'f', -1, 64),
-		),
-		Footer: footer,
-	}
+		)).
+		WithEmbedFooter(footer)
 
-	err = discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Embeds: []*discordgo.MessageEmbed{embed},
-	}, true)
+	_, err = disgoplus.FollowUp(ctx, discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	})
 	if err != nil {
 		utils.Logger.Errorw(
 			"server: follow up failed",
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			guildID,
 		)
 	}
 }

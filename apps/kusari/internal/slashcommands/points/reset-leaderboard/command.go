@@ -4,38 +4,47 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetLeaderboardModule) err(ctx *discordgoplus.Ctx) {
-	discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+func (m *ResetLeaderboardModule) err(ctx *disgoplus.Ctx) {
+	disgoplus.Respond(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: "Something wen't wrong, try again later.",
+		Flags:   discord.MessageFlagEphemeral,
 	})
 }
 
-func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
+func (m *ResetLeaderboardModule) request(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*discordgoplus.Bot),
+		bot,
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
 
-	guild, err := m.bot.Guild(ctx.Interaction.GuildID)
+	guildSnowflake, parseErr := snowflake.Parse(ctx.GuildID.String())
+	if parseErr != nil {
+		m.err(ctx)
+		return
+	}
+
+	guild, err := ctx.Client.Rest.GetGuild(guildSnowflake, false)
 	if err != nil {
 		utils.Logger.Errorw(
 			"reset-leaderboard: get guild failed",
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			ctx.GuildID,
 		)
 		m.err(ctx)
 
@@ -44,66 +53,54 @@ func (m *ResetLeaderboardModule) request(ctx *discordgoplus.Ctx) {
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 
-	memberOption := ctx.Options["member"]
 	userID := "none"
 	confirmationTarget := guild.Name
 
-	if memberOption != nil {
-		userID = memberOption.Value.(string)
+	if u, ok := ctx.CommandData.OptUser("member"); ok {
+		userID = u.ID.String()
 		confirmationTarget = fmt.Sprintf("<@%s>", userID)
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Color: embedColor,
-		Title: "Reset leaderboard",
-		Description: fmt.Sprintf(
+	embed := discord.NewEmbed().
+		WithColor(embedColor).
+		WithTitle("Reset leaderboard").
+		WithDescription(fmt.Sprintf(
 			`Are you sure you want to reset the leaderboard of **%s**
 **This action is irreversible**`,
 			confirmationTarget,
-		),
-		Footer: footer,
-	}
+		)).
+		WithEmbedFooter(footer)
 
-	err = discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{embed},
-		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.Button{
-						CustomID: fmt.Sprintf(
-							"RESET_LEADERBOARD/true/%s",
-							userID,
-						),
-						Style: discordgo.DangerButton,
-						Label: "Reset leaderboard",
-					},
-					discordgo.Button{
-						CustomID: fmt.Sprintf(
-							"RESET_LEADERBOARD/false/%s",
-							userID,
-						),
-						Style: discordgo.SecondaryButton,
-						Label: "Cancel",
-					},
-				},
-			},
+	err = disgoplus.Respond(ctx, discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Components: []discord.LayoutComponent{
+			discord.NewActionRow(
+				discord.NewDangerButton(
+					"Reset leaderboard",
+					fmt.Sprintf("RESET_LEADERBOARD/true/%s", userID),
+				),
+				discord.NewSecondaryButton(
+					"Cancel",
+					fmt.Sprintf("RESET_LEADERBOARD/false/%s", userID),
+				),
+			),
 		},
-	}, true)
+	})
 	if err != nil {
 		utils.Logger.Errorw(
 			"reset-leaderboard: respond failed",
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			ctx.GuildID,
 		)
 	}
 }
 
-func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
-	reset := ctx.MessageComponentOptions["reset"] == "true"
+func (m *ResetLeaderboardModule) reset(ctx *disgoplus.Ctx) {
+	doReset := ctx.MessageComponentOptions["reset"] == "true"
 
-	if !reset {
+	if !doReset {
 		contentText := "I have not reset the leaderboard"
 		if ctx.MessageComponentOptions["userID"] != "none" {
 			contentText = fmt.Sprintf(
@@ -113,10 +110,12 @@ func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 			)
 		}
 
-		discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
-			Content:    contentText,
-			Components: []discordgo.MessageComponent{},
-			Embeds:     []*discordgo.MessageEmbed{},
+		emptyEmbeds := []discord.Embed{}
+		emptyComponents := []discord.LayoutComponent{}
+		disgoplus.Update(ctx, discord.MessageUpdate{ //nolint:errcheck
+			Content:    &contentText,
+			Components: &emptyComponents,
+			Embeds:     &emptyEmbeds,
 		})
 
 		return
@@ -131,19 +130,21 @@ func (m *ResetLeaderboardModule) reset(ctx *discordgoplus.Ctx) {
 		)
 		go m.points.ResetLeaderboardByGuildIDAndUserID(
 			context.Background(),
-			ctx.Interaction.GuildID,
+			ctx.GuildID.String(),
 			ctx.MessageComponentOptions["userID"],
 		)
 	} else {
 		go m.points.ResetLeaderboardByGuildID(
 			context.Background(),
-			ctx.Interaction.GuildID,
+			ctx.GuildID.String(),
 		)
 	}
 
-	discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
-		Content:    contentText,
-		Components: []discordgo.MessageComponent{},
-		Embeds:     []*discordgo.MessageEmbed{},
+	emptyEmbeds := []discord.Embed{}
+	emptyComponents := []discord.LayoutComponent{}
+	disgoplus.Update(ctx, discord.MessageUpdate{ //nolint:errcheck
+		Content:    &contentText,
+		Components: &emptyComponents,
+		Embeds:     &emptyEmbeds,
 	})
 }

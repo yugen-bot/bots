@@ -4,26 +4,26 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/kusari/internal/ent"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *CooldownModule) set(ctx *discordgoplus.Ctx) {
-	utils.Logger.With("Options", ctx.Options, "GuildID", ctx.Interaction.GuildID).
+func (m *CooldownModule) set(ctx *disgoplus.Ctx) {
+	utils.Logger.With("GuildID", ctx.GuildID).
 		Debug("Cooldown command used")
-	discordgoplus.Defer(ctx, true)
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
-	seconds := ctx.Options["seconds"].IntValue()
+	seconds := ctx.CommandData.Int("seconds")
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -31,11 +31,11 @@ func (m *CooldownModule) set(ctx *discordgoplus.Ctx) {
 		context.Background(),
 		s.ID,
 		func(u *ent.SettingsUpdateOne) {
-			u.SetCooldown(int(seconds))
+			u.SetCooldown(seconds)
 		},
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -53,7 +53,8 @@ func (m *CooldownModule) set(ctx *discordgoplus.Ctx) {
 		content = "Cooldown has been removed!"
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: content,
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/ent/game"
@@ -31,12 +31,14 @@ func GetGameModule(container *di.Container) *GameModule {
 	}
 }
 
-func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
-	discordgoplus.Defer(ctx, true)
+func (m *GameModule) startGame(ctx *disgoplus.Ctx, recreate bool) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
+
+	guildID := ctx.GuildID.String()
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		guildID,
 	)
 	if err != nil {
 		return
@@ -47,25 +49,23 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 		return
 	}
 
-	channelId := *settings.ChannelID
+	channelID := *settings.ChannelID
 
 	startingWord := ""
 
-	startingWordOption := ctx.Options["starting-word"]
-
-	if startingWordOption != nil {
-		startingWord = startingWordOption.StringValue()
+	if v, ok := ctx.CommandData.OptString("starting-word"); ok {
+		startingWord = v
 	}
 
 	_, started, err := m.game.Start(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		guildID,
 		game.TypeNORMAL,
 		startingWord,
 		recreate,
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -74,62 +74,62 @@ func (m *GameModule) startGame(ctx *discordgoplus.Ctx, recreate bool) {
 		respond = "There is already an ongoing game"
 	}
 
-	if channelId != ctx.Interaction.ChannelID {
-		respond = fmt.Sprintf("%s in the <#%s> channel.", respond, channelId)
+	if channelID != ctx.ChannelID.String() {
+		respond = fmt.Sprintf("%s in the <#%s> channel.", respond, channelID)
 	} else {
 		respond = respond + "."
 	}
 
-	err = discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	_, err = disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: respond,
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 	if err != nil {
 		utils.Logger.Errorw(
 			"game: start: follow up failed",
 			"error",
 			err,
 			"guildID",
-			ctx.Interaction.GuildID,
+			guildID,
 		)
 	}
 }
 
-func (m *GameModule) start(ctx *discordgoplus.Ctx) {
+func (m *GameModule) start(ctx *disgoplus.Ctx) {
 	m.startGame(ctx, false)
 }
 
-func (m *GameModule) reset(ctx *discordgoplus.Ctx) {
+func (m *GameModule) reset(ctx *disgoplus.Ctx) {
 	m.startGame(ctx, true)
 }
 
-var options = []*discordgo.ApplicationCommandOption{
-	{
-		Type:        discordgo.ApplicationCommandOptionString,
+var options = []discord.ApplicationCommandOption{
+	discord.ApplicationCommandOptionString{
 		Name:        "starting-word",
 		Description: "The word to start the game at",
 		Required:    false,
 	},
 }
 
-func (m *GameModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *GameModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "game",
 			Description: "Game command group",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter([]*discordgoplus.Command{
+			SubCommands: disgoplus.NewRouter([]*disgoplus.Command{
 				{
 					Name:        "start",
 					Description: "Start a game when there is none ongoing.",
-					Handler:     discordgoplus.HandlerFunc(m.start),
+					Handler:     disgoplus.HandlerFunc(m.start),
 					Options:     options,
 				},
 				{
 					Name:        "reset",
 					Description: "Reset the current game and any points earned.",
-					Handler:     discordgoplus.HandlerFunc(m.reset),
+					Handler:     disgoplus.HandlerFunc(m.reset),
 					Options:     options,
 				},
 			}),

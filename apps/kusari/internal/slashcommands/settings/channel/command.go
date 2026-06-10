@@ -4,27 +4,27 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/kusari/internal/ent"
 )
 
-func (m *ChannelModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ChannelModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
-	channel := ctx.Options["channel"].ChannelValue(ctx.Session)
+	ch := ctx.CommandData.Channel("channel")
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	channelID := string(channel.ID)
+	channelID := ch.ID.String()
 	_, err = m.settings.Update(
 		context.Background(),
 		s.ID,
@@ -33,11 +33,12 @@ func (m *ChannelModule) set(ctx *discordgoplus.Ctx) {
 		},
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("I will run in <#%s> from now on.", channel.ID),
-	}, true)
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		Content: fmt.Sprintf("I will run in <#%s> from now on.", ch.ID),
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

@@ -2,7 +2,7 @@
 package server
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -14,7 +14,6 @@ type ServerModule struct {
 	container *di.Container
 	settings  *services.SettingsService
 	game      *services.GameService
-	bot       *discordgoplus.Bot
 }
 
 func GetServerModule(container *di.Container) *ServerModule {
@@ -22,16 +21,15 @@ func GetServerModule(container *di.Container) *ServerModule {
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
 		game:      container.Get(local.DiGame).(*services.GameService),
-		bot:       container.Get(static.DiBot).(*discordgoplus.Bot),
 	}
 }
 
-func (m *ServerModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ServerModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "server",
 			Description: "Get the server information!",
-			Handler:     discordgoplus.HandlerFunc(m.server),
+			Handler:     disgoplus.HandlerFunc(m.server),
 		},
 	}
 }

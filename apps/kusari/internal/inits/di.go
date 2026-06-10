@@ -1,13 +1,19 @@
 package inits
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/sharding"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/valkey-io/valkey-go"
 
@@ -16,7 +22,7 @@ import (
 	localStatic "jurien.dev/yugen/kusari/internal/static"
 	localUtils "jurien.dev/yugen/kusari/internal/utils"
 	"jurien.dev/yugen/shared/config"
-	"jurien.dev/yugen/shared/inits"
+	sharedInits "jurien.dev/yugen/shared/inits"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
@@ -27,51 +33,55 @@ func InitDI() (container di.Container, err error) {
 		utils.Logger.Fatalw("failed to create DI builder", "error", err)
 	}
 
-	// init database
-	diBuilder.Add(&di.Def{
-		Name: static.DiDatabase,
-		Build: func(ctn di.Container) (any, error) {
-			cfg, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
-			if err != nil {
-				return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
-			}
-
-			db := stdlib.OpenDB(*cfg)
-			drv := entsql.OpenDB(dialect.Postgres, db)
-
-			return ent.NewClient(ent.Driver(drv)), nil
-		},
-		Close: func(obj any) error {
-			utils.Logger.Info("Shutting down database connection...")
-			return obj.(*ent.Client).Close()
-		},
-	})
-
-	// Initialize shared DI
-	inits.InitSharedDi(diBuilder)
-
-	// init valkey client (optional — nil when VALKEY_URL is not set)
-	diBuilder.Add(&di.Def{
-		Name: static.DiValkey,
-		Build: func(ctn di.Container) (any, error) {
-			cfg := ctn.Get(static.DiConfig).(*config.Config)
-			return inits.InitValkey(cfg)
-		},
-		Close: func(obj any) error {
-			vk, ok := obj.(valkey.Client)
-			if ok && vk != nil {
-				utils.Logger.Info("Shutting down Valkey connection...")
-				vk.Close()
-			}
-
-			return nil
-		},
-	})
+	utils.Logger.Info("Building DI")
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiAppName,
 		Build: func(ctn di.Container) (any, error) {
 			return "Kusari", nil
+		},
+	})
+
+	sharedInits.InitSharedDi(diBuilder)
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiClient,
+		Build: func(ctn di.Container) (any, error) {
+			cfg := ctn.Get(static.DiConfig).(*config.Config)
+			gatewayOpts := []gateway.ConfigOpt{
+				gateway.WithIntents(
+					gateway.IntentGuilds,
+					gateway.IntentGuildMessages,
+					gateway.IntentMessageContent,
+					gateway.IntentGuildExpressions,
+					gateway.IntentGuildMessageReactions,
+				),
+				gateway.WithPresenceOpts(
+					gateway.WithPlayingActivity("Kusari 📖"),
+				),
+			}
+			cacheOpt := bot.WithCacheConfigOpts(cache.WithCaches(static.DefaultCacheFlags | cache.FlagMessages))
+			var discordOpt bot.ConfigOpt
+			if cfg.Shard {
+				discordOpt = bot.WithShardManagerConfigOpts(sharding.WithGatewayConfigOpts(gatewayOpts...))
+			} else {
+				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
+			}
+			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt, cacheOpt)
+		},
+		Close: func(obj any) error {
+			b := obj.(*disgoplus.Bot)
+			utils.Logger.Info("Shutting down bot...")
+			b.Close(context.Background())
+			return nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiEmbedColor,
+		Build: func(ctn di.Container) (any, error) {
+			// #5d7fed
+			return 0x5d7fed, nil
 		},
 	})
 
@@ -109,11 +119,41 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 		},
 	})
 
+	// init database
 	diBuilder.Add(&di.Def{
-		Name: static.DiEmbedColor,
+		Name: static.DiDatabase,
 		Build: func(ctn di.Container) (any, error) {
-			// #5d7fed
-			return 0x5d7fed, nil
+			cfg, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
+			if err != nil {
+				return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
+			}
+
+			db := stdlib.OpenDB(*cfg)
+			drv := entsql.OpenDB(dialect.Postgres, db)
+
+			return ent.NewClient(ent.Driver(drv)), nil
+		},
+		Close: func(obj any) error {
+			utils.Logger.Info("Shutting down database connection...")
+			return obj.(*ent.Client).Close()
+		},
+	})
+
+	// init valkey client (optional — nil when VALKEY_URL is not set)
+	diBuilder.Add(&di.Def{
+		Name: static.DiValkey,
+		Build: func(ctn di.Container) (any, error) {
+			cfg := ctn.Get(static.DiConfig).(*config.Config)
+			return sharedInits.InitValkey(cfg)
+		},
+		Close: func(obj any) error {
+			vk, ok := obj.(valkey.Client)
+			if ok && vk != nil {
+				utils.Logger.Info("Shutting down Valkey connection...")
+				vk.Close()
+			}
+
+			return nil
 		},
 	})
 

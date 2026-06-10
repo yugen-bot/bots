@@ -2,7 +2,7 @@
 package points
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	donatesave "jurien.dev/yugen/kusari/internal/slashcommands/points/donate-save"
@@ -13,7 +13,7 @@ import (
 )
 
 type pointsSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 // PointsModule aggregates all points-related slash commands.
@@ -41,16 +41,16 @@ func GetPointsModule(container *di.Container) *PointsModule {
 	}
 }
 
-func (m *PointsModule) Commands() []*discordgoplus.Command {
-	var all []*discordgoplus.Command
+func (m *PointsModule) Commands() []*disgoplus.Command {
+	var all []*disgoplus.Command
 	for _, sm := range m.subModules {
 		all = append(all, sm.Commands()...)
 	}
 	return all
 }
 
-func (m *PointsModule) MessageComponents() []*discordgoplus.MessageComponent {
-	var all []*discordgoplus.MessageComponent
+func (m *PointsModule) MessageComponents() []*disgoplus.MessageComponent {
+	var all []*disgoplus.MessageComponent
 	all = append(all, m.leaderboard.MessageComponents()...)
 	all = append(all, m.resetLeader.MessageComponents()...)
 	return all

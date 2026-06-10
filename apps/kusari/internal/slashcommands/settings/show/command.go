@@ -4,23 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ShowModule) show(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ShowModule) show(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil {
-		discordgoplus.ErrorResponse(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -41,35 +41,30 @@ func (m *ShowModule) show(ctx *discordgoplus.Ctx) {
 	}
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*discordgoplus.Bot),
+		bot,
 		&utils.CreateEmbedFooterParams{
 			IsVote: false,
 		},
 		cfg.OwnerID,
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Color:       m.container.Get(static.DiEmbedColor).(int),
-		Title:       "Kusari settings",
-		Description: "These are the settings currently configured for Kusari",
-		Footer:      footer,
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   "Channel",
-				Value:  channelIDText,
-				Inline: true,
-			},
-			{
-				Name:   "Answers cooldown",
-				Value:  cooldownText,
-				Inline: true,
-			},
-			{Name: "​", Value: "​", Inline: true},
-		},
-	}
+	embed := discord.NewEmbed().
+		WithColor(m.container.Get(static.DiEmbedColor).(int)).
+		WithTitle("Kusari settings").
+		WithDescription("These are the settings currently configured for Kusari").
+		WithEmbedFooter(footer).
+		WithFields(
+			discord.EmbedField{Name: "Channel", Value: channelIDText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Answers cooldown", Value: cooldownText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
+		)
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Embeds: []*discordgo.MessageEmbed{embed},
-	}, true)
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	})
 }
+
+func boolPtr(b bool) *bool { return &b }

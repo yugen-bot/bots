@@ -2,7 +2,7 @@
 package cleardictionary
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -21,12 +21,12 @@ func GetClearDictionaryModule(container *di.Container) *ClearDictionaryModule {
 	}
 }
 
-func (m *ClearDictionaryModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ClearDictionaryModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "clear-dictionary",
 			Description: "Clear the in-memory Wiktionary lookup cache",
-			Handler:     discordgoplus.HandlerFunc(m.run),
+			Handler:     disgoplus.HandlerFunc(m.run),
 		},
 	}
 }

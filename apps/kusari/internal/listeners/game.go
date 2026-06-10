@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/ent"
@@ -16,120 +18,137 @@ import (
 )
 
 type GameListener struct {
-	database *ent.Client
+	client   *bot.Client
 	settings *services.SettingsService
 	service  *services.GameService
 }
 
 func GetGameListener(container *di.Container) *GameListener {
-	utils.Logger.Info("Creating Color Listener")
+	utils.Logger.Info("Creating Game Listener")
 
 	return &GameListener{
-		database: container.Get(static.DiDatabase).(*ent.Client),
+		client:   container.Get(static.DiClient).(*disgoplus.Bot).Client(),
 		settings: container.Get(static.DiSettings).(*services.SettingsService),
 		service:  container.Get(localStatic.DiGame).(*services.GameService),
 	}
 }
 
 func AddGameListeners(container *di.Container) {
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
-
-	colorListener := GetGameListener(container)
-	bot.AddHandler(colorListener.MessageCreateHandler)
-	bot.AddHandler(colorListener.MessageUpdateHandler)
-	bot.AddHandler(colorListener.MessageDeleteHandler)
+	l := GetGameListener(container)
+	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot.Client().EventManager.AddEventListeners(
+		bot.NewListenerFunc(l.MessageCreateHandler),
+		bot.NewListenerFunc(l.MessageUpdateHandler),
+		bot.NewListenerFunc(l.MessageDeleteHandler),
+	)
 }
 
-func (listener *GameListener) MessageCreateHandler(
-	bot *discordgo.Session,
-	event *discordgo.MessageCreate,
-) {
-	ok, settings := listener.getSettings(event.GuildID, event.ChannelID)
+func (l *GameListener) MessageCreateHandler(e *events.GuildMessageCreate) {
+	if e.GuildID.String() == "" {
+		return
+	}
+
+	ok, s := l.getSettings(e.GuildID.String(), e.ChannelID.String())
 	if !ok {
 		return
 	}
 
-	word, err := listener.service.ParseWord(event.Message)
+	word, err := l.service.ParseWord(e.Message)
 	if err != nil {
 		return
 	}
 
-	listener.service.AddWord(
+	l.service.AddWord(
 		context.Background(),
-		event.GuildID,
+		e.GuildID.String(),
 		word,
-		event.Message,
-		settings,
+		e.Message,
+		s,
 	)
 }
 
-func (listener *GameListener) MessageUpdateHandler(
-	bot *discordgo.Session,
-	event *discordgo.MessageUpdate,
-) {
-	ok, settings := listener.getSettings(event.GuildID, event.ChannelID)
+func (l *GameListener) MessageUpdateHandler(e *events.GuildMessageUpdate) {
+	// OldMessage.ID == 0 means we didn't have it cached; nothing to compare.
+	if e.OldMessage.ID == 0 {
+		return
+	}
+
+	ok, s := l.getSettings(e.GuildID.String(), e.ChannelID.String())
 	if !ok {
 		return
 	}
 
-	if event.Message == nil {
-		return
-	}
-
-	isEqual, word := listener.service.IsEqualToLast(
+	isEqual, word := l.service.IsEqualToLast(
 		context.Background(),
-		event.Message,
-		settings,
+		e.Message,
+		s,
 		false,
 	)
 	if isEqual {
 		return
 	}
 
-	go bot.ChannelMessageSend(
-		event.ChannelID,
-		fmt.Sprintf(`<@%s> just edited their guess 😒
-Last word was **%s**!`, event.Author.ID, word),
-	)
+	go func() {
+		_, sendErr := l.client.Rest.CreateMessage(
+			e.ChannelID,
+			discord.MessageCreate{
+				Content: fmt.Sprintf(
+					`<@%s> just edited their guess 😒
+Last word was **%s**!`,
+					e.OldMessage.Author.ID,
+					word,
+				),
+			},
+		)
+		utils.LogIfErr(utils.Logger, "message-create", sendErr)
+	}()
 }
 
-func (listener *GameListener) MessageDeleteHandler(
-	bot *discordgo.Session,
-	event *discordgo.MessageDelete,
-) {
-	ok, settings := listener.getSettings(event.GuildID, event.ChannelID)
+func (l *GameListener) MessageDeleteHandler(e *events.GuildMessageDelete) {
+	// e.Message is populated from the message cache when FlagMessages is enabled.
+	// If it wasn't cached, ID will be zero — nothing to act on.
+	if e.Message.ID == 0 {
+		return
+	}
+
+	ok, s := l.getSettings(e.GuildID.String(), e.ChannelID.String())
 	if !ok {
 		return
 	}
 
-	if event.BeforeDelete == nil {
-		return
-	}
-
-	isEqual, word := listener.service.IsEqualToLast(
+	isEqual, word := l.service.IsEqualToLast(
 		context.Background(),
-		event.BeforeDelete,
-		settings,
+		e.Message,
+		s,
 		true,
 	)
 	if isEqual {
 		return
 	}
 
-	go bot.ChannelMessageSend(
-		event.ChannelID,
-		fmt.Sprintf(`<@%s> just deleted their number 😒
-Last word was **%s**!`, event.BeforeDelete.Author.ID, word),
-	)
+	go func() {
+		_, sendErr := l.client.Rest.CreateMessage(
+			e.ChannelID,
+			discord.MessageCreate{
+				Content: fmt.Sprintf(
+					`<@%s> just deleted their word 😒
+Last word was **%s**!`,
+					e.Message.Author.ID,
+					word,
+				),
+			},
+		)
+		utils.LogIfErr(utils.Logger, "message-create", sendErr)
+	}()
 }
 
-func (listener *GameListener) getSettings(
+func (l *GameListener) getSettings(
 	guildID string,
 	channelID string,
-) (ok bool, settings *ent.Settings) {
+) (ok bool, s *ent.Settings) {
 	ok = false
 
-	settings, err := listener.settings.GetByGuildID(
+	s, err := l.settings.GetByGuildID(
 		context.Background(),
 		guildID,
 	)
@@ -145,7 +164,7 @@ func (listener *GameListener) getSettings(
 		return
 	}
 
-	if settings.ChannelID == nil || channelID != *settings.ChannelID {
+	if s.ChannelID == nil || channelID != *s.ChannelID {
 		ok = false
 		return
 	}

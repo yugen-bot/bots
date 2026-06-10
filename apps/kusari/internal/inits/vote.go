@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 
@@ -20,23 +22,9 @@ func CreateVoteHandler(
 	container *di.Container,
 ) func(userID string, source string) error {
 	saves := container.Get(localStatic.DiSaves).(*services.SavesService)
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
-	shard, _ := bot.ShardByShardID(0)
+	client := container.Get(static.DiClient).(*disgoplus.Bot).Client()
 
 	return func(userID string, source string) error {
-		user, err := shard.User(userID)
-		if err != nil {
-			utils.Logger.Errorw(
-				"vote: get user failed",
-				"error",
-				err,
-				"userID",
-				userID,
-			)
-
-			return err
-		}
-
 		utils.Logger.With(
 			"userID", userID,
 			"source", source,
@@ -49,28 +37,38 @@ func CreateVoteHandler(
 			amount = localStatic.VoteRewardWeekend
 		}
 
-		saves, maxSaves, err := saves.AddSaveToPlayer(
+		playerSaves, maxSaves, err := saves.AddSaveToPlayer(
 			context.Background(),
-			user.ID,
+			userID,
 			amount,
 		)
 
-		userChannel, err := shard.UserChannelCreate(userID)
-		if err != nil {
-			return err
+		userSnowflake, parseErr := snowflake.Parse(userID)
+		if parseErr != nil {
+			return parseErr
 		}
 
-		_, err = shard.ChannelMessageSend(
-			userChannel.ID,
-			fmt.Sprintf(
+		dmChannel, chanErr := client.Rest.CreateDMChannel(userSnowflake)
+		if chanErr != nil {
+			return chanErr
+		}
+
+		msg := fmt.Sprintf(
+			"Thank you for voting on %s!\nYour vote has been very appreciated and helps Kusari grow!",
+			source,
+		)
+		if err == nil {
+			msg = fmt.Sprintf(
 				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Kusari grow!\n\n**You have %s/%s saves available to use with Kusari!**",
 				source,
-				strconv.FormatFloat(saves, 'f', -1, 64),
+				strconv.FormatFloat(playerSaves, 'f', -1, 64),
 				strconv.FormatFloat(maxSaves, 'f', -1, 64),
-			),
-		)
+			)
+		}
 
-		return err
+		_, sendErr := client.Rest.CreateMessage(dmChannel.ID(), discord.MessageCreate{Content: msg})
+
+		return sendErr
 	}
 }
 

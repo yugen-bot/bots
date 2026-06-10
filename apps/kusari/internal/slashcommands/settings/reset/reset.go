@@ -2,15 +2,15 @@
 package reset
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
 	"jurien.dev/yugen/shared/static"
 )
 
-var choices = []*discordgo.ApplicationCommandOptionChoice{
+var choices = []discord.ApplicationCommandOptionChoiceString{
 	{
 		Name:  "Channel",
 		Value: "channelID",
@@ -33,15 +33,14 @@ func GetResetModule(container *di.Container) *ResetModule {
 	}
 }
 
-func (m *ResetModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ResetModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "reset",
 			Description: "Reset a Kusari setting to it's default value.",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "setting",
 					Description: "The setting to reset to it's default value.",
 					Required:    true,

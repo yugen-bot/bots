@@ -5,42 +5,42 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
-func (m *ProfileModule) profile(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ProfileModule) profile(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
-	playerOption := ctx.Options["player"]
-
-	player := ctx.Interaction.Member.User
-	if playerOption != nil {
-		player = playerOption.UserValue(ctx.Session)
+	player := ctx.User
+	if u, ok := ctx.CommandData.OptUser("player"); ok {
+		player = u
 	}
 
 	saves, err := m.saves.GetPlayerSavesByUserID(
 		context.Background(),
-		player.ID,
+		player.ID.String(),
 	)
 	if err != nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 			Content: "Sorry couldn't find your profile...",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
 	points, err := m.points.GetPlayer(
 		context.Background(),
-		ctx.Interaction.GuildID,
-		player.ID,
+		ctx.GuildID.String(),
+		player.ID.String(),
 		true,
 	)
 	if err != nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 			Content: "Sorry couldn't find your profile...",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -48,12 +48,12 @@ func (m *ProfileModule) profile(ctx *discordgoplus.Ctx) {
 	name := "You"
 	addressing := "have"
 
-	if playerOption != nil && player.ID != ctx.Interaction.Member.User.ID {
+	if _, isOther := ctx.CommandData.OptUser("player"); isOther && player.ID != ctx.User.ID {
 		name = fmt.Sprintf("<@%s>", player.ID)
 		addressing = "has"
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: fmt.Sprintf(
 			`%s currently %s **%d** points!
 And you have **%s/%s** saves available!`,
@@ -63,5 +63,6 @@ And you have **%s/%s** saves available!`,
 			strconv.FormatFloat(saves.Saves, 'f', -1, 64),
 			strconv.FormatFloat(saves.MaxSaves, 'f', -1, 64),
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

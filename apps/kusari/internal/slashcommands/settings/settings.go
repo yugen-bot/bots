@@ -2,7 +2,7 @@
 package settings
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/slashcommands/settings/channel"
@@ -13,7 +13,7 @@ import (
 )
 
 type settingsSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 type SettingsModule struct {
@@ -33,19 +33,19 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	}
 }
 
-func (m *SettingsModule) Commands() []*discordgoplus.Command {
-	var subCmds []*discordgoplus.Command
+func (m *SettingsModule) Commands() []*disgoplus.Command {
+	var subCmds []*disgoplus.Command
 	for _, sm := range m.subModules {
 		subCmds = append(subCmds, sm.Commands()...)
 	}
-	return []*discordgoplus.Command{
+	return []*disgoplus.Command{
 		{
 			Name:        "settings",
 			Description: "Settings command group",
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.GuildModeratorMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(subCmds),
+			SubCommands: disgoplus.NewRouter(subCmds),
 		},
 	}
 }

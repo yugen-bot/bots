@@ -2,7 +2,7 @@
 package admin
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	cleardictionary "jurien.dev/yugen/kusari/internal/slashcommands/admin/clear-dictionary"
@@ -15,7 +15,7 @@ import (
 )
 
 type adminSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 type AdminModule struct {
@@ -38,20 +38,20 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	}
 }
 
-func (m *AdminModule) Commands() []*discordgoplus.Command {
-	var subCmds []*discordgoplus.Command
+func (m *AdminModule) Commands() []*disgoplus.Command {
+	var subCmds []*disgoplus.Command
 	for _, sm := range m.subModules {
 		subCmds = append(subCmds, sm.Commands()...)
 	}
-	return []*discordgoplus.Command{
+	return []*disgoplus.Command{
 		{
 			Name:        "admin",
 			Description: "Admin commands",
 			GuildID:     m.devGuildID,
-			Middlewares: []discordgoplus.Handler{
-				discordgoplus.HandlerFunc(middlewares.OwnerMiddleware),
+			Middlewares: []disgoplus.Handler{
+				disgoplus.HandlerFunc(middlewares.OwnerMiddleware),
 			},
-			SubCommands: discordgoplus.NewRouter(subCmds),
+			SubCommands: disgoplus.NewRouter(subCmds),
 		},
 	}
 }

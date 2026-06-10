@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetEmptyGamesModule) run(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ResetEmptyGamesModule) run(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
 	shouldReset := false
-	if opt, ok := ctx.Options["reset"]; ok {
-		shouldReset = opt.BoolValue()
+	if v, ok := ctx.CommandData.OptBool("reset"); ok {
+		shouldReset = v
 	}
 
 	if !shouldReset {
@@ -26,17 +26,18 @@ func (m *ResetEmptyGamesModule) run(ctx *discordgoplus.Ctx) {
 				"error",
 				err,
 			)
-			discordgoplus.InteractionError(ctx, true)
+			disgoplus.InteractionError(ctx, true)
 			return
 		}
 
 		utils.Logger.Infow("Empty games found", "count", count)
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 			Content: fmt.Sprintf(
 				"Found **%d** in-progress game(s) with no history.",
 				count,
 			),
-		}, true)
+			Flags: discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -48,15 +49,16 @@ func (m *ResetEmptyGamesModule) run(ctx *discordgoplus.Ctx) {
 			"error",
 			err,
 		)
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	utils.Logger.Infow("Empty games reset", "count", count)
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: fmt.Sprintf(
 			"Reset **%d** in-progress game(s) with no history.",
 			count,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

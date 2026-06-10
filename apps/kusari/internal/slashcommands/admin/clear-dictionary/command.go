@@ -3,19 +3,20 @@ package cleardictionary
 import (
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ClearDictionaryModule) run(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ClearDictionaryModule) run(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true) //nolint:errcheck
 
 	cleared := m.dictionary.Clear()
 	utils.Logger.Infow("Dictionary cache cleared", "entries", cleared)
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{ //nolint:errcheck
 		Content: fmt.Sprintf("Dictionary cache cleared — dropped **%d** cached word(s).", cleared),
-	}, true)
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

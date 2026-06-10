@@ -4,16 +4,17 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
 )
 
-// newKusariMsg builds a minimal *discordgo.Message for testing ParseWord
+// newKusariMsg builds a minimal discord.Message for testing ParseWord
 // without requiring any DI or network access.
-func newKusariMsg(content string, isBot bool) *discordgo.Message {
-	return &discordgo.Message{
+func newKusariMsg(content string, isBot bool) discord.Message {
+	return discord.Message{
 		Content: content,
-		Author: &discordgo.User{
-			ID:  "456",
+		Author: discord.User{
+			ID:  snowflake.ID(456),
 			Bot: isBot,
 		},
 	}
