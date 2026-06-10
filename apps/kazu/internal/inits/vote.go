@@ -48,6 +48,7 @@ func CreateVoteHandler(
 				"error", err,
 				"userID", userID,
 			)
+
 			return err
 		}
 
@@ -61,14 +62,17 @@ func CreateVoteHandler(
 			return fmt.Errorf("vote handler: create dm channel: %w", err)
 		}
 
-		_, err = bot.Client().Rest.CreateMessage(dmChannel.ID(), discord.MessageCreate{
-			Content: fmt.Sprintf(
-				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Kazu grow!\n\n**You have %s/%s saves available to use with Kazu!**",
-				source,
-				strconv.FormatFloat(playerSaves, 'f', -1, 64),
-				strconv.FormatFloat(maxSaves, 'f', -1, 64),
-			),
-		})
+		_, err = bot.Client().Rest.CreateMessage(
+			dmChannel.ID(),
+			discord.MessageCreate{
+				Content: fmt.Sprintf(
+					"Thank you for voting on %s!\nYour vote has been very appreciated and helps Kazu grow!\n\n**You have %s/%s saves available to use with Kazu!**",
+					source,
+					strconv.FormatFloat(playerSaves, 'f', -1, 64),
+					strconv.FormatFloat(maxSaves, 'f', -1, 64),
+				),
+			},
+		)
 
 		return err
 	}
@@ -88,6 +92,7 @@ func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 				"error", err,
 				"userID", userID,
 			)
+
 			return ""
 		}
 

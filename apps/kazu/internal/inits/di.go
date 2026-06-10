@@ -60,6 +60,7 @@ func InitDI() (container di.Container, err error) {
 					gateway.WithPlayingActivity("Kazu 🧮"),
 				),
 			}
+
 			var discordOpt bot.ConfigOpt
 			if cfg.Shard {
 				discordOpt = bot.WithShardManagerConfigOpts(
@@ -68,6 +69,7 @@ func InitDI() (container di.Container, err error) {
 			} else {
 				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
 			}
+
 			return disgoplus.New(
 				cfg.DiscordToken,
 				cfg.Shard,
@@ -76,26 +78,35 @@ func InitDI() (container di.Container, err error) {
 					cache.WithCaches(
 						static.DefaultCacheFlags|cache.FlagMessages,
 					),
-					cache.WithMessageCachePolicy(func(msg discord.Message) bool {
-						if msg.Author.Bot {
-							return false
-						}
-						if msg.Content == "" {
-							return false
-						}
-						if msg.GuildID == nil {
-							return false
-						}
-						return utils.ActiveGames.IsActiveChannel(msg.ChannelID)
-					}),
+					cache.WithMessageCachePolicy(
+						func(msg discord.Message) bool {
+							if msg.Author.Bot {
+								return false
+							}
+
+							if msg.Content == "" {
+								return false
+							}
+
+							if msg.GuildID == nil {
+								return false
+							}
+
+							return utils.ActiveGames.IsActiveChannel(
+								msg.ChannelID,
+							)
+						},
+					),
 				),
 				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
 			)
 		},
 		Close: func(obj any) error {
 			b := obj.(*disgoplus.Bot)
+
 			utils.Logger.Info("Shutting down bot...")
 			b.Close(context.Background())
+
 			return nil
 		},
 	})

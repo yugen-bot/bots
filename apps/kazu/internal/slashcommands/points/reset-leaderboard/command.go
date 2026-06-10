@@ -12,7 +12,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetLeaderboardModule) request(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetLeaderboardModule) request(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer := utils.CreateEmbedFooter(
 		m.bot,
@@ -27,6 +30,7 @@ func (m *ResetLeaderboardModule) request(data discord.SlashCommandInteractionDat
 			"error", err,
 			"guildID", (*e.GuildID()).String(),
 		)
+
 		return e.CreateMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
@@ -57,8 +61,14 @@ func (m *ResetLeaderboardModule) request(data discord.SlashCommandInteractionDat
 		Embeds: []discord.Embed{embed},
 		Components: []discord.LayoutComponent{
 			discord.NewActionRow(
-				discord.NewDangerButton("Reset leaderboard", fmt.Sprintf(customIDResetLeaderboardTrue, userID)),
-				discord.NewSecondaryButton("Cancel", fmt.Sprintf(customIDResetLeaderboardFalse, userID)),
+				discord.NewDangerButton(
+					"Reset leaderboard",
+					fmt.Sprintf(customIDResetLeaderboardTrue, userID),
+				),
+				discord.NewSecondaryButton(
+					"Cancel",
+					fmt.Sprintf(customIDResetLeaderboardFalse, userID),
+				),
 			),
 		},
 		Flags: discord.MessageFlagEphemeral,
@@ -81,6 +91,7 @@ func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
 
 		empty := []discord.LayoutComponent{}
 		emptyEmbeds := []discord.Embed{}
+
 		return e.UpdateMessage(discord.MessageUpdate{
 			Content:    &contentText,
 			Components: &empty,
@@ -109,6 +120,7 @@ func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
 
 	empty := []discord.LayoutComponent{}
 	emptyEmbeds := []discord.Embed{}
+
 	return e.UpdateMessage(discord.MessageUpdate{
 		Content:    &contentText,
 		Components: &empty,

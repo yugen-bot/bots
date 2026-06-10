@@ -12,7 +12,10 @@ import (
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetModule) reset(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -39,10 +42,15 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 			Content: "Unknown setting.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
-	if err := m.settings.Set(context.Background(), (*e.GuildID()).String(), apply); err != nil {
+	if err := m.settings.Set(
+		context.Background(),
+		(*e.GuildID()).String(),
+		apply,
+	); err != nil {
 		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong.",
 			Flags:   discord.MessageFlagEphemeral,
@@ -50,6 +58,7 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -69,5 +78,6 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

@@ -17,7 +17,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ServerModule) server(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -31,6 +34,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 			Content: "Sorry, couldn't retrieve the server information.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -40,6 +44,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 			Content: "Sorry, couldn't retrieve the server information.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -49,6 +54,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 			Content: "Sorry, couldn't retrieve the server information.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -121,5 +127,6 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

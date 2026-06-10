@@ -15,7 +15,9 @@ type SetMembersPrivilegeModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSetMembersPrivilegeModule(container *di.Container) *SetMembersPrivilegeModule {
+func GetSetMembersPrivilegeModule(
+	container *di.Container,
+) *SetMembersPrivilegeModule {
 	return &SetMembersPrivilegeModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),

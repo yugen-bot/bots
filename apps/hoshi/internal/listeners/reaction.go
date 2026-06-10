@@ -37,7 +37,9 @@ func AddReactionListeners(container *di.Container) {
 	)
 }
 
-func (l *ReactionListener) OnMessageReactionAdd(e *events.GuildMessageReactionAdd) {
+func (l *ReactionListener) OnMessageReactionAdd(
+	e *events.GuildMessageReactionAdd,
+) {
 	self, ok := l.client.Caches.SelfUser()
 	if ok && e.UserID == self.ID {
 		return
@@ -53,10 +55,18 @@ func (l *ReactionListener) OnMessageReactionAdd(e *events.GuildMessageReactionAd
 		emojiName = *e.Emoji.Name
 	}
 
-	l.debounce(e.ChannelID.String(), e.MessageID.String(), e.GuildID.String(), emojiID, emojiName)
+	l.debounce(
+		e.ChannelID.String(),
+		e.MessageID.String(),
+		e.GuildID.String(),
+		emojiID,
+		emojiName,
+	)
 }
 
-func (l *ReactionListener) OnMessageReactionRemove(e *events.GuildMessageReactionRemove) {
+func (l *ReactionListener) OnMessageReactionRemove(
+	e *events.GuildMessageReactionRemove,
+) {
 	var emojiID string
 	if e.Emoji.ID != nil {
 		emojiID = e.Emoji.ID.String()
@@ -67,17 +77,32 @@ func (l *ReactionListener) OnMessageReactionRemove(e *events.GuildMessageReactio
 		emojiName = *e.Emoji.Name
 	}
 
-	l.debounce(e.ChannelID.String(), e.MessageID.String(), e.GuildID.String(), emojiID, emojiName)
+	l.debounce(
+		e.ChannelID.String(),
+		e.MessageID.String(),
+		e.GuildID.String(),
+		emojiID,
+		emojiName,
+	)
 }
 
-func (l *ReactionListener) debounce(channelID, messageID, guildID, emojiID, emojiName string) {
+func (l *ReactionListener) debounce(
+	channelID, messageID, guildID, emojiID, emojiName string,
+) {
 	if existing, ok := l.timers.LoadAndDelete(messageID); ok {
 		existing.(*time.Timer).Stop()
 	}
 
 	t := time.AfterFunc(250*time.Millisecond, func() {
 		l.timers.Delete(messageID)
-		l.svc.CheckReaction(context.Background(), channelID, messageID, guildID, emojiID, emojiName)
+		l.svc.CheckReaction(
+			context.Background(),
+			channelID,
+			messageID,
+			guildID,
+			emojiID,
+			emojiName,
+		)
 	})
 
 	l.timers.Store(messageID, t)

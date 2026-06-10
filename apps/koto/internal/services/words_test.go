@@ -71,7 +71,11 @@ func TestGetRandom_ReturnsSixLetterWord(t *testing.T) {
 
 	word := svc.GetRandom(nil, false)
 	if len([]rune(word)) != 6 {
-		t.Errorf("GetRandom returned %q (len %d), want 6 letters", word, len([]rune(word)))
+		t.Errorf(
+			"GetRandom returned %q (len %d), want 6 letters",
+			word,
+			len([]rune(word)),
+		)
 	}
 }
 

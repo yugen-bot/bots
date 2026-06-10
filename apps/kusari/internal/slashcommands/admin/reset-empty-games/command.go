@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetEmptyGamesModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetEmptyGamesModule) run(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -32,6 +35,7 @@ func (m *ResetEmptyGamesModule) run(data discord.SlashCommandInteractionData, e 
 				Content: "Something went wrong, try again later.",
 				Flags:   discord.MessageFlagEphemeral,
 			})
+
 			return err
 		}
 
@@ -58,6 +62,7 @@ func (m *ResetEmptyGamesModule) run(data discord.SlashCommandInteractionData, e 
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 

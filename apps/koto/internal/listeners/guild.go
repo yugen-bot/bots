@@ -42,9 +42,17 @@ func AddGuildListeners(container *di.Container) {
 func (l *GuildListener) OnGuildJoin(e *events.GuildJoin) {
 	ctx := context.Background()
 
-	guildSettings, err := l.settingsSvc.GetByGuildID(ctx, e.GuildID.String(), false)
+	guildSettings, err := l.settingsSvc.GetByGuildID(
+		ctx,
+		e.GuildID.String(),
+		false,
+	)
 	if err != nil {
-		utils.Logger.Warnf("guild create: failed to retrieve settings for %s: %v", e.GuildID, err)
+		utils.Logger.Warnf(
+			"guild create: failed to retrieve settings for %s: %v",
+			e.GuildID,
+			err,
+		)
 	}
 
 	if guildSettings != nil {
@@ -53,8 +61,16 @@ func (l *GuildListener) OnGuildJoin(e *events.GuildJoin) {
 
 	utils.Logger.Infof("Joined guild: %s", e.Guild.Name)
 
-	if _, err := l.settingsSvc.GetByGuildID(ctx, e.GuildID.String(), true); err != nil {
-		utils.Logger.Warnf("guild create: seed settings failed for %s: %v", e.GuildID, err)
+	if _, err := l.settingsSvc.GetByGuildID(
+		ctx,
+		e.GuildID.String(),
+		true,
+	); err != nil {
+		utils.Logger.Warnf(
+			"guild create: seed settings failed for %s: %v",
+			e.GuildID,
+			err,
+		)
 	}
 
 	go localUtils.SendWelcomeMessage(l.client, e.GuildID.String())
@@ -71,7 +87,12 @@ func (l *GuildListener) OnGuildMemberLeave(e *events.GuildMemberLeave) {
 			e.GuildID.String(),
 			e.User.ID.String(),
 		); err != nil {
-			utils.Logger.Warnf("guild member remove: %s/%s: %v", e.GuildID, e.User.ID, err)
+			utils.Logger.Warnf(
+				"guild member remove: %s/%s: %v",
+				e.GuildID,
+				e.User.ID,
+				err,
+			)
 		}
 	}()
 }

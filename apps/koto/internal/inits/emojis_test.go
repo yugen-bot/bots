@@ -14,11 +14,41 @@ func TestParseEmojiName(t *testing.T) {
 		wantLetter string
 		wantOk     bool
 	}{
-		{"letter A white", "letterAwhite", localStatic.EmojiColorWhite, "a", true},
-		{"letter Z green", "letterZgreen", localStatic.EmojiColorGreen, "z", true},
-		{"letter M yellow", "letterMyellow", localStatic.EmojiColorYellow, "m", true},
-		{"blank gray", "blankgray", localStatic.EmojiColorGray, localStatic.EmojiLetterBlank, true},
-		{"blank white", "blankwhite", localStatic.EmojiColorWhite, localStatic.EmojiLetterBlank, true},
+		{
+			"letter A white",
+			"letterAwhite",
+			localStatic.EmojiColorWhite,
+			"a",
+			true,
+		},
+		{
+			"letter Z green",
+			"letterZgreen",
+			localStatic.EmojiColorGreen,
+			"z",
+			true,
+		},
+		{
+			"letter M yellow",
+			"letterMyellow",
+			localStatic.EmojiColorYellow,
+			"m",
+			true,
+		},
+		{
+			"blank gray",
+			"blankgray",
+			localStatic.EmojiColorGray,
+			localStatic.EmojiLetterBlank,
+			true,
+		},
+		{
+			"blank white",
+			"blankwhite",
+			localStatic.EmojiColorWhite,
+			localStatic.EmojiLetterBlank,
+			true,
+		},
 		{"unknown color", "letterAblue", "", "", false},
 		{"blank unknown color", "blankblue", "", "", false},
 		{"random name", "random-name", "", "", false},
@@ -78,7 +108,10 @@ func TestValidateEmojiTable(t *testing.T) {
 	t.Run("extra entry inflates count", func(t *testing.T) {
 		table := buildFullTable()
 
-		table[localStatic.EmojiColorGreen]["extra"] = localStatic.EmojiData{Name: "x", ID: "1"}
+		table[localStatic.EmojiColorGreen]["extra"] = localStatic.EmojiData{
+			Name: "x",
+			ID:   "1",
+		}
 		if err := validateEmojiTable(table); err == nil {
 			t.Error("expected error for inflated count")
 		}
@@ -99,7 +132,10 @@ func buildFullTable() map[localStatic.EmojiColor]map[string]localStatic.EmojiDat
 		localStatic.EmojiColorWhite,
 	}
 
-	table := make(map[localStatic.EmojiColor]map[string]localStatic.EmojiData, len(colors))
+	table := make(
+		map[localStatic.EmojiColor]map[string]localStatic.EmojiData,
+		len(colors),
+	)
 	for _, c := range colors {
 		table[c] = make(map[string]localStatic.EmojiData, len(letters))
 		for _, l := range letters {

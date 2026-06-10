@@ -15,12 +15,14 @@ import (
 
 func (m *HintModule) hint(e *handler.ComponentEvent) error {
 	rawID := e.Vars["gameId"]
+
 	gameID, err := strconv.Atoi(rawID)
 	if err != nil {
 		utils.Logger.Warnw("hint: invalid gameId",
 			"rawID", rawID,
 			"error", err,
 		)
+
 		return e.CreateMessage(discord.MessageCreate{
 			Content: "Invalid game ID.",
 			Flags:   discord.MessageFlagEphemeral,
@@ -65,6 +67,7 @@ func (m *HintModule) hint(e *handler.ComponentEvent) error {
 			"gameID", gameID,
 			"userID", userID,
 		)
+
 		return e.CreateMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,

@@ -98,6 +98,7 @@ func InitSchedule(container *di.Container) {
 							active.ID,
 							endErr,
 						)
+
 						return nil
 					}
 
@@ -120,6 +121,7 @@ func InitSchedule(container *di.Container) {
 							setting.GuildID,
 							startErr,
 						)
+
 						return nil
 					}
 
@@ -174,6 +176,7 @@ func InitSchedule(container *di.Container) {
 						active.ID,
 						endErr,
 					)
+
 					return nil
 				}
 
@@ -229,6 +232,7 @@ func startGameIfDue(
 				setting.GuildID,
 				startErr,
 			)
+
 			return false
 		}
 
@@ -264,6 +268,7 @@ func startGameIfDue(
 			setting.GuildID,
 			startErr,
 		)
+
 		return false
 	}
 

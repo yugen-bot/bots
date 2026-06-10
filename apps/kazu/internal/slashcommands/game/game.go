@@ -31,7 +31,11 @@ func GetGameModule(container *di.Container) *GameModule {
 	}
 }
 
-func (m *GameModule) startGame(data discord.SlashCommandInteractionData, e *handler.CommandEvent, recreate bool) error {
+func (m *GameModule) startGame(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+	recreate bool,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -45,6 +49,7 @@ func (m *GameModule) startGame(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -71,6 +76,7 @@ func (m *GameModule) startGame(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -96,14 +102,21 @@ func (m *GameModule) startGame(data discord.SlashCommandInteractionData, e *hand
 			"guildID", (*e.GuildID()).String(),
 		)
 	}
+
 	return err
 }
 
-func (m *GameModule) start(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *GameModule) start(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	return m.startGame(data, e, false)
 }
 
-func (m *GameModule) reset(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *GameModule) reset(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	return m.startGame(data, e, true)
 }
 

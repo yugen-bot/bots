@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *PruneGamesModule) run(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -28,6 +31,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -47,11 +51,17 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 	channelID := e.Channel().ID().String()
 
 	if len(orphanGuildIDs) == 0 {
-		e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{Content: "**Orphan games: 0** — nothing to prune."}) //nolint:errcheck
+		e.Client().Rest.CreateMessage(
+			channelSnowflake,
+			discord.MessageCreate{
+				Content: "**Orphan games: 0** — nothing to prune.",
+			},
+		) //nolint:errcheck
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Done.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -65,15 +75,19 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 				Content: "Something went wrong, try again later.",
 				Flags:   discord.MessageFlagEphemeral,
 			})
+
 			return err
 		}
 
-		e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{ //nolint:errcheck
-			Content: fmt.Sprintf(
-				"**Orphan games: %d** (guesses: %d) across %d guild(s)",
-				gameCount, guessCount, len(orphanGuildIDs),
-			),
-		})
+		e.Client().Rest.CreateMessage(
+			channelSnowflake,
+			discord.MessageCreate{ //nolint:errcheck
+				Content: fmt.Sprintf(
+					"**Orphan games: %d** (guesses: %d) across %d guild(s)",
+					gameCount, guessCount, len(orphanGuildIDs),
+				),
+			},
+		)
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Found data for %d orphan guild(s). See <#%s>.",
@@ -82,6 +96,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -94,6 +109,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -103,15 +119,21 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 		guessCount,
 		len(orphanGuildIDs),
 	)
-	e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{ //nolint:errcheck
-		Content: fmt.Sprintf(
-			"Deleted **%d** game(s) and **%d** guess(es) for %d orphan guild(s).",
-			gameCount, guessCount, len(orphanGuildIDs),
-		),
-	})
+	e.Client().Rest.CreateMessage(
+		channelSnowflake,
+		discord.MessageCreate{ //nolint:errcheck
+			Content: fmt.Sprintf(
+				"Deleted **%d** game(s) and **%d** guess(es) for %d orphan guild(s).",
+				gameCount,
+				guessCount,
+				len(orphanGuildIDs),
+			),
+		},
+	)
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Done.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

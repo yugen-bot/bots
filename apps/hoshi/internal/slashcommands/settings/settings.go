@@ -57,6 +57,7 @@ func (m *SettingsModule) Commands() []discord.ApplicationCommandCreate {
 func (m *SettingsModule) Register(r handler.Router) {
 	r.Group(func(r handler.Router) {
 		r.Use(middlewares.GuildModeratorMiddleware)
+
 		for _, sub := range m.subModules {
 			sub.Register(r)
 		}

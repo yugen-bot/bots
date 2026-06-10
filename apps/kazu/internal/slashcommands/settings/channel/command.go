@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *ChannelModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ChannelModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -21,6 +24,7 @@ func (m *ChannelModule) set(data discord.SlashCommandInteractionData, e *handler
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -33,6 +37,7 @@ func (m *ChannelModule) set(data discord.SlashCommandInteractionData, e *handler
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -48,12 +53,17 @@ func (m *ChannelModule) set(data discord.SlashCommandInteractionData, e *handler
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
-		Content: fmt.Sprintf("I will run in <#%s> from now on.", ch.ID.String()),
-		Flags:   discord.MessageFlagEphemeral,
+		Content: fmt.Sprintf(
+			"I will run in <#%s> from now on.",
+			ch.ID.String(),
+		),
+		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

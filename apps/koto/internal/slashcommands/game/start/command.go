@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *StartModule) start(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *StartModule) start(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -34,13 +37,18 @@ func (m *StartModule) start(data discord.SlashCommandInteractionData, e *handler
 			Content: "Only moderators can start games unless members privilege is enabled.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	started, err := m.game.Start(context.Background(), guildID, true, false, "")
 	if err != nil {
 		utils.Logger.Warnw("game: start: start failed: %w", err)
-		return localUtils.HandleChannelInaccessible(e, *guildSettings.ChannelID, err)
+		return localUtils.HandleChannelInaccessible(
+			e,
+			*guildSettings.ChannelID,
+			err,
+		)
 	}
 
 	if !started {
@@ -48,6 +56,7 @@ func (m *StartModule) start(data discord.SlashCommandInteractionData, e *handler
 			Content: "There is already an active game!",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -55,5 +64,6 @@ func (m *StartModule) start(data discord.SlashCommandInteractionData, e *handler
 		Content: "Game started!",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

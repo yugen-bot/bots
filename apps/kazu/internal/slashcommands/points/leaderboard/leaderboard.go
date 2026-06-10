@@ -41,12 +41,16 @@ func (m *LeaderboardModule) Register(r handler.Router) {
 	r.Component("/LEADERBOARD/{page}", m.messageComponent)
 }
 
-func (m *LeaderboardModule) getItems(guildID snowflake.ID, page int) ([]any, int, error) {
+func (m *LeaderboardModule) getItems(
+	guildID snowflake.ID,
+	page int,
+) ([]any, int, error) {
 	items, total, err := m.points.GetLeaderboardByGuildID(
 		context.Background(),
 		guildID.String(),
 		page,
 	)
+
 	return utils.UnpackArray(items), total, err
 }
 
@@ -55,10 +59,24 @@ func (m *LeaderboardModule) formatItem(item any) string {
 	return fmt.Sprintf("<@%s>: **%d**", parsed.UserID, parsed.Points)
 }
 
-func (m *LeaderboardModule) command(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
-	return utils.LeaderboardCommandHandler(data, e, m.container, m.getItems, m.formatItem)
+func (m *LeaderboardModule) command(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
+	return utils.LeaderboardCommandHandler(
+		data,
+		e,
+		m.container,
+		m.getItems,
+		m.formatItem,
+	)
 }
 
 func (m *LeaderboardModule) messageComponent(e *handler.ComponentEvent) error {
-	return utils.LeaderboardComponentHandler(e, m.container, m.getItems, m.formatItem)
+	return utils.LeaderboardComponentHandler(
+		e,
+		m.container,
+		m.getItems,
+		m.formatItem,
+	)
 }

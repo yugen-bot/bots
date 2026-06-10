@@ -11,7 +11,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetLeaderboardModule) resetLeaderboard(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetLeaderboardModule) resetLeaderboard(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	var memberID *string
 
 	if user, ok := data.OptUser("member"); ok {
@@ -47,6 +50,7 @@ func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
 	}
 
 	userIDStr := e.Vars["userID"]
+
 	var userID *string
 
 	if userIDStr != "" {
@@ -70,6 +74,7 @@ func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
 			Content: "Failed to reset leaderboard.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -82,5 +87,6 @@ func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
 		Content: msg,
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

@@ -11,7 +11,10 @@ import (
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetRoleModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *SetRoleModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -29,6 +32,7 @@ func (m *SetRoleModule) set(data discord.SlashCommandInteractionData, e *handler
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) {
 			u.SetPingRoleID(role.ID.String())
+
 			if v, ok := data.OptBool("only-new"); ok {
 				u.SetPingOnlyNew(v)
 			}
@@ -38,12 +42,17 @@ func (m *SetRoleModule) set(data discord.SlashCommandInteractionData, e *handler
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
-		Content: fmt.Sprintf("Koto will ping <@&%s> on new games!", role.ID.String()),
-		Flags:   discord.MessageFlagEphemeral,
+		Content: fmt.Sprintf(
+			"Koto will ping <@&%s> on new games!",
+			role.ID.String(),
+		),
+		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

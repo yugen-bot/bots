@@ -12,7 +12,11 @@ import (
 func SendWelcomeMessage(client *bot.Client, guildID string) {
 	gID, err := snowflake.Parse(guildID)
 	if err != nil {
-		sharedUtils.Logger.Warnf("welcome: invalid guild ID %s: %v", guildID, err)
+		sharedUtils.Logger.Warnf(
+			"welcome: invalid guild ID %s: %v",
+			guildID,
+			err,
+		)
 		return
 	}
 
@@ -20,7 +24,11 @@ func SendWelcomeMessage(client *bot.Client, guildID string) {
 		// Fall back to REST if guild not in cache yet.
 		g, err := client.Rest.GetGuild(gID, false)
 		if err != nil || g == nil {
-			sharedUtils.Logger.Warnf("welcome: could not find guild %s: %v", guildID, err)
+			sharedUtils.Logger.Warnf(
+				"welcome: could not find guild %s: %v",
+				guildID,
+				err,
+			)
 			return
 		}
 		// GetGuild REST returns a partial Guild without channels; skip welcome in this case.

@@ -36,5 +36,6 @@ func HandleChannelInaccessible(
 		Content: "Something went wrong, try again later.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return sendErr
 }

@@ -8,7 +8,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *RemoveModule) remove(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *RemoveModule) remove(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -28,6 +31,7 @@ func (m *RemoveModule) remove(data discord.SlashCommandInteractionData, e *handl
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return ferr
 	}
 
@@ -38,5 +42,6 @@ func (m *RemoveModule) remove(data discord.SlashCommandInteractionData, e *handl
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

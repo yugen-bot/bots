@@ -22,7 +22,9 @@ type ResetLeaderboardModule struct {
 	settings  *services.SettingsService
 }
 
-func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
+func GetResetLeaderboardModule(
+	container *di.Container,
+) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
 		points:    container.Get(localStatic.DiPoints).(*services.PointsService),

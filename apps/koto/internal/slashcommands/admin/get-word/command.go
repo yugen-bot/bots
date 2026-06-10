@@ -8,7 +8,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *GetWordModule) getWord(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *GetWordModule) getWord(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -24,6 +27,7 @@ func (m *GetWordModule) getWord(data discord.SlashCommandInteractionData, e *han
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -32,6 +36,7 @@ func (m *GetWordModule) getWord(data discord.SlashCommandInteractionData, e *han
 			Content: "Guild currently has no game running.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -42,5 +47,6 @@ func (m *GetWordModule) getWord(data discord.SlashCommandInteractionData, e *han
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

@@ -35,6 +35,7 @@ func (m *ProfileModule) Commands() []discord.ApplicationCommandCreate {
 			Required:    false,
 		},
 	}
+
 	return []discord.ApplicationCommandCreate{
 		discord.SlashCommandCreate{
 			Name:        "profile",

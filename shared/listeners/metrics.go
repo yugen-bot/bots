@@ -29,7 +29,6 @@ func reloadGauges(client *bot.Client) {
 	metrics.TotalChannels.Set(float64(client.Caches.ChannelsLen()))
 }
 
-
 func getCPUPercentage(proc *process.Process) float64 {
 	if pct, err := proc.Percent(0); err == nil {
 		return pct
@@ -121,7 +120,9 @@ func AddMetricsListeners(container *di.Container) {
 
 			go reloadGauges(client)
 
-			metrics.TotalInteractions.Set(float64(utils.TotalRegisteredCommands()))
+			metrics.TotalInteractions.Set(
+				float64(utils.TotalRegisteredCommands()),
+			)
 		}),
 		bot.NewListenerFunc(func(e *events.Resumed) {
 			shardID := e.ShardID()

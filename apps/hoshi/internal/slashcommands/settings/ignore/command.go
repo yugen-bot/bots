@@ -8,7 +8,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *IgnoreModule) ignore(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *IgnoreModule) ignore(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -34,6 +37,7 @@ func (m *IgnoreModule) ignore(data discord.SlashCommandInteractionData, e *handl
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -41,5 +45,6 @@ func (m *IgnoreModule) ignore(data discord.SlashCommandInteractionData, e *handl
 		Content: fmt.Sprintf("Starboards are now **ignored** for %s!", label),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

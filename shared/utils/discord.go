@@ -23,10 +23,12 @@ func LogIfErrNoRateLimit(log *zap.SugaredLogger, action string, err error) {
 	if err == nil {
 		return
 	}
+
 	var restErr *rest.Error
 	if errors.As(err, &restErr) && restErr.Response != nil &&
 		restErr.Response.StatusCode == http.StatusTooManyRequests {
 		return
 	}
+
 	log.Warnw("discord action failed", "action", action, "error", err)
 }

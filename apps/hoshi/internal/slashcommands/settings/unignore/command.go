@@ -8,7 +8,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *UnignoreModule) unignore(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *UnignoreModule) unignore(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -34,6 +37,7 @@ func (m *UnignoreModule) unignore(data discord.SlashCommandInteractionData, e *h
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -41,5 +45,6 @@ func (m *UnignoreModule) unignore(data discord.SlashCommandInteractionData, e *h
 		Content: fmt.Sprintf("Starboards are now **unignored** for %s!", label),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

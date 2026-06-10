@@ -66,7 +66,10 @@ func CreateVoteHandler(
 			)
 		}
 
-		_, sendErr := client.Rest.CreateMessage(dmChannel.ID(), discord.MessageCreate{Content: msg})
+		_, sendErr := client.Rest.CreateMessage(
+			dmChannel.ID(),
+			discord.MessageCreate{Content: msg},
+		)
 
 		return sendErr
 	}

@@ -21,7 +21,10 @@ func GetTutorialModule(container *di.Container) *TutorialModule {
 	return &TutorialModule{container: container}
 }
 
-func (m *TutorialModule) tutorial(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *TutorialModule) tutorial(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 

@@ -29,9 +29,11 @@ func newActiveGameRegistry() *activeGameRegistry {
 func (r *activeGameRegistry) Register(guildID, channelID snowflake.ID) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	if old, ok := r.byGuild[guildID]; ok && old != channelID {
 		delete(r.byChannel, old)
 	}
+
 	r.byGuild[guildID] = channelID
 	r.byChannel[channelID] = true
 }
@@ -40,6 +42,7 @@ func (r *activeGameRegistry) Register(guildID, channelID snowflake.ID) {
 func (r *activeGameRegistry) Unregister(guildID snowflake.ID) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	if channelID, ok := r.byGuild[guildID]; ok {
 		delete(r.byGuild, guildID)
 		delete(r.byChannel, channelID)
@@ -50,5 +53,6 @@ func (r *activeGameRegistry) Unregister(guildID snowflake.ID) {
 func (r *activeGameRegistry) IsActiveChannel(channelID snowflake.ID) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	return r.byChannel[channelID]
 }

@@ -11,7 +11,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *EmojisModule) emojis(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *EmojisModule) emojis(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -39,7 +42,10 @@ func (m *EmojisModule) emojis(data discord.SlashCommandInteractionData, e *handl
 			sb.WriteString(emoji)
 		}
 
-		e.Client().Rest.CreateMessage(channelSnowflake, discord.MessageCreate{Content: sb.String()}) //nolint:errcheck
+		e.Client().Rest.CreateMessage(
+			channelSnowflake,
+			discord.MessageCreate{Content: sb.String()},
+		) //nolint:errcheck
 		sb.Reset()
 	}
 
@@ -47,5 +53,6 @@ func (m *EmojisModule) emojis(data discord.SlashCommandInteractionData, e *handl
 		Content: "There you go!",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

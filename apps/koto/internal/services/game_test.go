@@ -233,7 +233,11 @@ func TestCheckWord_DuplicateLetterInGuess_OnlyOneCredited(t *testing.T) {
 	// Positions 1-5: no unmatched 'a' remaining → WRONG
 	for i := 1; i < len(meta); i++ {
 		if meta[i].Type != localUtils.GameTypeWrong {
-			t.Errorf("meta[%d].Type = %q, want WRONG (extra duplicate)", i, meta[i].Type)
+			t.Errorf(
+				"meta[%d].Type = %q, want WRONG (extra duplicate)",
+				i,
+				meta[i].Type,
+			)
 		}
 	}
 }
@@ -247,7 +251,10 @@ func TestCheckWord_DiscoveryPoints_NewVsRepeat(t *testing.T) {
 
 	// First discovery of 'a' in correct position → 2 pts
 	if meta1[0].Points != 2 {
-		t.Errorf("first CORRECT discovery: points = %d, want 2", meta1[0].Points)
+		t.Errorf(
+			"first CORRECT discovery: points = %d, want 2",
+			meta1[0].Points,
+		)
 	}
 
 	// Second guess on the same (already updated) state: 'a' already known → 0 pts
@@ -306,7 +313,11 @@ func makeGuess(userID string, age time.Duration) *ent.Guess {
 }
 
 // makeSettings builds an ent.Settings with only cooldown-related fields set.
-func makeSettings(cooldown int, b2bEnabled bool, b2bCooldown int) *ent.Settings {
+func makeSettings(
+	cooldown int,
+	b2bEnabled bool,
+	b2bCooldown int,
+) *ent.Settings {
 	return &ent.Settings{
 		Cooldown:                 cooldown,
 		EnableBackToBackCooldown: b2bEnabled,
@@ -367,7 +378,9 @@ func TestCheckCooldown_BackToBack_Hit(t *testing.T) {
 
 	result := svc.checkCooldown("user1", guesses, makeSettings(120, true, 60))
 	if !result.RepeatHit {
-		t.Error("want RepeatHit = true when user was last guesser within b2b window")
+		t.Error(
+			"want RepeatHit = true when user was last guesser within b2b window",
+		)
 	}
 }
 
@@ -435,11 +448,17 @@ func TestCheckCooldown_RepeatHitOnly(t *testing.T) {
 
 // primeState builds a GameMeta for word and applies Discovery/Keyboard values
 // to simulate a prior hint or guess having partially revealed the given letter.
-func primeState(word string, letter string, almost, correct int, kbType localUtils.GameType) *localUtils.GameMeta {
+func primeState(
+	word string,
+	letter string,
+	almost, correct int,
+	kbType localUtils.GameType,
+) *localUtils.GameMeta {
 	state := (&GameService{}).createBaseState(word)
 	state.Discovery.Almost[letter] = almost
 	state.Discovery.Correct[letter] = correct
 	state.Keyboard[letter] = kbType
+
 	return state
 }
 
@@ -454,26 +473,40 @@ func TestComputeHint_Tier1_SolvesAlmostPosition(t *testing.T) {
 	}
 
 	if updatedState.Keyboard["e"] != localUtils.GameTypeCorrect {
-		t.Errorf("Keyboard[e] = %q after Tier 1, want CORRECT", updatedState.Keyboard["e"])
+		t.Errorf(
+			"Keyboard[e] = %q after Tier 1, want CORRECT",
+			updatedState.Keyboard["e"],
+		)
 	}
+
 	if updatedState.Discovery.Correct["e"] != 1 {
-		t.Errorf("Discovery.Correct[e] = %d, want 1", updatedState.Discovery.Correct["e"])
+		t.Errorf(
+			"Discovery.Correct[e] = %d, want 1",
+			updatedState.Discovery.Correct["e"],
+		)
 	}
 	// The solved position should be CORRECT e in the synthetic row.
 	correctE := 0
+
 	for _, m := range hintMeta {
 		if m.Letter == "e" && m.Type == localUtils.GameTypeCorrect {
 			correctE++
 		}
 	}
+
 	if correctE != 1 {
 		t.Errorf("CORRECT 'e' tiles = %d, want 1", correctE)
 	}
+
 	if !strings.Contains(description, "E") {
 		t.Errorf("description %q does not mention 'E'", description)
 	}
+
 	if !strings.Contains(description, "1") {
-		t.Errorf("description %q does not include discovery counts", description)
+		t.Errorf(
+			"description %q does not include discovery counts",
+			description,
+		)
 	}
 }
 
@@ -493,8 +526,12 @@ func TestComputeHint_Tier2_RevealsUndiscoveredLetterWhenNoAlmost(t *testing.T) {
 	}
 
 	if updatedState.Keyboard["x"] != localUtils.GameTypeAlmost {
-		t.Errorf("Keyboard[x] = %q, want ALMOST after Tier 2 reveal", updatedState.Keyboard["x"])
+		t.Errorf(
+			"Keyboard[x] = %q, want ALMOST after Tier 2 reveal",
+			updatedState.Keyboard["x"],
+		)
 	}
+
 	if !strings.Contains(strings.ToUpper(description), "X") {
 		t.Errorf("description %q should reveal 'X'", description)
 	}
@@ -516,30 +553,43 @@ func TestComputeHint_Tier2_RowShowsCorrectAlmostCount(t *testing.T) {
 	}
 
 	if updatedState.Discovery.Almost["e"] != 2 {
-		t.Errorf("Discovery.Almost[e] = %d, want 2 after Tier 2 reveal", updatedState.Discovery.Almost["e"])
+		t.Errorf(
+			"Discovery.Almost[e] = %d, want 2 after Tier 2 reveal",
+			updatedState.Discovery.Almost["e"],
+		)
 	}
 
 	eCorrect, eAlmost := 0, 0
+
 	for _, m := range hintMeta {
 		if m.Letter != "e" {
 			continue
 		}
+
 		if m.Type == localUtils.GameTypeCorrect {
 			eCorrect++
 		}
+
 		if m.Type == localUtils.GameTypeAlmost {
 			eAlmost++
 		}
 	}
+
 	if eCorrect != 1 {
 		t.Errorf("CORRECT 'e' tiles = %d, want 1", eCorrect)
 	}
+
 	if eAlmost != 1 {
-		t.Errorf("ALMOST 'e' tiles = %d, want 1 (one undiscovered instance)", eAlmost)
+		t.Errorf(
+			"ALMOST 'e' tiles = %d, want 1 (one undiscovered instance)",
+			eAlmost,
+		)
 	}
 }
 
-func TestComputeHint_Tier1_SolvesUnplacedDuplicateWhenKeyboardIsCorrect(t *testing.T) {
+func TestComputeHint_Tier1_SolvesUnplacedDuplicateWhenKeyboardIsCorrect(
+	t *testing.T,
+) {
 	svc := &GameService{}
 	// "attend": a=0, t=1, t=2, e=3, n=4, d=5
 	// a and first t are CORRECT; second t is found (Almost[t]=2) but not placed.
@@ -560,10 +610,17 @@ func TestComputeHint_Tier1_SolvesUnplacedDuplicateWhenKeyboardIsCorrect(t *testi
 	}
 
 	if updatedState.Word[2].Type != localUtils.GameTypeCorrect {
-		t.Errorf("Word[2].Type = %q, want CORRECT (second t should be placed)", updatedState.Word[2].Type)
+		t.Errorf(
+			"Word[2].Type = %q, want CORRECT (second t should be placed)",
+			updatedState.Word[2].Type,
+		)
 	}
+
 	if updatedState.Discovery.Correct["t"] != 2 {
-		t.Errorf("Discovery.Correct[t] = %d, want 2", updatedState.Discovery.Correct["t"])
+		t.Errorf(
+			"Discovery.Correct[t] = %d, want 2",
+			updatedState.Discovery.Correct["t"],
+		)
 	}
 }
 
@@ -583,27 +640,38 @@ func TestComputeHint_CorrectLetterWithUndiscoveredDuplicate(t *testing.T) {
 	}
 
 	if updatedState.Discovery.Almost["e"] != 2 {
-		t.Errorf("Discovery.Almost[e] = %d, want 2", updatedState.Discovery.Almost["e"])
+		t.Errorf(
+			"Discovery.Almost[e] = %d, want 2",
+			updatedState.Discovery.Almost["e"],
+		)
 	}
+
 	if updatedState.Keyboard["e"] != localUtils.GameTypeCorrect {
-		t.Errorf("Keyboard[e] = %q, want CORRECT (must not downgrade)", updatedState.Keyboard["e"])
+		t.Errorf(
+			"Keyboard[e] = %q, want CORRECT (must not downgrade)",
+			updatedState.Keyboard["e"],
+		)
 	}
 
 	// Pos 0 must remain CORRECT.
-	if hintMeta[0].Type != localUtils.GameTypeCorrect || hintMeta[0].Letter != "e" {
+	if hintMeta[0].Type != localUtils.GameTypeCorrect ||
+		hintMeta[0].Letter != "e" {
 		t.Errorf("hintMeta[0] = %+v, want CORRECT e", hintMeta[0])
 	}
 
 	// Exactly one ALMOST e tile should appear elsewhere.
 	eAlmost := 0
+
 	for i, m := range hintMeta {
 		if i == 0 {
 			continue
 		}
+
 		if m.Letter == "e" && m.Type == localUtils.GameTypeAlmost {
 			eAlmost++
 		}
 	}
+
 	if eAlmost != 1 {
 		t.Errorf("ALMOST 'e' tiles at non-pos-0 = %d, want 1", eAlmost)
 	}
@@ -620,13 +688,18 @@ func TestComputeCanHint_DuplicatePending(t *testing.T) {
 	state.Keyboard["e"] = localUtils.GameTypeAlmost
 
 	if !localUtils.ComputeCanHint("excuse", state) {
-		t.Error("ComputeCanHint = false, want true (second e still undiscovered)")
+		t.Error(
+			"ComputeCanHint = false, want true (second e still undiscovered)",
+		)
 	}
 }
 
-func TestComputeCanHint_AllLettersFullyDiscovered_FallsBackToPositionRule(t *testing.T) {
+func TestComputeCanHint_AllLettersFullyDiscovered_FallsBackToPositionRule(
+	t *testing.T,
+) {
 	// "abc": all letters found exactly once (word count == 1 each).
 	state := (&GameService{}).createBaseState("abc")
+
 	for _, r := range "abc" {
 		l := string(r)
 		state.Discovery.Almost[l] = 1
@@ -636,12 +709,16 @@ func TestComputeCanHint_AllLettersFullyDiscovered_FallsBackToPositionRule(t *tes
 	// Two positions non-CORRECT → tier 2 available.
 	state.Word[0].Type = localUtils.GameTypeCorrect
 	if !localUtils.ComputeCanHint("abc", state) {
-		t.Error("ComputeCanHint = false, want true (2 non-CORRECT positions remain for tier 2)")
+		t.Error(
+			"ComputeCanHint = false, want true (2 non-CORRECT positions remain for tier 2)",
+		)
 	}
 
 	// Only one position non-CORRECT → solving it would complete word → cannot hint.
 	state.Word[1].Type = localUtils.GameTypeCorrect
 	if localUtils.ComputeCanHint("abc", state) {
-		t.Error("ComputeCanHint = true, want false (only 1 non-CORRECT position left)")
+		t.Error(
+			"ComputeCanHint = true, want false (only 1 non-CORRECT position left)",
+		)
 	}
 }

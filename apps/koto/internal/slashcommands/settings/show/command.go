@@ -17,7 +17,10 @@ import (
 
 func boolPtr(b bool) *bool { return &b }
 
-func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ShowModule) show(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -96,17 +99,61 @@ func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.Comm
 		WithDescription("These are the settings currently configured for Koto").
 		WithEmbedFooter(footer).
 		WithFields(
-			discord.EmbedField{Name: "Channel", Value: channelIDText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Members privilege", Value: membersText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Ping role", Value: pingRoleText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Ping type", Value: pingTypeText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Auto start", Value: autoStartText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Answer cooldown", Value: cooldownText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Back-to-back cooldown", Value: backToBackText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Inform cooldown", Value: informCooldownText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Game frequency", Value: localUtils.FormatMinutes(s.Frequency), Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Time limit", Value: localUtils.FormatMinutes(s.TimeLimit), Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Start after first guess", Value: startAfterFirstText, Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "Channel",
+				Value:  channelIDText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Members privilege",
+				Value:  membersText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Ping role",
+				Value:  pingRoleText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Ping type",
+				Value:  pingTypeText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Auto start",
+				Value:  autoStartText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Answer cooldown",
+				Value:  cooldownText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Back-to-back cooldown",
+				Value:  backToBackText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Inform cooldown",
+				Value:  informCooldownText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Game frequency",
+				Value:  localUtils.FormatMinutes(s.Frequency),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Time limit",
+				Value:  localUtils.FormatMinutes(s.TimeLimit),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Start after first guess",
+				Value:  startAfterFirstText,
+				Inline: boolPtr(true),
+			},
 			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
 		)
 
@@ -114,5 +161,6 @@ func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.Comm
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

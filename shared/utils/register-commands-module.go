@@ -22,11 +22,13 @@ func TotalRegisteredCommands() int {
 // top-level commands with no sub-commands are counted as 1.
 func CountLeafCommands(modules []RoutableModule) int {
 	n := 0
+
 	for _, m := range modules {
 		for _, cmd := range m.Commands() {
 			n += countLeafCreate(cmd)
 		}
 	}
+
 	return n
 }
 
@@ -35,12 +37,14 @@ func countLeafCreate(cmd discord.ApplicationCommandCreate) int {
 	if !ok {
 		return 1
 	}
+
 	return countLeafOptions(slashCmd.Options)
 }
 
 func countLeafOptions(opts []discord.ApplicationCommandOption) int {
 	leaves := 0
 	hasSubCmds := false
+
 	for _, opt := range opts {
 		switch opt.Type() {
 		case discord.ApplicationCommandOptionTypeSubCommand:
@@ -52,9 +56,11 @@ func countLeafOptions(opts []discord.ApplicationCommandOption) int {
 			leaves += len(group.Options)
 		}
 	}
+
 	if !hasSubCmds {
 		return 1
 	}
+
 	return leaves
 }
 
@@ -74,6 +80,7 @@ func RegisterCommandModules(bot *disgoplus.Bot, modules []RoutableModule) {
 	for _, m := range modules {
 		cmds := m.Commands()
 		cmdCount := len(cmds)
+
 		cmdStr := "commands"
 		if cmdCount == 1 {
 			cmdStr = "command"
@@ -91,7 +98,11 @@ func RegisterCommandModules(bot *disgoplus.Bot, modules []RoutableModule) {
 
 // SyncCommands collects all ApplicationCommandCreate definitions and syncs
 // them to the given guild (or globally if guildID is zero).
-func SyncCommands(bot *disgoplus.Bot, modules []RoutableModule, guildID snowflake.ID) error {
+func SyncCommands(
+	bot *disgoplus.Bot,
+	modules []RoutableModule,
+	guildID snowflake.ID,
+) error {
 	var cmds []discord.ApplicationCommandCreate
 	for _, m := range modules {
 		cmds = append(cmds, m.Commands()...)
@@ -111,6 +122,7 @@ func commandsModuleName(cmds []discord.ApplicationCommandCreate) string {
 	if len(cmds) == 0 {
 		return "unknown"
 	}
+
 	switch c := cmds[0].(type) {
 	case discord.SlashCommandCreate:
 		return c.Name

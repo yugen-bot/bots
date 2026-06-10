@@ -32,6 +32,7 @@ func sendLogMessage(
 			"guildID",
 			guildID,
 		)
+
 		return
 	}
 

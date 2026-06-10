@@ -11,7 +11,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *CooldownModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	utils.Logger.With("GuildID", e.GuildID()).
 		Debug("Cooldown command used")
 
@@ -30,6 +33,7 @@ func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handle
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -45,6 +49,7 @@ func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handle
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 

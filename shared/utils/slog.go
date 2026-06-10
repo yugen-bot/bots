@@ -47,6 +47,7 @@ func (h *zapSlogHandler) Handle(_ context.Context, r slog.Record) error {
 
 func (h *zapSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	fields := make([]zap.Field, 0, len(h.fields)+len(attrs))
+
 	fields = append(fields, h.fields...)
 	for _, a := range attrs {
 		fields = append(fields, attrToField(a))
@@ -59,8 +60,11 @@ func (h *zapSlogHandler) WithGroup(name string) slog.Handler {
 	// Groups are uncommon in disgo; flatten by prefixing the group name.
 	// This keeps the implementation simple without a namespace stack.
 	return &zapSlogHandler{
-		core:   h.core,
-		fields: append(append([]zap.Field{}, h.fields...), zap.String("group", name)),
+		core: h.core,
+		fields: append(
+			append([]zap.Field{}, h.fields...),
+			zap.String("group", name),
+		),
 	}
 }
 
@@ -99,6 +103,7 @@ func attrToField(a slog.Attr) zap.Field {
 		for _, sub := range v.Group() {
 			m[sub.Key] = sub.Value.Resolve().Any()
 		}
+
 		return zap.Any(a.Key, m)
 	default:
 		return zap.Any(a.Key, v.Any())

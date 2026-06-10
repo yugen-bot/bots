@@ -56,6 +56,7 @@ func (s *SettingsService) SetHighscoreByGuildID(
 	highscore int,
 ) (*ent.Settings, error) {
 	now := time.Now()
+
 	_, err := s.database.Settings.Update().
 		Where(settings.GuildIDEQ(guildID)).
 		SetHighscore(highscore).
@@ -68,7 +69,9 @@ func (s *SettingsService) SetHighscoreByGuildID(
 	return s.GetByGuildID(ctx, guildID)
 }
 
-func (s *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
+func (s *SettingsService) FindAll(
+	ctx context.Context,
+) ([]*ent.Settings, error) {
 	result, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: find all: %w", err)

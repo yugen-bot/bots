@@ -24,7 +24,11 @@ func InitDiscordBot(ctx context.Context, container *di.Container) error {
 	disgoBot.Client().EventManager.AddEventListeners(
 		bot.NewListenerFunc(func(e *events.Ready) {
 			self, _ := e.Client().Caches.SelfUser()
-			utils.Logger.Infof("Logged in as: %v (shard %d)", self.Username, e.ShardID())
+			utils.Logger.Infof(
+				"Logged in as: %v (shard %d)",
+				self.Username,
+				e.ShardID(),
+			)
 		}),
 	)
 
@@ -38,7 +42,11 @@ func InitDiscordBot(ctx context.Context, container *di.Container) error {
 
 	gameService := container.Get(localStatic.DiGame).(*services.GameService)
 	if err := gameService.LoadActiveGameChannels(ctx); err != nil {
-		utils.Logger.Warnw("discord: load active game channels failed", "error", err)
+		utils.Logger.Warnw(
+			"discord: load active game channels failed",
+			"error",
+			err,
+		)
 	}
 
 	if err := InitCommands(container); err != nil {

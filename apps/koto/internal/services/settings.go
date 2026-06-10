@@ -74,7 +74,9 @@ func (s *SettingsService) Delete(ctx context.Context, guildID string) error {
 }
 
 // FindAll returns all settings records.
-func (s *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
+func (s *SettingsService) FindAll(
+	ctx context.Context,
+) ([]*ent.Settings, error) {
 	result, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: find all: %w", err)
@@ -113,7 +115,10 @@ func (s *SettingsService) Reset(
 	}
 
 	if existing == nil {
-		return nil, fmt.Errorf("settings: reset: not found for guild %s", guildID)
+		return nil, fmt.Errorf(
+			"settings: reset: not found for guild %s",
+			guildID,
+		)
 	}
 
 	upd := s.database.Settings.UpdateOneID(existing.ID)
@@ -169,6 +174,7 @@ func (s *SettingsService) Reset(
 		for _, field := range fields {
 			if fn, ok := resetMap[field]; ok {
 				fn()
+
 				applied = true
 			}
 		}

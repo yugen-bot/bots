@@ -11,7 +11,10 @@ import (
 	"jurien.dev/yugen/kusari/internal/ent"
 )
 
-func (m *ResetModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -27,6 +30,7 @@ func (m *ResetModule) set(data discord.SlashCommandInteractionData, e *handler.C
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -49,6 +53,7 @@ func (m *ResetModule) set(data discord.SlashCommandInteractionData, e *handler.C
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -62,6 +67,7 @@ func (m *ResetModule) set(data discord.SlashCommandInteractionData, e *handler.C
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 

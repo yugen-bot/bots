@@ -37,4 +37,3 @@ func (m *DonateSaveModule) Commands() []discord.ApplicationCommandCreate {
 func (m *DonateSaveModule) Register(r handler.Router) {
 	r.SlashCommand("/donate-save", m.donateSave)
 }
-

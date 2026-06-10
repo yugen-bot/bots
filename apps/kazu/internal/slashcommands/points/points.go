@@ -45,6 +45,7 @@ func (m *PointsModule) Commands() []discord.ApplicationCommandCreate {
 	for _, sm := range m.subModules {
 		all = append(all, sm.Commands()...)
 	}
+
 	return all
 }
 

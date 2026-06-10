@@ -285,13 +285,23 @@ func TestSpecialEmojisForNumber(t *testing.T) {
 
 			if tc.wantEmpty {
 				if len(got) != 0 {
-					t.Errorf("number %d: want no emojis, got %v", tc.number, got)
+					t.Errorf(
+						"number %d: want no emojis, got %v",
+						tc.number,
+						got,
+					)
 				}
+
 				return
 			}
 
 			if !slices.Contains(got, tc.wantEmoji) {
-				t.Errorf("number %d: want emoji %q in %v", tc.number, tc.wantEmoji, got)
+				t.Errorf(
+					"number %d: want emoji %q in %v",
+					tc.number,
+					tc.wantEmoji,
+					got,
+				)
 			}
 		})
 	}

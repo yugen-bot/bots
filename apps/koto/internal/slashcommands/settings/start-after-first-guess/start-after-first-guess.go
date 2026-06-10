@@ -15,7 +15,9 @@ type StartAfterFirstGuessModule struct {
 	settings  *services.SettingsService
 }
 
-func GetStartAfterFirstGuessModule(container *di.Container) *StartAfterFirstGuessModule {
+func GetStartAfterFirstGuessModule(
+	container *di.Container,
+) *StartAfterFirstGuessModule {
 	return &StartAfterFirstGuessModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),

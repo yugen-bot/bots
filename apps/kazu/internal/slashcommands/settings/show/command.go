@@ -15,7 +15,10 @@ import (
 
 func boolPtr(b bool) *bool { return &b }
 
-func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ShowModule) show(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -29,6 +32,7 @@ func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.Comm
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -87,11 +91,31 @@ func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.Comm
 		WithDescription("These are the settings currently configured for Kazu").
 		WithEmbedFooter(footer).
 		WithFields(
-			discord.EmbedField{Name: "Channel", Value: channelIDText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Answers cooldown", Value: cooldownText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Math", Value: mathText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Shame role", Value: shameRoleIDText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Remove shame role on highscore", Value: removeShameRoleAfterHighscoreText, Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "Channel",
+				Value:  channelIDText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Answers cooldown",
+				Value:  cooldownText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Math",
+				Value:  mathText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Shame role",
+				Value:  shameRoleIDText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Remove shame role on highscore",
+				Value:  removeShameRoleAfterHighscoreText,
+				Inline: boolPtr(true),
+			},
 			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
 		)
 
@@ -99,5 +123,6 @@ func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.Comm
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

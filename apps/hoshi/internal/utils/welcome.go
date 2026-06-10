@@ -24,7 +24,11 @@ To add another starboard, use ` + "`/starboard add`" + `.
 
 // SendWelcomeMessage sends the welcome embed to the given channel.
 // Returns an error if the send fails (e.g. 403 no permission).
-func SendWelcomeMessage(ch discord.GuildChannel, client *bot.Client, ownerID string) error {
+func SendWelcomeMessage(
+	ch discord.GuildChannel,
+	client *bot.Client,
+	ownerID string,
+) error {
 	// Inline footer since CreateEmbedFooter needs a *disgoplus.Bot; use simple footer here.
 	embed := discord.NewEmbed().
 		WithTitle("Thank you for inviting Hoshi!").
@@ -34,12 +38,20 @@ func SendWelcomeMessage(ch discord.GuildChannel, client *bot.Client, ownerID str
 	_, err := client.Rest.CreateMessage(ch.ID(), discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Components: []discord.LayoutComponent{
-			discord.NewActionRow(static.ButtonKofi, static.ButtonDiscordSupportServer),
+			discord.NewActionRow(
+				static.ButtonKofi,
+				static.ButtonDiscordSupportServer,
+			),
 		},
 	})
-
 	if err != nil {
-		sharedUtils.Logger.Debugw("welcome: send failed", "channelID", ch.ID(), "error", err)
+		sharedUtils.Logger.Debugw(
+			"welcome: send failed",
+			"channelID",
+			ch.ID(),
+			"error",
+			err,
+		)
 	}
 
 	return err

@@ -10,7 +10,10 @@ import (
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *StartAfterFirstGuessModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *StartAfterFirstGuessModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -32,6 +35,7 @@ func (m *StartAfterFirstGuessModule) set(data discord.SlashCommandInteractionDat
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -46,5 +50,6 @@ func (m *StartAfterFirstGuessModule) set(data discord.SlashCommandInteractionDat
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+
 	return err
 }

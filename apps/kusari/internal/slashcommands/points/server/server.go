@@ -37,4 +37,3 @@ func (m *ServerModule) Commands() []discord.ApplicationCommandCreate {
 func (m *ServerModule) Register(r handler.Router) {
 	r.SlashCommand("/server", m.server)
 }
-

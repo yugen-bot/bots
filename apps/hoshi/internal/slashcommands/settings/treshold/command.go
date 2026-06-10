@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *TresholdModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *TresholdModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -21,6 +24,7 @@ func (m *TresholdModule) set(data discord.SlashCommandInteractionData, e *handle
 			Content: "Treshold must be at least 1.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -37,6 +41,7 @@ func (m *TresholdModule) set(data discord.SlashCommandInteractionData, e *handle
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -44,5 +49,6 @@ func (m *TresholdModule) set(data discord.SlashCommandInteractionData, e *handle
 		Content: fmt.Sprintf("Starboard treshold has been set to **%d**.", n),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

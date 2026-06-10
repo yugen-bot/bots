@@ -92,7 +92,10 @@ func (s *HintsService) DeductHintFromPlayer(
 		SetHints(newHints).
 		Save(ctx)
 	if err != nil {
-		return 0, 0, fmt.Errorf("hints: deduct hint from player: update: %w", err)
+		return 0, 0, fmt.Errorf(
+			"hints: deduct hint from player: update: %w",
+			err,
+		)
 	}
 
 	return player.Hints, player.MaxHints, nil

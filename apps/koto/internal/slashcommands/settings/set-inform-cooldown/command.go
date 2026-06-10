@@ -10,7 +10,10 @@ import (
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetInformCooldownModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *SetInformCooldownModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -32,6 +35,7 @@ func (m *SetInformCooldownModule) set(data discord.SlashCommandInteractionData, 
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -46,5 +50,6 @@ func (m *SetInformCooldownModule) set(data discord.SlashCommandInteractionData, 
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+
 	return err
 }

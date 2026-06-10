@@ -15,7 +15,9 @@ type SetInformCooldownModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSetInformCooldownModule(container *di.Container) *SetInformCooldownModule {
+func GetSetInformCooldownModule(
+	container *di.Container,
+) *SetInformCooldownModule {
 	return &SetInformCooldownModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),

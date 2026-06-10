@@ -17,7 +17,10 @@ import (
 
 func boolPtr(b bool) *bool { return &b }
 
-func (m *StatsModule) points(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *StatsModule) points(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -45,6 +48,7 @@ func (m *StatsModule) points(_ discord.SlashCommandInteractionData, e *handler.C
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -73,10 +77,26 @@ func (m *StatsModule) points(_ discord.SlashCommandInteractionData, e *handler.C
 		WithTitle("Your Koto Stats").
 		WithColor(localStatic.EmbedColor).
 		WithFields(
-			discord.EmbedField{Name: "Points", Value: fmt.Sprintf("%d", player.Points), Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Games Participated", Value: fmt.Sprintf("%d", player.Participated), Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Games Won", Value: fmt.Sprintf("%d", player.Wins), Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Hints", Value: hintsValue, Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "Points",
+				Value:  fmt.Sprintf("%d", player.Points),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Games Participated",
+				Value:  fmt.Sprintf("%d", player.Participated),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Games Won",
+				Value:  fmt.Sprintf("%d", player.Wins),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Hints",
+				Value:  hintsValue,
+				Inline: boolPtr(true),
+			},
 		).
 		WithEmbedFooter(footer)
 
@@ -84,5 +104,6 @@ func (m *StatsModule) points(_ discord.SlashCommandInteractionData, e *handler.C
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

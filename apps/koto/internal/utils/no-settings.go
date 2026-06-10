@@ -14,6 +14,7 @@ func ReplyNoSettings(e *handler.CommandEvent, deferred ...bool) error {
 			Content: NoSettingsDescription,
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 

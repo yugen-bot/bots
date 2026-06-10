@@ -21,7 +21,11 @@ func TestParseGameMeta_Valid(t *testing.T) {
 	}
 
 	if meta.Keyboard["a"] != GameTypeCorrect {
-		t.Errorf("keyboard[a] = %q, want %q", meta.Keyboard["a"], GameTypeCorrect)
+		t.Errorf(
+			"keyboard[a] = %q, want %q",
+			meta.Keyboard["a"],
+			GameTypeCorrect,
+		)
 	}
 
 	if meta.Keyboard["b"] != GameTypeWrong {
@@ -37,7 +41,10 @@ func TestParseGameMeta_Valid(t *testing.T) {
 	}
 
 	if meta.Discovery.Correct["a"] != 2 {
-		t.Errorf("discovery.correct[a] = %d, want 2", meta.Discovery.Correct["a"])
+		t.Errorf(
+			"discovery.correct[a] = %d, want 2",
+			meta.Discovery.Correct["a"],
+		)
 	}
 }
 
@@ -78,7 +85,12 @@ func TestGameTypeToEmojiColor(t *testing.T) {
 		}
 
 		if got != tc.want {
-			t.Errorf("GameTypeToEmojiColor[%q] = %q, want %q", tc.gameType, got, tc.want)
+			t.Errorf(
+				"GameTypeToEmojiColor[%q] = %q, want %q",
+				tc.gameType,
+				got,
+				tc.want,
+			)
 		}
 	}
 }

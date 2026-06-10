@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *ShameModule) setRole(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ShameModule) setRole(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -21,6 +24,7 @@ func (m *ShameModule) setRole(data discord.SlashCommandInteractionData, e *handl
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -33,6 +37,7 @@ func (m *ShameModule) setRole(data discord.SlashCommandInteractionData, e *handl
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -48,6 +53,7 @@ func (m *ShameModule) setRole(data discord.SlashCommandInteractionData, e *handl
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -58,10 +64,14 @@ func (m *ShameModule) setRole(data discord.SlashCommandInteractionData, e *handl
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }
 
-func (m *ShameModule) setRemoveShameRole(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ShameModule) setRemoveShameRole(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -77,6 +87,7 @@ func (m *ShameModule) setRemoveShameRole(data discord.SlashCommandInteractionDat
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -90,6 +101,7 @@ func (m *ShameModule) setRemoveShameRole(data discord.SlashCommandInteractionDat
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -105,5 +117,6 @@ func (m *ShameModule) setRemoveShameRole(data discord.SlashCommandInteractionDat
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

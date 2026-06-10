@@ -49,6 +49,7 @@ func (m *SettingsModule) Commands() []discord.ApplicationCommandCreate {
 	for _, sub := range m.subModules {
 		opts = append(opts, sub.SubCommandOption())
 	}
+
 	for _, opt := range m.shame.SubCommandOptions() {
 		opts = append(opts, opt)
 	}
@@ -66,9 +67,11 @@ func (m *SettingsModule) Commands() []discord.ApplicationCommandCreate {
 func (m *SettingsModule) Register(r handler.Router) {
 	r.Group(func(r handler.Router) {
 		r.Use(middlewares.GuildModeratorMiddleware)
+
 		for _, sub := range m.subModules {
 			sub.Register(r)
 		}
+
 		m.shame.Register(r)
 	})
 }

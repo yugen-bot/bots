@@ -17,7 +17,9 @@ type SetBackToBackCooldownModule struct {
 	settings  *services.SettingsService
 }
 
-func GetSetBackToBackCooldownModule(container *di.Container) *SetBackToBackCooldownModule {
+func GetSetBackToBackCooldownModule(
+	container *di.Container,
+) *SetBackToBackCooldownModule {
 	return &SetBackToBackCooldownModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),

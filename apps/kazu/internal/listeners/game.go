@@ -103,14 +103,17 @@ func (l *GameListener) MessageUpdateHandler(e *events.MessageUpdate) {
 	}
 
 	go func() {
-		l.client.Rest.CreateMessage(e.ChannelID, discord.MessageCreate{ //nolint:errcheck
-			Content: fmt.Sprintf(
-				`<@%s> just edited their guess 😒
+		l.client.Rest.CreateMessage(
+			e.ChannelID,
+			discord.MessageCreate{ //nolint:errcheck
+				Content: fmt.Sprintf(
+					`<@%s> just edited their guess 😒
 Last number was **%d**!`,
-				e.OldMessage.Author.ID.String(),
-				number,
-			),
-		})
+					e.OldMessage.Author.ID.String(),
+					number,
+				),
+			},
+		)
 	}()
 }
 
@@ -143,14 +146,17 @@ func (l *GameListener) MessageDeleteHandler(e *events.MessageDelete) {
 	}
 
 	go func() {
-		l.client.Rest.CreateMessage(e.ChannelID, discord.MessageCreate{ //nolint:errcheck
-			Content: fmt.Sprintf(
-				`<@%s> just deleted their number 😒
+		l.client.Rest.CreateMessage(
+			e.ChannelID,
+			discord.MessageCreate{ //nolint:errcheck
+				Content: fmt.Sprintf(
+					`<@%s> just deleted their number 😒
 Last number was **%d**!`,
-				e.Message.Author.ID.String(),
-				number,
-			),
-		})
+					e.Message.Author.ID.String(),
+					number,
+				),
+			},
+		)
 	}()
 }
 
@@ -170,6 +176,7 @@ func (l *GameListener) getSettings(
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return
 	}
 
@@ -180,5 +187,6 @@ func (l *GameListener) getSettings(
 	}
 
 	ok = true
+
 	return
 }

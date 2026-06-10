@@ -15,7 +15,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ShowModule) show(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -33,6 +36,7 @@ func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.Comm
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -66,16 +70,29 @@ func (m *ShowModule) show(_ discord.SlashCommandInteractionData, e *handler.Comm
 		WithDescription("These are the settings currently configured for Hoshi").
 		WithEmbedFooter(footer).
 		WithFields(
-			discord.EmbedField{Name: "Treshold", Value: fmt.Sprintf("%d", s.Treshold), Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Author starring", Value: authorStarringValue, Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "Treshold",
+				Value:  fmt.Sprintf("%d", s.Treshold),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Author starring",
+				Value:  authorStarringValue,
+				Inline: boolPtr(true),
+			},
 			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Ignored Channels", Value: ignoredText, Inline: boolPtr(false)},
+			discord.EmbedField{
+				Name:   "Ignored Channels",
+				Value:  ignoredText,
+				Inline: boolPtr(false),
+			},
 		)
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+
 	return err
 }
 

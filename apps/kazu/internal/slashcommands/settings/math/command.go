@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *MathSettingModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *MathSettingModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -26,6 +29,7 @@ func (m *MathSettingModule) set(data discord.SlashCommandInteractionData, e *han
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -39,6 +43,7 @@ func (m *MathSettingModule) set(data discord.SlashCommandInteractionData, e *han
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -51,5 +56,6 @@ func (m *MathSettingModule) set(data discord.SlashCommandInteractionData, e *han
 		Content: fmt.Sprintf("I **%s** math from being parsed.", valueText),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

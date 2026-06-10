@@ -10,7 +10,10 @@ import (
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetBackToBackCooldownModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *SetBackToBackCooldownModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -28,6 +31,7 @@ func (m *SetBackToBackCooldownModule) set(data discord.SlashCommandInteractionDa
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) {
 			u.SetEnableBackToBackCooldown(enable)
+
 			if v, ok := data.OptInt("seconds"); ok {
 				u.SetBackToBackCooldown(v)
 			}
@@ -37,6 +41,7 @@ func (m *SetBackToBackCooldownModule) set(data discord.SlashCommandInteractionDa
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -51,5 +56,6 @@ func (m *SetBackToBackCooldownModule) set(data discord.SlashCommandInteractionDa
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+
 	return err
 }

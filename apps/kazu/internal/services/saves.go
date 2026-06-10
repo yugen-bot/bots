@@ -125,12 +125,17 @@ func (s *SavesService) DeductSaveFromGuild(
 	}
 
 	if n == 0 {
-		return 0, 0, fmt.Errorf("saves: deduct save from guild: no rows updated")
+		return 0, 0, fmt.Errorf(
+			"saves: deduct save from guild: no rows updated",
+		)
 	}
 
 	updated, err := s.database.Settings.Get(ctx, guildSettings.ID)
 	if err != nil {
-		return 0, 0, fmt.Errorf("saves: deduct save from guild: reload: %w", err)
+		return 0, 0, fmt.Errorf(
+			"saves: deduct save from guild: reload: %w",
+			err,
+		)
 	}
 
 	return updated.Saves, updated.MaxSaves, nil

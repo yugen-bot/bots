@@ -22,7 +22,11 @@ func InitDiscordBot(ctx context.Context, container *di.Container) error {
 	disgoBot.Client().EventManager.AddEventListeners(
 		bot.NewListenerFunc(func(e *events.Ready) {
 			self, _ := e.Client().Caches.SelfUser()
-			utils.Logger.Infof("Logged in as: %v (shard %d)", self.Username, e.ShardID())
+			utils.Logger.Infof(
+				"Logged in as: %v (shard %d)",
+				self.Username,
+				e.ShardID(),
+			)
 		}),
 	)
 

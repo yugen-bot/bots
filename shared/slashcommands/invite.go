@@ -21,7 +21,10 @@ func GetInviteModule(container *di.Container) *InviteModule {
 	return &InviteModule{container: container}
 }
 
-func (m *InviteModule) invite(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *InviteModule) invite(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 

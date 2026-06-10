@@ -35,7 +35,10 @@ func (m *LeaderboardModule) Register(r handler.Router) {
 	r.Component("/LEADERBOARD/{page}", m.messageComponent)
 }
 
-func (m *LeaderboardModule) getItems(guildID snowflake.ID, page int) ([]any, int, error) {
+func (m *LeaderboardModule) getItems(
+	guildID snowflake.ID,
+	page int,
+) ([]any, int, error) {
 	items, total, err := m.points.GetLeaderboardByGuildID(
 		context.Background(),
 		guildID.String(),
@@ -44,4 +47,3 @@ func (m *LeaderboardModule) getItems(guildID snowflake.ID, page int) ([]any, int
 
 	return utils.UnpackArray(items), total, err
 }
-

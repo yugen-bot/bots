@@ -10,7 +10,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *GuildsModule) list(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *GuildsModule) list(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -49,6 +52,7 @@ func (m *GuildsModule) showList(
 			Content: content,
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -58,6 +62,7 @@ func (m *GuildsModule) showList(
 			Content: content,
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -85,11 +90,23 @@ func (m *GuildsModule) showList(
 
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page-1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"◀️",
+				fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page-1),
+			),
+		)
 	}
 
 	if page < maxPage {
-		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page+1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"▶️",
+				fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page+1),
+			),
+		)
 	}
 
 	components := []discord.LayoutComponent{}
@@ -102,16 +119,21 @@ func (m *GuildsModule) showList(
 		Components: components,
 		Flags:      discord.MessageFlagEphemeral,
 	})
+
 	return err
 }
 
-func (m *GuildsModule) showListComponent(e *handler.ComponentEvent, page int) error {
+func (m *GuildsModule) showListComponent(
+	e *handler.ComponentEvent,
+	page int,
+) error {
 	guilds, total := m.guilds.GetData(page)
 
 	if total == 0 {
 		content := "There is no guild data available."
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
+
 		return e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
@@ -123,6 +145,7 @@ func (m *GuildsModule) showListComponent(e *handler.ComponentEvent, page int) er
 		content := fmt.Sprintf("No guilds found for page %d", page)
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
+
 		return e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
@@ -154,11 +177,23 @@ func (m *GuildsModule) showListComponent(e *handler.ComponentEvent, page int) er
 
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page-1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"◀️",
+				fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page-1),
+			),
+		)
 	}
 
 	if page < maxPage {
-		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page+1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"▶️",
+				fmt.Sprintf("/ADMIN_GUILDS_LIST/%d", page+1),
+			),
+		)
 	}
 
 	components := []discord.LayoutComponent{}
@@ -167,6 +202,7 @@ func (m *GuildsModule) showListComponent(e *handler.ComponentEvent, page int) er
 	}
 
 	embeds := []discord.Embed{embed}
+
 	return e.UpdateMessage(discord.MessageUpdate{
 		Embeds:     &embeds,
 		Components: &components,

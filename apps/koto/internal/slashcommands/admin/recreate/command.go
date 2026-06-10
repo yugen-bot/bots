@@ -8,7 +8,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *RecreateModule) recreate(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *RecreateModule) recreate(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -29,6 +32,7 @@ func (m *RecreateModule) recreate(data discord.SlashCommandInteractionData, e *h
 				),
 				Flags: discord.MessageFlagEphemeral,
 			})
+
 			return err
 		}
 	}
@@ -39,6 +43,7 @@ func (m *RecreateModule) recreate(data discord.SlashCommandInteractionData, e *h
 			Content: "Could not find settings for the specified guild.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -47,6 +52,7 @@ func (m *RecreateModule) recreate(data discord.SlashCommandInteractionData, e *h
 			Content: "Guild has no channel configured.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -62,6 +68,7 @@ func (m *RecreateModule) recreate(data discord.SlashCommandInteractionData, e *h
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -79,5 +86,6 @@ func (m *RecreateModule) recreate(data discord.SlashCommandInteractionData, e *h
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+
 	return err
 }

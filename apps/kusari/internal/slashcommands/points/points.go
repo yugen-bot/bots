@@ -51,4 +51,3 @@ func (m *PointsModule) Register(r handler.Router) {
 		sm.Register(r)
 	}
 }
-

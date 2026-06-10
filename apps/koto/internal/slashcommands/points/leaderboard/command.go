@@ -17,7 +17,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *LeaderboardModule) leaderboard(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *LeaderboardModule) leaderboard(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	leaderboardType := "points"
 	if v, ok := data.OptString("type"); ok {
 		leaderboardType = v
@@ -54,7 +57,6 @@ func (m *LeaderboardModule) leaderboardPage(e *handler.ComponentEvent) error {
 	return m.showLeaderboardComponent(e, leaderboardType, page)
 }
 
-
 func (m *LeaderboardModule) showLeaderboardCommand(
 	e *handler.CommandEvent,
 	leaderboardType string,
@@ -84,6 +86,7 @@ func (m *LeaderboardModule) showLeaderboardCommand(
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -170,11 +173,13 @@ func (m *LeaderboardModule) showLeaderboardCommand(
 	if ephemeral {
 		flags = discord.MessageFlagEphemeral
 	}
+
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds:     []discord.Embed{embed},
 		Components: components,
 		Flags:      flags,
 	})
+
 	return err
 }
 
@@ -294,6 +299,7 @@ func (m *LeaderboardModule) showLeaderboardComponent(
 	}
 
 	embeds := []discord.Embed{embed}
+
 	return e.UpdateMessage(discord.MessageUpdate{
 		Embeds:     &embeds,
 		Components: &components,

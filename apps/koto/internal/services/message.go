@@ -68,7 +68,9 @@ func (m *MessageService) Create(
 
 	// Delete previous message if exists.
 	if currentGame.LastMessageID != nil && *currentGame.LastMessageID != "" {
-		if prevMsgID, parseErr := snowflake.Parse(*currentGame.LastMessageID); parseErr == nil {
+		if prevMsgID, parseErr := snowflake.Parse(
+			*currentGame.LastMessageID,
+		); parseErr == nil {
 			utils.LogIfErr(utils.Logger, "channel-message-delete",
 				m.client.Rest.DeleteMessage(channelID, prevMsgID))
 		}
@@ -86,8 +88,11 @@ func (m *MessageService) Create(
 	}
 
 	var allowedRoles []snowflake.ID
+
 	if guildSettings.PingRoleID != nil && *guildSettings.PingRoleID != "" {
-		if roleID, parseErr := snowflake.Parse(*guildSettings.PingRoleID); parseErr == nil {
+		if roleID, parseErr := snowflake.Parse(
+			*guildSettings.PingRoleID,
+		); parseErr == nil {
 			allowedRoles = []snowflake.ID{roleID}
 		}
 	}
@@ -95,7 +100,8 @@ func (m *MessageService) Create(
 	meta, _ := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
 
 	var components []discord.LayoutComponent
-	if currentGame.Status == entgame.StatusIN_PROGRESS && meta != nil && meta.CanHint {
+	if currentGame.Status == entgame.StatusIN_PROGRESS && meta != nil &&
+		meta.CanHint {
 		components = []discord.LayoutComponent{
 			discord.NewActionRow(
 				discord.ButtonComponent{
@@ -108,14 +114,17 @@ func (m *MessageService) Create(
 		}
 	}
 
-	sentMsg, err := m.client.Rest.CreateMessage(channelID, discord.MessageCreate{
-		Content:    content,
-		Embeds:     []discord.Embed{embed},
-		Components: components,
-		AllowedMentions: &discord.AllowedMentions{
-			Roles: allowedRoles,
+	sentMsg, err := m.client.Rest.CreateMessage(
+		channelID,
+		discord.MessageCreate{
+			Content:    content,
+			Embeds:     []discord.Embed{embed},
+			Components: components,
+			AllowedMentions: &discord.AllowedMentions{
+				Roles: allowedRoles,
+			},
 		},
-	})
+	)
 	if err != nil {
 		return fmt.Errorf("message: create: send: %w", err)
 	}
@@ -134,7 +143,10 @@ func (m *MessageService) buildEmbed(
 ) (discord.Embed, error) {
 	meta, err := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
 	if err != nil {
-		return discord.Embed{}, fmt.Errorf("message: build embed: parse meta: %w", err)
+		return discord.Embed{}, fmt.Errorf(
+			"message: build embed: parse meta: %w",
+			err,
+		)
 	}
 
 	rows := m.buildRows(guesses, currentGame.Status)
@@ -192,13 +204,21 @@ func (m *MessageService) buildRows(
 	}
 
 	// Pad to MaxGuesses rows with blanks for IN_PROGRESS.
-	if len(rows) < localStatic.MaxGuesses && status == entgame.StatusIN_PROGRESS {
+	if len(rows) < localStatic.MaxGuesses &&
+		status == entgame.StatusIN_PROGRESS {
 		for i := localStatic.MaxGuesses - len(rows); i > 0; i-- {
 			blank := make(localUtils.GuessMetaSlice, localStatic.WordLength)
 			for j := 0; j < localStatic.WordLength; j++ {
-				blank[j] = localUtils.GuessMeta{Type: localUtils.GameTypeDefault, Letter: "blank"}
+				blank[j] = localUtils.GuessMeta{
+					Type:   localUtils.GameTypeDefault,
+					Letter: "blank",
+				}
 			}
-			rows = append(rows, rowData{meta: blank, userID: selfID, createdAt: time.Now()})
+
+			rows = append(
+				rows,
+				rowData{meta: blank, userID: selfID, createdAt: time.Now()},
+			)
 		}
 	}
 
@@ -250,14 +270,17 @@ func (m *MessageService) buildKeyboard(meta *localUtils.GameMeta) string {
 				sb.WriteString(localUtils.GetEmoji("GRAY", "blank"))
 			} else {
 				letter := item.(string)
+
 				gameType, exists := meta.Keyboard[letter]
 				if !exists {
 					gameType = localUtils.GameTypeDefault
 				}
+
 				color := localUtils.GameTypeToEmojiColor[gameType]
 				sb.WriteString(localUtils.GetEmoji(color, letter))
 			}
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -278,7 +301,9 @@ func (m *MessageService) buildGameInfo(
 	}
 
 	nextKoto := ""
-	nextAt := currentGame.CreatedAt.Add(time.Duration(guildSettings.Frequency) * time.Minute)
+	nextAt := currentGame.CreatedAt.Add(
+		time.Duration(guildSettings.Frequency) * time.Minute,
+	)
 
 	if !guildSettings.AutoStart {
 		nextKoto = fmt.Sprintf("\nNext koto <t:%d:R>", nextAt.Unix())
@@ -288,7 +313,9 @@ func (m *MessageService) buildGameInfo(
 	case entgame.StatusCOMPLETED:
 		return fmt.Sprintf(
 			"\nGood job! Everyone who participated gets **+2** points!%s\n\n%s%s",
-			nextKoto, footer, envSuffix,
+			nextKoto,
+			footer,
+			envSuffix,
 		)
 	case entgame.StatusFAILED:
 		return fmt.Sprintf(
@@ -307,7 +334,10 @@ func (m *MessageService) buildGameInfo(
 		if currentGame.EndingAt.Year() == 3000 {
 			timerLine = "Timer will start after first guess"
 		} else {
-			timerLine = fmt.Sprintf("Time runs out <t:%d:R>", currentGame.EndingAt.Unix())
+			timerLine = fmt.Sprintf(
+				"Time runs out <t:%d:R>",
+				currentGame.EndingAt.Unix(),
+			)
 		}
 
 		return fmt.Sprintf(

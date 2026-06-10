@@ -45,7 +45,10 @@ func (m *LeaderboardModule) Commands() []discord.ApplicationCommandCreate {
 					Choices: []discord.ApplicationCommandOptionChoiceString{
 						{Name: "Points", Value: "points"},
 						{Name: "Guessed words", Value: "wins"},
-						{Name: "Guessed games participations", Value: "participated"},
+						{
+							Name:  "Guessed games participations",
+							Value: "participated",
+						},
 					},
 				},
 				discord.ApplicationCommandOptionInt{

@@ -3,7 +3,7 @@ package static
 const (
 	DiConfig = "config"
 
-	DiBot = "discordbot" // *disgoplus.Bot
+	DiBot            = "discordbot" // *disgoplus.Bot
 	DiCron           = "cron"
 	DiCacheLifetimes = "cacheliftimes"
 	DiDatabase       = "database"

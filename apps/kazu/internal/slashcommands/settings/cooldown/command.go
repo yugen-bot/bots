@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/kazu/internal/ent"
 )
 
-func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *CooldownModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -26,6 +29,7 @@ func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handle
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -39,6 +43,7 @@ func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handle
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -60,5 +65,6 @@ func (m *CooldownModule) set(data discord.SlashCommandInteractionData, e *handle
 		Content: content,
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *PruneGamesModule) run(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -28,6 +31,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -49,12 +53,15 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 	if len(orphanGuildIDs) == 0 {
 		e.Client().Rest.CreateMessage( //nolint:errcheck
 			channelSnowflake,
-			discord.MessageCreate{Content: "**Orphan games: 0** — nothing to prune."},
+			discord.MessageCreate{
+				Content: "**Orphan games: 0** — nothing to prune.",
+			},
 		)
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Done.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -68,6 +75,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 				Content: "Something went wrong, try again later.",
 				Flags:   discord.MessageFlagEphemeral,
 			})
+
 			return err
 		}
 
@@ -76,7 +84,9 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			discord.MessageCreate{
 				Content: fmt.Sprintf(
 					"**Orphan games: %d** (history entries: %d) across %d guild(s)",
-					gameCount, historyCount, len(orphanGuildIDs),
+					gameCount,
+					historyCount,
+					len(orphanGuildIDs),
 				),
 			},
 		)
@@ -88,6 +98,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -100,6 +111,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 

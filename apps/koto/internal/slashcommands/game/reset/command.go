@@ -10,7 +10,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetModule) reset(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -29,7 +32,11 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 	started, err := m.game.Start(context.Background(), guildID, true, true, "")
 	if err != nil {
 		utils.Logger.Warnw("game: start: start failed: %w", err)
-		return localUtils.HandleChannelInaccessible(e, *guildSettings.ChannelID, err)
+		return localUtils.HandleChannelInaccessible(
+			e,
+			*guildSettings.ChannelID,
+			err,
+		)
 	}
 
 	if !started {
@@ -37,6 +44,7 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 			Content: "Failed to reset the game.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -44,5 +52,6 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 		Content: "Game has been reset and a new one started!",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

@@ -9,7 +9,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetModule) reset(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -25,6 +28,7 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -47,5 +51,6 @@ func (m *ResetModule) reset(data discord.SlashCommandInteractionData, e *handler
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

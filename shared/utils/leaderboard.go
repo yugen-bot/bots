@@ -56,11 +56,18 @@ func LeaderboardCommandHandler(
 
 	items, total, err := getItems(guildID, page)
 	if err != nil {
-		Logger.Errorw("leaderboard: get items failed", "error", err, "guildID", guildID)
+		Logger.Errorw(
+			"leaderboard: get items failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -69,6 +76,7 @@ func LeaderboardCommandHandler(
 			Content: "There is no leaderboard available yet for this server.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -77,6 +85,7 @@ func LeaderboardCommandHandler(
 			Content: fmt.Sprintf("No players found for page %d", page),
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -90,21 +99,34 @@ func LeaderboardCommandHandler(
 	if maxPage > 1 {
 		footerParams.Text = fmt.Sprintf("Page %d/%d", page, maxPage)
 	}
+
 	footer := CreateEmbedFooter(bot, &footerParams, cfg.OwnerID)
 
 	guild, err := bot.Client().Rest.GetGuild(guildID, false)
 	if err != nil || guild == nil {
-		Logger.Errorw("leaderboard: get guild failed", "error", err, "guildID", guildID)
+		Logger.Errorw(
+			"leaderboard: get guild failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	description := ""
 	for i, item := range items {
-		description = fmt.Sprintf("%s\n%d. %s", description, i+1, formatter(item))
+		description = fmt.Sprintf(
+			"%s\n%d. %s",
+			description,
+			i+1,
+			formatter(item),
+		)
 	}
 
 	embed := discord.NewEmbed().
@@ -115,16 +137,30 @@ func LeaderboardCommandHandler(
 			if url := guild.IconURL(); url != nil {
 				return *url
 			}
+
 			return ""
 		}()).
 		WithEmbedFooter(footer)
 
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("/LEADERBOARD/%d", page-1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"◀️",
+				fmt.Sprintf("/LEADERBOARD/%d", page-1),
+			),
+		)
 	}
+
 	if page < maxPage {
-		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("/LEADERBOARD/%d", page+1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"▶️",
+				fmt.Sprintf("/LEADERBOARD/%d", page+1),
+			),
+		)
 	}
 
 	var components []discord.LayoutComponent
@@ -137,6 +173,7 @@ func LeaderboardCommandHandler(
 		Components: components,
 		Flags:      discord.MessageFlagEphemeral,
 	})
+
 	return err
 }
 
@@ -155,10 +192,18 @@ func LeaderboardComponentHandler(
 
 	items, total, err := getItems(guildID, page)
 	if err != nil {
-		Logger.Errorw("leaderboard: get items failed", "error", err, "guildID", guildID)
+		Logger.Errorw(
+			"leaderboard: get items failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
+
 		content := "Something went wrong, try again later."
 		empty := []discord.Embed{}
 		emptyC := []discord.LayoutComponent{}
+
 		return e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
@@ -170,6 +215,7 @@ func LeaderboardComponentHandler(
 		content := "There is no leaderboard available yet for this server."
 		empty := []discord.Embed{}
 		emptyC := []discord.LayoutComponent{}
+
 		return e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
@@ -181,6 +227,7 @@ func LeaderboardComponentHandler(
 		content := fmt.Sprintf("No players found for page %d", page)
 		empty := []discord.Embed{}
 		emptyC := []discord.LayoutComponent{}
+
 		return e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
@@ -198,14 +245,23 @@ func LeaderboardComponentHandler(
 	if maxPage > 1 {
 		footerParams.Text = fmt.Sprintf("Page %d/%d", page, maxPage)
 	}
+
 	footer := CreateEmbedFooter(bot, &footerParams, cfg.OwnerID)
 
 	guild, err := bot.Client().Rest.GetGuild(guildID, false)
 	if err != nil || guild == nil {
-		Logger.Errorw("leaderboard: get guild failed", "error", err, "guildID", guildID)
+		Logger.Errorw(
+			"leaderboard: get guild failed",
+			"error",
+			err,
+			"guildID",
+			guildID,
+		)
+
 		content := "Something went wrong, try again later."
 		empty := []discord.Embed{}
 		emptyC := []discord.LayoutComponent{}
+
 		return e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
@@ -215,7 +271,12 @@ func LeaderboardComponentHandler(
 
 	description := ""
 	for i, item := range items {
-		description = fmt.Sprintf("%s\n%d. %s", description, i+1, formatter(item))
+		description = fmt.Sprintf(
+			"%s\n%d. %s",
+			description,
+			i+1,
+			formatter(item),
+		)
 	}
 
 	embed := discord.NewEmbed().
@@ -226,16 +287,30 @@ func LeaderboardComponentHandler(
 			if url := guild.IconURL(); url != nil {
 				return *url
 			}
+
 			return ""
 		}()).
 		WithEmbedFooter(footer)
 
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("/LEADERBOARD/%d", page-1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"◀️",
+				fmt.Sprintf("/LEADERBOARD/%d", page-1),
+			),
+		)
 	}
+
 	if page < maxPage {
-		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("/LEADERBOARD/%d", page+1)))
+		buttons = append(
+			buttons,
+			discord.NewPrimaryButton(
+				"▶️",
+				fmt.Sprintf("/LEADERBOARD/%d", page+1),
+			),
+		)
 	}
 
 	var components []discord.LayoutComponent
@@ -244,8 +319,12 @@ func LeaderboardComponentHandler(
 	}
 
 	embeds := []discord.Embed{embed}
-	return e.Respond(discord.InteractionResponseTypeUpdateMessage, discord.MessageUpdate{
-		Embeds:     &embeds,
-		Components: &components,
-	})
+
+	return e.Respond(
+		discord.InteractionResponseTypeUpdateMessage,
+		discord.MessageUpdate{
+			Embeds:     &embeds,
+			Components: &components,
+		},
+	)
 }

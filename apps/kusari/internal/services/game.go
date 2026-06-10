@@ -707,6 +707,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}()
 
 	msgID := message.ID.String()
+
 	_, err = s.database.History.Create().
 		SetUserID(message.Author.ID.String()).
 		SetGameID(g.ID).
@@ -948,7 +949,7 @@ func (s *GameService) checkStreak(
 		ctx,
 		settings.GuildID,
 		count,
-	) //nolint:errcheck
+	)
 
 	if g.IsHighscored {
 		return isHighscore, false, nil
@@ -956,9 +957,9 @@ func (s *GameService) checkStreak(
 
 	isGameHighscored = true
 
-	go s.database.Game.UpdateOneID(g.ID). //nolint:errcheck
-						SetIsHighscored(true).
-						Save(ctx)
+	go s.database.Game.UpdateOneID(g.ID).
+		SetIsHighscored(true).
+		Save(ctx)
 
 	return isHighscore, isGameHighscored, nil
 }
@@ -1008,6 +1009,7 @@ func (s *GameService) checkCooldown(
 	if ent.IsNotFound(err) {
 		cooldown = time.Now().Add(-time.Second * 10)
 		err = nil
+
 		return cooldown, err
 	}
 
@@ -1313,11 +1315,14 @@ func (s *GameService) LoadActiveGameChannels(ctx context.Context) error {
 			*settings.ChannelID == "" {
 			continue
 		}
+
 		guildSnowflake, guildErr := snowflake.Parse(g.GuildID)
+
 		channelSnowflake, chanErr := snowflake.Parse(*settings.ChannelID)
 		if guildErr != nil || chanErr != nil {
 			continue
 		}
+
 		utils.ActiveGames.Register(guildSnowflake, channelSnowflake)
 	}
 

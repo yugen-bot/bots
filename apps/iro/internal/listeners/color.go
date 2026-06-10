@@ -51,6 +51,7 @@ func AddColorListeners(container *di.Container) {
 			if e.GuildID == nil {
 				return
 			}
+
 			cl.process(e.Message, false)
 		}),
 
@@ -58,6 +59,7 @@ func AddColorListeners(container *di.Container) {
 			if e.GuildID == nil {
 				return
 			}
+
 			cl.process(e.Message, true)
 		}),
 
@@ -93,22 +95,44 @@ func AddColorListeners(container *di.Container) {
 			yY, yCb, yCr := color.RGBToYCbCr(clr.R, clr.G, clr.B)
 
 			colorNameStr := "*could not be fetched*"
+
 			matches := colorname.FindRGBA(clr)
 			if len(matches) > 0 {
 				precision := (1 - matches[0].AvgDiff/255) * 100
-				colorNameStr = fmt.Sprintf("**%s** *(%0.1f%%)*", matches[0].Name, precision)
+				colorNameStr = fmt.Sprintf(
+					"**%s** *(%0.1f%%)*",
+					matches[0].Name,
+					precision,
+				)
 			}
 
 			emb := discord.NewEmbed().
 				WithColor(intClr).
-				WithTitle("#" + hexClr).
+				WithTitle("#"+hexClr).
 				WithDescription(colorNameStr).
 				WithFields(
-					discord.EmbedField{Name: "Hex", Value: fmt.Sprintf("`#%s`", hexClr), Inline: boolPtr(true)},
-					discord.EmbedField{Name: "Int", Value: fmt.Sprintf("`%d`", intClr), Inline: boolPtr(true)},
-					discord.EmbedField{Name: "RGBA", Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", clr.R, clr.G, clr.B, clr.A)},
-					discord.EmbedField{Name: "CMYK", Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", cC, cM, cY, cK)},
-					discord.EmbedField{Name: "YCbCr", Value: fmt.Sprintf("`%03d, %03d, %03d`", yY, yCb, yCr)},
+					discord.EmbedField{
+						Name:   "Hex",
+						Value:  fmt.Sprintf("`#%s`", hexClr),
+						Inline: boolPtr(true),
+					},
+					discord.EmbedField{
+						Name:   "Int",
+						Value:  fmt.Sprintf("`%d`", intClr),
+						Inline: boolPtr(true),
+					},
+					discord.EmbedField{
+						Name:  "RGBA",
+						Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", clr.R, clr.G, clr.B, clr.A),
+					},
+					discord.EmbedField{
+						Name:  "CMYK",
+						Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", cC, cM, cY, cK),
+					},
+					discord.EmbedField{
+						Name:  "YCbCr",
+						Value: fmt.Sprintf("`%03d, %03d, %03d`", yY, yCb, yCr),
+					},
 				).
 				WithFooterText("Activated by " + user.Username).
 				WithThumbnail(fmt.Sprintf("https://singlecolorimage.com/get/%s/64x64", hexClr))
@@ -117,7 +141,10 @@ func AddColorListeners(container *di.Container) {
 				AddEmbeds(emb).
 				WithMessageReferenceByID(e.MessageID)
 
-			if _, err := cl.client.Rest.CreateMessage(e.ChannelID, msg); err != nil {
+			if _, err := cl.client.Rest.CreateMessage(
+				e.ChannelID,
+				msg,
+			); err != nil {
 				utils.Logger.Info("Could not send embed message", err)
 			}
 
@@ -132,6 +159,7 @@ func (l *ColorListener) process(message discord.Message, removeReactions bool) {
 	}
 
 	matches := make([]string, 0)
+
 	content := strings.ReplaceAll(message.Content, "\n", " ")
 	for _, v := range strings.Split(content, " ") {
 		if rxColorHex.MatchString(v) {
@@ -142,12 +170,16 @@ func (l *ColorListener) process(message discord.Message, removeReactions bool) {
 	if len(matches) == 0 {
 		return
 	}
+
 	if len(matches) > colorMatchesCap {
 		matches = matches[:colorMatchesCap]
 	}
 
 	if removeReactions {
-		if err := l.client.Rest.RemoveAllReactions(message.ChannelID, message.ID); err != nil {
+		if err := l.client.Rest.RemoveAllReactions(
+			message.ChannelID,
+			message.ID,
+		); err != nil {
 			utils.Logger.Info("Could not remove previous color reactions", err)
 		}
 	}
@@ -180,22 +212,32 @@ func (l *ColorListener) createReaction(message discord.Message, hexClr string) {
 		return
 	}
 
-	emoji, err := l.client.Rest.CreateApplicationEmoji(appID, discord.EmojiCreate{
-		Name:  "hex" + hexClr,
-		Image: *icon,
-	})
+	emoji, err := l.client.Rest.CreateApplicationEmoji(
+		appID,
+		discord.EmojiCreate{
+			Name:  "hex" + hexClr,
+			Image: *icon,
+		},
+	)
 	if err != nil {
 		utils.Logger.Info("Failed uploading emoji", err)
 		return
 	}
 
 	defer time.AfterFunc(5*time.Second, func() {
-		if err := l.client.Rest.DeleteApplicationEmoji(appID, emoji.ID); err != nil {
+		if err := l.client.Rest.DeleteApplicationEmoji(
+			appID,
+			emoji.ID,
+		); err != nil {
 			utils.Logger.Info("Failed deleting emoji", err)
 		}
 	})
 
-	if err := l.client.Rest.AddReaction(message.ChannelID, message.ID, emoji.Reaction()); err != nil {
+	if err := l.client.Rest.AddReaction(
+		message.ChannelID,
+		message.ID,
+		emoji.Reaction(),
+	); err != nil {
 		utils.Logger.Info("Failed creating message reaction", err)
 		return
 	}
@@ -211,5 +253,6 @@ func appendIfUnique(slice []string, elem string) []string {
 			return slice
 		}
 	}
+
 	return append(slice, elem)
 }

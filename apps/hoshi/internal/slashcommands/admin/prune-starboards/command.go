@@ -11,7 +11,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *PruneStarboardsModule) run(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -32,6 +35,7 @@ func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e 
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -57,11 +61,15 @@ func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e 
 			Content: "Done.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	if !shouldDelete {
-		all, err := m.starboards.FindByGuildIDs(context.Background(), orphanGuildIDs)
+		all, err := m.starboards.FindByGuildIDs(
+			context.Background(),
+			orphanGuildIDs,
+		)
 		if err != nil {
 			_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
 				Content: "Something went wrong.",
@@ -70,6 +78,7 @@ func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e 
 			if ferr != nil {
 				return ferr
 			}
+
 			return err
 		}
 
@@ -79,23 +88,32 @@ func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e 
 		}
 
 		var buf strings.Builder
-		buf.WriteString(fmt.Sprintf(
-			"**Orphan starboards: %d** across %d guild(s)\n",
+		fmt.Fprintf(&buf, "**Orphan starboards: %d** across %d guild(s)\n",
 			len(all),
-			len(orphanGuildIDs),
-		))
+			len(orphanGuildIDs))
 
 		for _, guildID := range orphanGuildIDs {
-			line := fmt.Sprintf("`%s` — %d starboard(s)\n", guildID, counts[guildID])
+			line := fmt.Sprintf(
+				"`%s` — %d starboard(s)\n",
+				guildID,
+				counts[guildID],
+			)
 			if buf.Len()+len(line) > pruneStarboardsLineLimit {
-				m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
+				m.client.Rest.CreateMessage(
+					channelID,
+					discord.MessageCreate{Content: buf.String()},
+				)
 				buf.Reset()
 			}
+
 			buf.WriteString(line)
 		}
 
 		if buf.Len() > 0 {
-			m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: buf.String()})
+			m.client.Rest.CreateMessage(
+				channelID,
+				discord.MessageCreate{Content: buf.String()},
+			)
 		}
 
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
@@ -106,10 +124,14 @@ func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e 
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
-	deleted, err := m.starboards.DeleteByGuildIDs(context.Background(), orphanGuildIDs)
+	deleted, err := m.starboards.DeleteByGuildIDs(
+		context.Background(),
+		orphanGuildIDs,
+	)
 	if err != nil {
 		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong.",
@@ -118,6 +140,7 @@ func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e 
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -136,5 +159,6 @@ func (m *PruneStarboardsModule) run(data discord.SlashCommandInteractionData, e 
 		Content: "Done.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

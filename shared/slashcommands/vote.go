@@ -21,7 +21,10 @@ func GetVoteModule(container *di.Container) *VoteModule {
 	return &VoteModule{container: container}
 }
 
-func (m *VoteModule) run(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *VoteModule) run(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(false); err != nil {
 		return err
 	}
@@ -35,6 +38,7 @@ func (m *VoteModule) run(_ discord.SlashCommandInteractionData, e *handler.Comma
 	}
 
 	var voteReward string
+
 	voteRewardFunc := m.container.Get(static.DiVoteReward).(func(userId string) string)
 	if voteRewardFunc != nil && e.Member() != nil {
 		voteReward = voteRewardFunc(e.Member().User.ID.String())
@@ -64,11 +68,20 @@ Please use any of the links below to vote for %s!%s`,
 
 	var buttons []discord.InteractiveComponent
 	if cfg.TopGGVoteLink != "" {
-		buttons = append(buttons, discord.NewLinkButton("Vote on Top.GG", cfg.TopGGVoteLink))
+		buttons = append(
+			buttons,
+			discord.NewLinkButton("Vote on Top.GG", cfg.TopGGVoteLink),
+		)
 	}
 
 	if cfg.DiscordBotListVoteLink != "" {
-		buttons = append(buttons, discord.NewLinkButton("Vote on Discord Bot List", cfg.DiscordBotListVoteLink))
+		buttons = append(
+			buttons,
+			discord.NewLinkButton(
+				"Vote on Discord Bot List",
+				cfg.DiscordBotListVoteLink,
+			),
+		)
 	}
 
 	msg := discord.NewMessageCreate().AddEmbeds(embed)
@@ -77,6 +90,7 @@ Please use any of the links below to vote for %s!%s`,
 	}
 
 	_, err := e.CreateFollowupMessage(msg)
+
 	return err
 }
 

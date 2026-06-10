@@ -59,12 +59,19 @@ func (l *GuildListener) OnGuildJoin(e *events.GuildJoin) {
 		}
 
 		// Try sending; catch permission errors and continue to next channel.
-		if err := localUtils.SendWelcomeMessage(ch, l.client, l.cfg.OwnerID); err == nil {
+		if err := localUtils.SendWelcomeMessage(
+			ch,
+			l.client,
+			l.cfg.OwnerID,
+		); err == nil {
 			break
 		}
 	}
 
-	if _, err := l.settingsSvc.GetByGuildID(ctx, e.GuildID.String()); err != nil {
+	if _, err := l.settingsSvc.GetByGuildID(
+		ctx,
+		e.GuildID.String(),
+	); err != nil {
 		utils.Logger.With("guildID", e.GuildID).
 			Warn("Failed to seed settings on guild create")
 	}

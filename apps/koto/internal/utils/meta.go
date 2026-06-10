@@ -54,6 +54,7 @@ func WordLetterCount(word string) map[rune]int {
 	for _, r := range word {
 		counts[r]++
 	}
+
 	return counts
 }
 
@@ -64,6 +65,7 @@ func WordLetterCount(word string) map[rune]int {
 //  3. Any unsolved position when all letters are discovered (nonCorrect ≥ 2)
 func ComputeCanHint(word string, state *GameMeta) bool {
 	nonCorrect := 0
+
 	for _, ws := range state.Word {
 		if ws.Type != GameTypeCorrect {
 			nonCorrect++
@@ -75,7 +77,9 @@ func ComputeCanHint(word string, state *GameMeta) bool {
 			if ws.Type == GameTypeCorrect {
 				continue
 			}
+
 			kb := state.Keyboard[ws.Letter]
+
 			hasUnplaced := kb == GameTypeCorrect &&
 				state.Discovery.Almost[ws.Letter] > state.Discovery.Correct[ws.Letter]
 			if kb == GameTypeAlmost || hasUnplaced {
@@ -85,11 +89,13 @@ func ComputeCanHint(word string, state *GameMeta) bool {
 	}
 
 	wordCount := WordLetterCount(word)
+
 	seen := map[rune]bool{}
 	for _, r := range word {
 		if seen[r] {
 			continue
 		}
+
 		seen[r] = true
 		if wordCount[r] > state.Discovery.Almost[string(r)] {
 			return true

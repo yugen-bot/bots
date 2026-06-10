@@ -19,10 +19,14 @@ func (m *ServerModule) errFollowup(e *handler.CommandEvent) error {
 		Content: "Sorry couldn't retrieve the server information...",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }
 
-func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ServerModule) server(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -39,6 +43,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return m.errFollowup(e)
 	}
 
@@ -52,6 +57,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return m.errFollowup(e)
 	}
 
@@ -65,6 +71,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return m.errFollowup(e)
 	}
 
@@ -75,6 +82,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return m.errFollowup(e)
 	}
 
@@ -108,6 +116,7 @@ func (m *ServerModule) server(_ discord.SlashCommandInteractionData, e *handler.
 
 	lastNumber := 0
 	lastCountedText := "-"
+
 	if historyExists && history != nil {
 		lastNumber = history.Number
 		if history.UserID != self.ID.String() {
@@ -170,5 +179,6 @@ Saves used: **%s**
 			"guildID", guildID,
 		)
 	}
+
 	return err
 }

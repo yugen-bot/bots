@@ -27,7 +27,9 @@ type ResetLeaderboardModule struct {
 }
 
 // GetResetLeaderboardModule constructs a ResetLeaderboardModule from the DI container.
-func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
+func GetResetLeaderboardModule(
+	container *di.Container,
+) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
 		bot:       container.Get(static.DiBot).(*disgoplus.Bot),

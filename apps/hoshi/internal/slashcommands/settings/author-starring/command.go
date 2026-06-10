@@ -9,7 +9,10 @@ import (
 	"jurien.dev/yugen/hoshi/internal/ent"
 )
 
-func (m *AuthorStarringModule) set(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *AuthorStarringModule) set(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -29,6 +32,7 @@ func (m *AuthorStarringModule) set(data discord.SlashCommandInteractionData, e *
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -41,5 +45,6 @@ func (m *AuthorStarringModule) set(data discord.SlashCommandInteractionData, e *
 		Content: "Message authors are now **" + state + "** to star their own message.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

@@ -15,7 +15,10 @@ var choices = []discord.ApplicationCommandOptionChoiceString{
 	{Name: "Cooldown", Value: "cooldown"},
 	{Name: "Math", Value: "math"},
 	{Name: "Shame role", Value: "shameRoleID"},
-	{Name: "Remove shame role on highscore", Value: "removeShameRoleAfterHighscore"},
+	{
+		Name:  "Remove shame role on highscore",
+		Value: "removeShameRoleAfterHighscore",
+	},
 }
 
 // ResetModule handles the settings reset leaf command.

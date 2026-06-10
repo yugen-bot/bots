@@ -78,6 +78,7 @@ func (s *GameService) Start(
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return g, started, err
 	}
 
@@ -88,6 +89,7 @@ func (s *GameService) Start(
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return g, started, fmt.Errorf("game: start: get settings: %w", err)
 	}
 
@@ -99,6 +101,7 @@ func (s *GameService) Start(
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return g, started, err
 	}
 
@@ -115,6 +118,7 @@ func (s *GameService) Start(
 			"guildID", guildID,
 			"channelID", *channelID,
 		)
+
 		return g, started, fmt.Errorf("game: start: get channel: %w", err)
 	}
 
@@ -150,6 +154,7 @@ func (s *GameService) Start(
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return g, started, fmt.Errorf("game: start: create game: %w", err)
 	}
 
@@ -233,6 +238,7 @@ func (s *GameService) End(
 				lastUserSnowflake, lastUserErr := snowflake.Parse(
 					*lastShameUserID,
 				)
+
 				roleSnowflake, roleErr := snowflake.Parse(*roleID)
 				if lastUserErr == nil && roleErr == nil {
 					go func() {
@@ -253,6 +259,7 @@ func (s *GameService) End(
 				authorSnowflake, authorErr := snowflake.Parse(
 					shameOpts.message.Author.ID.String(),
 				)
+
 				roleSnowflake, roleErr := snowflake.Parse(*roleID)
 				if authorErr == nil && roleErr == nil {
 					go func() {
@@ -285,6 +292,7 @@ func (s *GameService) End(
 				"gameID", gameID,
 				"userID", shameOpts.message.Author.ID.String(),
 			)
+
 			return g, fmt.Errorf("game: end: update shame settings: %w", err)
 		}
 	}
@@ -366,6 +374,7 @@ func (s *GameService) AddNumber(
 			"error", err,
 			"guildID", guildID,
 		)
+
 		return
 	}
 
@@ -381,6 +390,7 @@ func (s *GameService) AddNumber(
 			"guildID", guildID,
 			"gameID", g.ID,
 		)
+
 		return
 	}
 
@@ -421,6 +431,7 @@ func (s *GameService) AddNumber(
 				"userID", message.Author.ID.String(),
 				"messageID", message.ID.String(),
 			)
+
 			return
 		}
 
@@ -437,6 +448,7 @@ func (s *GameService) AddNumber(
 					"guildID", guildID,
 					"userID", message.Author.ID.String(),
 				)
+
 				return
 			}
 
@@ -486,6 +498,7 @@ Used **1 of your own** saves, You have **%s/%s** saves left.`,
 					"guildID", guildID,
 					"userID", message.Author.ID.String(),
 				)
+
 				return
 			}
 
@@ -529,6 +542,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 				"guildID", guildID,
 				"gameID", g.ID,
 			)
+
 			return
 		}
 
@@ -632,6 +646,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			"gameID", g.ID,
 			"userID", message.Author.ID.String(),
 		)
+
 		return
 	}
 
@@ -659,6 +674,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 	}()
 
 	msgIDStr := message.ID.String()
+
 	_, err = s.database.History.Create().
 		SetUserID(message.Author.ID.String()).
 		SetGameID(g.ID).
@@ -674,6 +690,7 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 			"userID", message.Author.ID.String(),
 			"messageID", message.ID.String(),
 		)
+
 		return
 	}
 
@@ -862,7 +879,7 @@ func (s *GameService) checkStreak(
 		ctx,
 		guildSettings.GuildID,
 		number,
-	) //nolint:errcheck
+	)
 
 	if g.IsHighscored {
 		return isHighscore, false, nil
@@ -870,9 +887,9 @@ func (s *GameService) checkStreak(
 
 	isGameHighscored = true
 
-	go s.database.Game.UpdateOneID(g.ID). //nolint:errcheck
-						SetIsHighscored(true).
-						Save(ctx)
+	go s.database.Game.UpdateOneID(g.ID).
+		SetIsHighscored(true).
+		Save(ctx)
 
 	return isHighscore, isGameHighscored, nil
 }
@@ -901,6 +918,7 @@ func (s *GameService) checkCooldown(
 	if ent.IsNotFound(err) {
 		cooldown = time.Now().Add(-time.Second * 10)
 		err = nil
+
 		return cooldown, err
 	}
 
@@ -955,12 +973,14 @@ func (s *GameService) replyAndDelete(
 			"channelID", message.ChannelID.String(),
 			"messageID", message.ID.String(),
 		)
+
 		return
 	}
 
 	if deleteAfter {
 		sentMsgID := sentMessage.ID
 		sentChannelID := sentMessage.ChannelID
+
 		time.AfterFunc(time.Second*5, func() {
 			utils.LogIfErr(
 				utils.Logger,
@@ -1040,11 +1060,14 @@ func (s *GameService) LoadActiveGameChannels(ctx context.Context) error {
 			*settings.ChannelID == "" {
 			continue
 		}
+
 		guildSnowflake, guildErr := snowflake.Parse(g.GuildID)
+
 		channelSnowflake, chanErr := snowflake.Parse(*settings.ChannelID)
 		if guildErr != nil || chanErr != nil {
 			continue
 		}
+
 		utils.ActiveGames.Register(guildSnowflake, channelSnowflake)
 	}
 

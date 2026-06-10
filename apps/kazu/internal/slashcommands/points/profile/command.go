@@ -9,7 +9,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ProfileModule) profile(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -29,6 +32,7 @@ func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *han
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -43,6 +47,7 @@ func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *han
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -66,5 +71,6 @@ And you have **%s/%s** saves available!`,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

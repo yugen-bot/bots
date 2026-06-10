@@ -52,6 +52,6 @@ func (m *GameModule) Register(r handler.Router) {
 	for _, sub := range m.subModules {
 		sub.Register(r)
 	}
+
 	m.hint.Register(r)
 }
-

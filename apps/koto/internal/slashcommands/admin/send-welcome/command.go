@@ -10,7 +10,10 @@ import (
 	sharedUtils "jurien.dev/yugen/shared/utils"
 )
 
-func (m *SendWelcomeModule) sendWelcome(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *SendWelcomeModule) sendWelcome(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -28,6 +31,7 @@ func (m *SendWelcomeModule) sendWelcome(data discord.SlashCommandInteractionData
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -50,6 +54,7 @@ func (m *SendWelcomeModule) sendWelcome(data discord.SlashCommandInteractionData
 			Content: "Failed to send welcome message.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -62,5 +67,6 @@ func (m *SendWelcomeModule) sendWelcome(data discord.SlashCommandInteractionData
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

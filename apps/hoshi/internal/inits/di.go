@@ -58,6 +58,7 @@ func InitDI() (container di.Container, err error) {
 					gateway.WithWatchingActivity("the ✨"),
 				),
 			}
+
 			var discordOpt bot.ConfigOpt
 			if cfg.Shard {
 				discordOpt = bot.WithShardManagerConfigOpts(
@@ -66,6 +67,7 @@ func InitDI() (container di.Container, err error) {
 			} else {
 				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
 			}
+
 			return disgoplus.New(
 				cfg.DiscordToken,
 				cfg.Shard,
@@ -80,8 +82,10 @@ func InitDI() (container di.Container, err error) {
 		},
 		Close: func(obj any) error {
 			b := obj.(*disgoplus.Bot)
+
 			utils.Logger.Info("Shutting down bot...")
 			b.Close(context.Background())
+
 			return nil
 		},
 	})

@@ -51,6 +51,7 @@ func (m *AdminModule) Commands() []discord.ApplicationCommandCreate {
 func (m *AdminModule) Register(r handler.Router) {
 	r.Group(func(r handler.Router) {
 		r.Use(middlewares.OwnerMiddleware)
+
 		for _, sub := range m.subModules {
 			sub.Register(r)
 		}

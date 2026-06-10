@@ -13,7 +13,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *AddModule) add(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *AddModule) add(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -26,16 +29,21 @@ func (m *AddModule) add(data discord.SlashCommandInteractionData, e *handler.Com
 		emojiInput = v
 	}
 
-	found, key, display, unicode := localUtils.ResolveEmoji(emojiInput, bot.Client())
+	found, key, display, unicode := localUtils.ResolveEmoji(
+		emojiInput,
+		bot.Client(),
+	)
 	if !found {
 		_, err := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "You can only use emojis from guilds that the bot is in.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	var sourceChannelID *string
+
 	sourceLabel := ""
 
 	if src, ok := data.OptChannel("source"); ok {
@@ -52,6 +60,7 @@ func (m *AddModule) add(data discord.SlashCommandInteractionData, e *handler.Com
 	)
 	if err != nil {
 		utils.Logger.Warnf("error getting starboard", "error", err)
+
 		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong.",
 			Flags:   discord.MessageFlagEphemeral,
@@ -59,6 +68,7 @@ func (m *AddModule) add(data discord.SlashCommandInteractionData, e *handler.Com
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -67,6 +77,7 @@ func (m *AddModule) add(data discord.SlashCommandInteractionData, e *handler.Com
 			Content: "A starboard for the supplied rules already exists.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -85,6 +96,7 @@ func (m *AddModule) add(data discord.SlashCommandInteractionData, e *handler.Com
 		if ferr != nil {
 			return ferr
 		}
+
 		return err
 	}
 
@@ -102,5 +114,6 @@ func (m *AddModule) add(data discord.SlashCommandInteractionData, e *handler.Com
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

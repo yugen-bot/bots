@@ -12,7 +12,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneSettingsModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *PruneSettingsModule) run(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -28,6 +31,7 @@ func (m *PruneSettingsModule) run(data discord.SlashCommandInteractionData, e *h
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -50,17 +54,20 @@ func (m *PruneSettingsModule) run(data discord.SlashCommandInteractionData, e *h
 		if len(orphans) == 0 {
 			e.Client().Rest.CreateMessage( //nolint:errcheck
 				channelSnowflake,
-				discord.MessageCreate{Content: "**Orphan settings: 0** — nothing to prune."},
+				discord.MessageCreate{
+					Content: "**Orphan settings: 0** — nothing to prune.",
+				},
 			)
 			_, err = e.CreateFollowupMessage(discord.MessageCreate{
 				Content: "Done.",
 				Flags:   discord.MessageFlagEphemeral,
 			})
+
 			return err
 		}
 
 		var buf strings.Builder
-		buf.WriteString(fmt.Sprintf("**Orphan settings: %d**\n", len(orphans)))
+		fmt.Fprintf(&buf, "**Orphan settings: %d**\n", len(orphans))
 
 		for _, line := range orphans {
 			if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
@@ -83,8 +90,12 @@ func (m *PruneSettingsModule) run(data discord.SlashCommandInteractionData, e *h
 		}
 
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: fmt.Sprintf("Found %d orphan(s). See <#%s>.", len(orphans), channelID),
-			Flags:   discord.MessageFlagEphemeral,
+			Content: fmt.Sprintf(
+				"Found %d orphan(s). See <#%s>.",
+				len(orphans),
+				channelID,
+			),
+			Flags: discord.MessageFlagEphemeral,
 		})
 
 		return err
@@ -95,7 +106,10 @@ func (m *PruneSettingsModule) run(data discord.SlashCommandInteractionData, e *h
 
 	for _, s := range all {
 		if !utils.IsBotInGuildClient(m.bot.Client(), s.GuildID) {
-			if delErr := m.settings.Delete(context.Background(), s.GuildID); delErr != nil {
+			if delErr := m.settings.Delete(
+				context.Background(),
+				s.GuildID,
+			); delErr != nil {
 				failed++
 			} else {
 				deleted++

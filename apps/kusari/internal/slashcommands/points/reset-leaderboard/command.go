@@ -14,7 +14,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetLeaderboardModule) request(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ResetLeaderboardModule) request(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
@@ -42,6 +45,7 @@ func (m *ResetLeaderboardModule) request(data discord.SlashCommandInteractionDat
 			"guildID",
 			e.GuildID(),
 		)
+
 		return e.CreateMessage(discord.MessageCreate{
 			Content: "Something wen't wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,

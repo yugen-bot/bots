@@ -21,7 +21,10 @@ func GetSupportModule(container *di.Container) *SupportModule {
 	return &SupportModule{container: container}
 }
 
-func (m *SupportModule) support(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *SupportModule) support(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 

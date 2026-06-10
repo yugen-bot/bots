@@ -21,7 +21,10 @@ func GetDonateModule(container *di.Container) *DonateModule {
 	return &DonateModule{container: container}
 }
 
-func (m *DonateModule) donate(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *DonateModule) donate(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 

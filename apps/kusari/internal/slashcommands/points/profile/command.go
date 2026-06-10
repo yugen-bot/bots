@@ -9,7 +9,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 )
 
-func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ProfileModule) profile(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -28,6 +31,7 @@ func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *han
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -42,13 +46,17 @@ func (m *ProfileModule) profile(data discord.SlashCommandInteractionData, e *han
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	name := "You"
 	addressing := "have"
 
-	if _, isOther := data.OptUser("player"); isOther && player.ID != e.Member().User.ID {
+	if _, isOther := data.OptUser(
+		"player",
+	); isOther &&
+		player.ID != e.Member().User.ID {
 		name = fmt.Sprintf("<@%s>", player.ID)
 		addressing = "has"
 	}

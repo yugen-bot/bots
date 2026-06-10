@@ -66,12 +66,14 @@ func CreateVoteHandler(
 			)
 		}
 
-		_, err = client.Rest.CreateMessage(dmChannel.ID(), discord.MessageCreate{Content: msg})
+		_, err = client.Rest.CreateMessage(
+			dmChannel.ID(),
+			discord.MessageCreate{Content: msg},
+		)
 
 		return err
 	}
 }
-
 
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	voteReward := func(userID string) string {

@@ -55,7 +55,10 @@ func InitEmojis(container *di.Container) error {
 			continue
 		}
 
-		table[color][letter] = localStatic.EmojiData{Name: e.Name, ID: e.ID.String()}
+		table[color][letter] = localStatic.EmojiData{
+			Name: e.Name,
+			ID:   e.ID.String(),
+		}
 		totalEmojis++
 	}
 
@@ -119,7 +122,11 @@ func validateEmojiTable(
 	}
 
 	if total != expectedEmojiCount {
-		return fmt.Errorf("expected %d emojis, got %d", expectedEmojiCount, total)
+		return fmt.Errorf(
+			"expected %d emojis, got %d",
+			expectedEmojiCount,
+			total,
+		)
 	}
 
 	return nil

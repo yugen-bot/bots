@@ -51,4 +51,3 @@ func (m *ProfileModule) Register(r handler.Router) {
 	r.SlashCommand("/profile", m.profile)
 	r.SlashCommand("/points", m.profile)
 }
-

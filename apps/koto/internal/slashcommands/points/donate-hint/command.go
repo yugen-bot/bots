@@ -11,7 +11,10 @@ import (
 	localStatic "jurien.dev/yugen/koto/internal/static"
 )
 
-func (m *DonateHintModule) donateHint(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *DonateHintModule) donateHint(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -27,6 +30,7 @@ func (m *DonateHintModule) donateHint(_ discord.SlashCommandInteractionData, e *
 			Content: "Sorry, couldn't retrieve your hint data.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -39,6 +43,7 @@ func (m *DonateHintModule) donateHint(_ discord.SlashCommandInteractionData, e *
 			Content: "Sorry, couldn't retrieve server settings.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -50,6 +55,7 @@ func (m *DonateHintModule) donateHint(_ discord.SlashCommandInteractionData, e *
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -62,6 +68,7 @@ func (m *DonateHintModule) donateHint(_ discord.SlashCommandInteractionData, e *
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -78,6 +85,7 @@ func (m *DonateHintModule) donateHint(_ discord.SlashCommandInteractionData, e *
 			Content: "Sorry, failed to donate the hint.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -89,5 +97,6 @@ func (m *DonateHintModule) donateHint(_ discord.SlashCommandInteractionData, e *
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

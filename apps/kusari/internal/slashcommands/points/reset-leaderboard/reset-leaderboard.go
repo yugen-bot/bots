@@ -22,7 +22,9 @@ type ResetLeaderboardModule struct {
 	points    *services.PointsService
 }
 
-func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
+func GetResetLeaderboardModule(
+	container *di.Container,
+) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
 		points:    container.Get(local.DiPoints).(*services.PointsService),
@@ -52,4 +54,3 @@ func (m *ResetLeaderboardModule) Register(r handler.Router) {
 		r.Component(customIDResetLeaderboard, m.reset)
 	})
 }
-

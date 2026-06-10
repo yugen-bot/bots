@@ -25,9 +25,11 @@ func checkBase(e *handler.InteractionEvent) (bool, error) {
 	if member == nil {
 		return false, errors.New("member not accessible")
 	}
+
 	if len(ownerIDs) > 0 && slices.Contains(ownerIDs, member.User.ID.String()) {
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -36,10 +38,13 @@ func checkAdmin(e *handler.InteractionEvent) (bool, error) {
 	if base || err != nil {
 		return base, err
 	}
+
 	perms := e.Member().Permissions
-	if perms.Has(discord.PermissionAdministrator) || perms.Has(discord.PermissionManageGuild) {
+	if perms.Has(discord.PermissionAdministrator) ||
+		perms.Has(discord.PermissionManageGuild) {
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -48,17 +53,25 @@ func checkModerator(e *handler.InteractionEvent) (bool, error) {
 	if admin || err != nil {
 		return admin, err
 	}
+
 	return e.Member().Permissions.Has(discord.PermissionBanMembers), nil
 }
 
-func checkResponse(e *handler.InteractionEvent, next handler.Handler, pass bool, err error) error {
+func checkResponse(
+	e *handler.InteractionEvent,
+	next handler.Handler,
+	pass bool,
+	err error,
+) error {
 	if err != nil {
 		utils.Logger.Error(err)
+
 		return e.CreateMessage(discord.MessageCreate{
 			Content: "Something went wrong.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+
 	if !pass {
 		utils.Logger.Debugw(
 			"roles: forbidden",
@@ -67,14 +80,17 @@ func checkResponse(e *handler.InteractionEvent, next handler.Handler, pass bool,
 				if m := e.Member(); m != nil {
 					return m.User.ID.String()
 				}
+
 				return ""
 			}(),
 		)
+
 		return e.CreateMessage(discord.MessageCreate{
 			Content: "You don't have permission to use this command.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
 	}
+
 	return next(e)
 }
 

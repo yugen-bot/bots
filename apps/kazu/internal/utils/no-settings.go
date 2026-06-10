@@ -56,5 +56,6 @@ func NoSettingsReply(
 		Embeds: []discord.Embed{embed},
 		Flags:  flags,
 	})
+
 	return err
 }

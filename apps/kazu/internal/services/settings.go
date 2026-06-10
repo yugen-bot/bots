@@ -60,6 +60,7 @@ func (s *SettingsService) SetHighscoreByGuildID(
 	highscore int,
 ) (*ent.Settings, error) {
 	now := time.Now()
+
 	_, err := s.database.Settings.Update().
 		Where(settings.GuildIDEQ(guildID)).
 		SetHighscore(highscore).
@@ -104,10 +105,16 @@ func (s *SettingsService) ResetShame(
 		return fmt.Errorf("settings: reset shame: parse role id: %w", err)
 	}
 
-	return s.client.Client().Rest.RemoveMemberRole(guildSnowflake, userSnowflake, roleSnowflake)
+	return s.client.Client().Rest.RemoveMemberRole(
+		guildSnowflake,
+		userSnowflake,
+		roleSnowflake,
+	)
 }
 
-func (s *SettingsService) FindAll(ctx context.Context) ([]*ent.Settings, error) {
+func (s *SettingsService) FindAll(
+	ctx context.Context,
+) ([]*ent.Settings, error) {
 	result, err := s.database.Settings.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settings: find all: %w", err)

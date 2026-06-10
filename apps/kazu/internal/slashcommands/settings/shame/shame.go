@@ -56,5 +56,8 @@ func (m *ShameModule) SubCommandOptions() []discord.ApplicationCommandOptionSubC
 // Register registers the shame-role and remove-shame-role-on-highscore routes on the given router.
 func (m *ShameModule) Register(r handler.Router) {
 	r.SlashCommand("/settings/shame-role", m.setRole)
-	r.SlashCommand("/settings/remove-shame-role-on-highscore", m.setRemoveShameRole)
+	r.SlashCommand(
+		"/settings/remove-shame-role-on-highscore",
+		m.setRemoveShameRole,
+	)
 }

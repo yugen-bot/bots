@@ -36,13 +36,18 @@ func InitCleanup(container *di.Container) {
 		}
 
 		guessCount := 0
+
 		if len(oldGameIDs) > 0 {
 			var guessErr error
+
 			guessCount, guessErr = database.Guess.Delete().
 				Where(guess.GameIDIn(oldGameIDs...)).
 				Exec(ctx)
 			if guessErr != nil && !ent.IsNotFound(guessErr) {
-				utils.Logger.Warnf("schedule: cleanup: delete old guesses: %v", guessErr)
+				utils.Logger.Warnf(
+					"schedule: cleanup: delete old guesses: %v",
+					guessErr,
+				)
 			}
 		}
 

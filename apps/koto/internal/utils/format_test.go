@@ -41,7 +41,12 @@ func TestFormatMinutes(t *testing.T) {
 	for _, tc := range tests {
 		got := FormatMinutes(tc.minutes)
 		if got != tc.want {
-			t.Errorf("FormatMinutes(%d) = %q, want %q", tc.minutes, got, tc.want)
+			t.Errorf(
+				"FormatMinutes(%d) = %q, want %q",
+				tc.minutes,
+				got,
+				tc.want,
+			)
 		}
 	}
 }

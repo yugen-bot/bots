@@ -5,8 +5,8 @@ import (
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
-	sharedSlashcommands "jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/config"
+	sharedSlashcommands "jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 
@@ -43,11 +43,13 @@ func InitCommands(container *di.Container) error {
 	}
 
 	var guildID snowflake.ID
+
 	if cfg.Env != "production" {
 		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
 		if err != nil {
 			return err
 		}
+
 		guildID = id
 	}
 

@@ -13,7 +13,10 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ShowModule) show(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *ShowModule) show(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -27,6 +30,7 @@ func (m *ShowModule) show(data discord.SlashCommandInteractionData, e *handler.C
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -62,8 +66,16 @@ func (m *ShowModule) show(data discord.SlashCommandInteractionData, e *handler.C
 		WithDescription("These are the settings currently configured for Kusari").
 		WithEmbedFooter(footer).
 		WithFields(
-			discord.EmbedField{Name: "Channel", Value: channelIDText, Inline: boolPtr(true)},
-			discord.EmbedField{Name: "Answers cooldown", Value: cooldownText, Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "Channel",
+				Value:  channelIDText,
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Answers cooldown",
+				Value:  cooldownText,
+				Inline: boolPtr(true),
+			},
 			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
 		)
 

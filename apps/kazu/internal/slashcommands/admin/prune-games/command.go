@@ -10,12 +10,16 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *PruneGamesModule) run(
+	data discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
 
 	utils.Logger.Infow("Game pruning started")
+
 	shouldDelete := false
 	if v, ok := data.OptBool("delete"); ok {
 		shouldDelete = v
@@ -27,11 +31,14 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
+
 	var orphanGuildIDs []string
+
 	for _, guildID := range rows {
 		if !utils.IsBotInGuildClient(m.bot.Client(), guildID) {
 			orphanGuildIDs = append(orphanGuildIDs, guildID)
@@ -39,16 +46,21 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 	}
 
 	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
+
 	channelID := e.Channel().ID()
 
 	if len(orphanGuildIDs) == 0 {
-		e.Client().Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
-			Content: "**Orphan games: 0** — nothing to prune.",
-		})
+		e.Client().Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{ //nolint:errcheck
+				Content: "**Orphan games: 0** — nothing to prune.",
+			},
+		)
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Done.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -62,15 +74,21 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 				Content: "Something went wrong, try again later.",
 				Flags:   discord.MessageFlagEphemeral,
 			})
+
 			return err
 		}
 
-		e.Client().Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
-			Content: fmt.Sprintf(
-				"**Orphan games: %d** (history entries: %d) across %d guild(s)",
-				gameCount, historyCount, len(orphanGuildIDs),
-			),
-		})
+		e.Client().Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{ //nolint:errcheck
+				Content: fmt.Sprintf(
+					"**Orphan games: %d** (history entries: %d) across %d guild(s)",
+					gameCount,
+					historyCount,
+					len(orphanGuildIDs),
+				),
+			},
+		)
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Found data for %d orphan guild(s). See <#%s>.",
@@ -79,6 +97,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -91,6 +110,7 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -100,17 +120,21 @@ func (m *PruneGamesModule) run(data discord.SlashCommandInteractionData, e *hand
 		historyCount,
 		len(orphanGuildIDs),
 	)
-	e.Client().Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
-		Content: fmt.Sprintf(
-			"Deleted **%d** game(s) and **%d** history entry/entries for %d orphan guild(s).",
-			gameCount,
-			historyCount,
-			len(orphanGuildIDs),
-		),
-	})
+	e.Client().Rest.CreateMessage(
+		channelID,
+		discord.MessageCreate{ //nolint:errcheck
+			Content: fmt.Sprintf(
+				"Deleted **%d** game(s) and **%d** history entry/entries for %d orphan guild(s).",
+				gameCount,
+				historyCount,
+				len(orphanGuildIDs),
+			),
+		},
+	)
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Done.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

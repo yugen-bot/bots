@@ -11,7 +11,10 @@ import (
 	local "jurien.dev/yugen/kazu/internal/static"
 )
 
-func (m *DonateSaveModule) donateSave(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (m *DonateSaveModule) donateSave(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
 	if err := e.DeferCreateMessage(true); err != nil {
 		return err
 	}
@@ -40,6 +43,7 @@ func (m *DonateSaveModule) donateSave(_ discord.SlashCommandInteractionData, e *
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -52,6 +56,7 @@ func (m *DonateSaveModule) donateSave(_ discord.SlashCommandInteractionData, e *
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+
 		return err
 	}
 
@@ -80,5 +85,6 @@ The server now has **%s/%s** saves!`,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+
 	return err
 }

@@ -170,7 +170,8 @@ func (s *GameService) Start(
 		endingAt = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
 	} else {
 		endingAt = roundToNearestMinute(
-			time.Now().Add(time.Duration(guildSettings.TimeLimit) * time.Minute),
+			time.Now().
+				Add(time.Duration(guildSettings.TimeLimit) * time.Minute),
 		)
 	}
 
@@ -280,8 +281,14 @@ func (s *GameService) Guess(
 	if os.Getenv("ENV") == "production" {
 		for _, g := range guesses {
 			if g.Word == word {
-				utils.LogIfErr(utils.Logger, "reaction-add",
-					s.client.Rest.AddReaction(message.ChannelID, message.ID, "❌"),
+				utils.LogIfErr(
+					utils.Logger,
+					"reaction-add",
+					s.client.Rest.AddReaction(
+						message.ChannelID,
+						message.ID,
+						"❌",
+					),
 				)
 
 				return nil
@@ -290,7 +297,11 @@ func (s *GameService) Guess(
 	}
 
 	// Cooldown check
-	cooldown := s.checkCooldown(message.Author.ID.String(), guesses, guildSettings)
+	cooldown := s.checkCooldown(
+		message.Author.ID.String(),
+		guesses,
+		guildSettings,
+	)
 	if cooldown.Hit || cooldown.RepeatHit {
 		utils.LogIfErr(utils.Logger, "reaction-add",
 			s.client.Rest.AddReaction(message.ChannelID, message.ID, "🕒"),
@@ -314,12 +325,15 @@ func (s *GameService) Guess(
 		}
 
 		msgID := message.ID
-		_, sendErr := s.client.Rest.CreateMessage(message.ChannelID, discord.MessageCreate{
-			Content: fmt.Sprintf("You're on a cooldown, %s", suffix),
-			MessageReference: &discord.MessageReference{
-				MessageID: &msgID,
+		_, sendErr := s.client.Rest.CreateMessage(
+			message.ChannelID,
+			discord.MessageCreate{
+				Content: fmt.Sprintf("You're on a cooldown, %s", suffix),
+				MessageReference: &discord.MessageReference{
+					MessageID: &msgID,
+				},
 			},
-		})
+		)
 		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 
 		return nil
@@ -382,7 +396,8 @@ func (s *GameService) Guess(
 	// If startAfterFirstGuess and this is the first guess, set real endingAt
 	if guildSettings.StartAfterFirstGuess && len(guesses) == 0 {
 		realEndingAt := roundToNearestMinute(
-			time.Now().Add(time.Duration(guildSettings.TimeLimit) * time.Minute),
+			time.Now().
+				Add(time.Duration(guildSettings.TimeLimit) * time.Minute),
 		)
 		upd = upd.SetEndingAt(realEndingAt)
 	}
@@ -453,12 +468,15 @@ func (s *GameService) Guess(
 				afterPart,
 			)
 			msgID := message.ID
-			_, sendErr := s.client.Rest.CreateMessage(message.ChannelID, discord.MessageCreate{
-				Content: msg,
-				MessageReference: &discord.MessageReference{
-					MessageID: &msgID,
+			_, sendErr := s.client.Rest.CreateMessage(
+				message.ChannelID,
+				discord.MessageCreate{
+					Content: msg,
+					MessageReference: &discord.MessageReference{
+						MessageID: &msgID,
+					},
 				},
-			})
+			)
 			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 		}()
 	}
@@ -491,6 +509,7 @@ func (s *GameService) Guess(
 					guess.WordNotIn(updatedGame.Word),
 				)
 		}
+
 		if _, delErr := delQuery.Exec(context.Background()); delErr != nil {
 			utils.Logger.Warnw(
 				"game: guess: delete guesses failed",
@@ -551,7 +570,12 @@ func (s *GameService) EndGame(
 		Where(guess.GameIDEQ(endedGame.ID)).
 		All(ctx)
 
-	if msgErr := s.message.Create(ctx, endedGame, guesses, false); msgErr != nil {
+	if msgErr := s.message.Create(
+		ctx,
+		endedGame,
+		guesses,
+		false,
+	); msgErr != nil {
 		utils.Logger.Warnw("game: end: create message failed",
 			"error", msgErr,
 			"guildID", endedGame.GuildID,
@@ -569,6 +593,7 @@ func (s *GameService) EndGame(
 				guess.WordNotIn(endedGame.Word),
 			)
 	}
+
 	if _, delErr := delQuery.Exec(ctx); delErr != nil {
 		utils.Logger.Warnw(
 			"game: end: delete guesses failed",
@@ -684,7 +709,10 @@ func (s *GameService) GetNextGameStart(
 		}
 	}
 
-	nextStart := baseTime.Add(time.Duration(guildSettings.Frequency) * time.Minute)
+	nextStart := baseTime.Add(
+		time.Duration(guildSettings.Frequency) * time.Minute,
+	)
+
 	return &nextStart, nil
 }
 
@@ -832,7 +860,9 @@ func (s *GameService) checkCooldown(
 	now := time.Now()
 	backToBackHit := guildSettings.EnableBackToBackCooldown &&
 		lastGuessByUser.CreatedAt.After(
-			now.Add(-time.Duration(guildSettings.BackToBackCooldown)*time.Second),
+			now.Add(
+				-time.Duration(guildSettings.BackToBackCooldown)*time.Second,
+			),
 		) &&
 		userID == lastGuess.UserID
 	cooldownHit := lastGuessByUser.CreatedAt.After(
@@ -943,6 +973,7 @@ func (s *GameService) UseHint(
 		if err != nil {
 			return "", fmt.Errorf("game: hint: deduct player: %w", err)
 		}
+
 		usedPersonal = true
 	} else if hintsResult.guild >= 1 {
 		leftover, maxHints, err = s.hints.DeductHintFromGuild(
@@ -1047,6 +1078,7 @@ func (s *GameService) computeHint(
 	wordCount := localUtils.WordLetterCount(word)
 
 	nonCorrect := 0
+
 	for _, ws := range state.Word {
 		if ws.Type != localUtils.GameTypeCorrect {
 			nonCorrect++
@@ -1063,6 +1095,7 @@ func (s *GameService) computeHint(
 			}
 			// Eligible when keyboard is ALMOST, or CORRECT with unplaced occurrences.
 			kb := state.Keyboard[ws.Letter]
+
 			hasUnplaced := kb == localUtils.GameTypeCorrect &&
 				state.Discovery.Almost[ws.Letter] > state.Discovery.Correct[ws.Letter]
 			if kb != localUtils.GameTypeAlmost && !hasUnplaced {
@@ -1079,6 +1112,7 @@ func (s *GameService) computeHint(
 			)
 
 			hintDone = true
+
 			break
 		}
 	}
@@ -1090,15 +1124,18 @@ func (s *GameService) computeHint(
 			if seen[r] {
 				continue
 			}
+
 			seen[r] = true
 
 			letter := string(r)
+
 			discovered := state.Discovery.Almost[letter]
 			if wordCount[r] <= discovered {
 				continue
 			}
 
 			newAlmost := discovered + 1
+
 			state.Discovery.Almost[letter] = newAlmost
 			if state.Keyboard[letter] != localUtils.GameTypeCorrect {
 				state.Keyboard[letter] = localUtils.GameTypeAlmost
@@ -1109,6 +1146,7 @@ func (s *GameService) computeHint(
 				strings.ToUpper(letter),
 			)
 			hintDone = true
+
 			break
 		}
 	}
@@ -1118,6 +1156,7 @@ func (s *GameService) computeHint(
 		if nonCorrect < 2 {
 			return nil, nil, "", ErrHintUnavailable
 		}
+
 		for i, ws := range state.Word {
 			if ws.Type != localUtils.GameTypeCorrect {
 				letter := ws.Letter
@@ -1147,21 +1186,26 @@ func (s *GameService) computeHint(
 
 	// Collect ALMOST letters with multiplicity, deduped by unique letter.
 	var almostLetters []string
+
 	seenLetters := map[string]bool{}
+
 	for _, r := range wordRunes {
 		letter := string(r)
 		if seenLetters[letter] {
 			continue
 		}
+
 		seenLetters[letter] = true
 
 		var visible int
+
 		switch state.Keyboard[letter] {
 		case localUtils.GameTypeAlmost:
 			visible = state.Discovery.Almost[letter]
 		case localUtils.GameTypeCorrect:
 			visible = state.Discovery.Almost[letter] - state.Discovery.Correct[letter]
 		}
+
 		for k := 0; k < visible; k++ {
 			almostLetters = append(almostLetters, letter)
 		}
@@ -1172,20 +1216,25 @@ func (s *GameService) computeHint(
 		if meta[i].Type == localUtils.GameTypeCorrect {
 			continue
 		}
+
 		placed := false
+
 		for j, letter := range almostLetters {
 			if string(wordRunes[i]) != letter {
 				meta[i] = localUtils.GuessMeta{
 					Type:   localUtils.GameTypeAlmost,
 					Letter: letter,
 				}
+
 				almostLetters = append(
 					almostLetters[:j],
 					almostLetters[j+1:]...)
 				placed = true
+
 				break
 			}
 		}
+
 		if !placed {
 			meta[i] = localUtils.GuessMeta{
 				Type:   localUtils.GameTypeDefault,
@@ -1222,7 +1271,10 @@ func (s *GameService) CountByGuildIDs(
 			Where(guess.GameIDIn(gameIDs...)).
 			Count(ctx)
 		if err != nil && !ent.IsNotFound(err) {
-			return 0, 0, fmt.Errorf("game: count by guild ids: guesses: %w", err)
+			return 0, 0, fmt.Errorf(
+				"game: count by guild ids: guesses: %w",
+				err,
+			)
 		}
 	}
 
@@ -1247,7 +1299,10 @@ func (s *GameService) DeleteByGuildIDs(
 			Where(guess.GameIDIn(gameIDs...)).
 			Exec(ctx)
 		if err != nil && !ent.IsNotFound(err) {
-			return 0, 0, fmt.Errorf("game: delete by guild ids: guesses: %w", err)
+			return 0, 0, fmt.Errorf(
+				"game: delete by guild ids: guesses: %w",
+				err,
+			)
 		}
 	}
 
