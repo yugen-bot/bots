@@ -13,6 +13,37 @@ import (
 	"github.com/sarulabs/di/v2"
 )
 
+// legacyCreateEmbedFooter is a temporary shim for leaderboard.go which still uses
+// discordgoplus types. It is removed when leaderboard.go is migrated in Phase 3/4.
+func legacyCreateEmbedFooter(
+	bot *discordgoplus.Bot,
+	params *CreateEmbedFooterParams,
+	ownerID string,
+) *discordgo.MessageEmbedFooter {
+	botAuthor, err := bot.User(ownerID)
+	if err != nil {
+		return nil
+	}
+
+	text := fmt.Sprintf("Created by @%s", botAuthor.Username)
+	if len(params.Text) > 0 {
+		text = fmt.Sprintf("%s | %s", params.Text, text)
+	}
+
+	if !params.IsVote && len(params.Text) == 0 {
+		name := "me"
+		if b, err := bot.ShardByShardID(0); err == nil {
+			name = b.State.User.Username
+		}
+		text = fmt.Sprintf("Like %s? Please vote using /vote! | %s", name, text)
+	}
+
+	return &discordgo.MessageEmbedFooter{
+		IconURL: botAuthor.AvatarURL("64"),
+		Text:    text,
+	}
+}
+
 type leaderboardSourceType string
 
 const (
@@ -169,7 +200,7 @@ func doLeaderboardResponse(
 		footerParams.Text = fmt.Sprintf("Page %d/%d", page, maxPage)
 	}
 
-	footer := CreateEmbedFooter(bot, &footerParams, cfg.OwnerID)
+	footer := legacyCreateEmbedFooter(bot, &footerParams, cfg.OwnerID)
 
 	guild, err := bot.Guild(ctx.Interaction.GuildID)
 	if err != nil {

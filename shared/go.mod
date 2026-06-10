@@ -1,6 +1,6 @@
 module jurien.dev/yugen/shared
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/TheZeroSlave/zapsentry v1.24.0
@@ -10,6 +10,7 @@ require (
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/jurienhamaker/discordgoplus v1.0.5
+	github.com/jurienhamaker/disgoplus v0.1.0
 	github.com/paul-milne/zap-loki v0.5.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/robfig/cron/v3 v3.0.1
@@ -22,6 +23,12 @@ require (
 require (
 	github.com/Code-Hex/dd v1.1.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/disgoorg/disgo v0.19.6 // indirect
+	github.com/disgoorg/godave v0.1.0 // indirect
+	github.com/disgoorg/json/v2 v2.0.0 // indirect
+	github.com/disgoorg/omit v1.0.0 // indirect
+	github.com/disgoorg/snowflake/v2 v2.0.3 // indirect
+	github.com/sasha-s/go-csync v0.0.0-20240107134140-fcbab37b09ad // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/getsentry/sentry-go/zap v0.46.2 // indirect

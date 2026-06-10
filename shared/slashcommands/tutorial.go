@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
@@ -17,46 +17,35 @@ type TutorialModule struct {
 }
 
 func GetTutorialModule(container *di.Container) *TutorialModule {
-	return &TutorialModule{
-		container: container,
-	}
+	return &TutorialModule{container: container}
 }
 
-func (m *TutorialModule) tutorial(ctx *discordgoplus.Ctx) {
+func (m *TutorialModule) tutorial(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*discordgoplus.Bot),
-		&utils.CreateEmbedFooterParams{
-			IsVote: false,
-		},
-		cfg.OwnerID,
-	)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 
+	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, cfg.OwnerID)
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	tutorialText := m.container.Get(static.DiTutorialText).(string)
 	appName := m.container.Get(static.DiAppName).(string)
 
-	embed := &discordgo.MessageEmbed{
-		Color:       embedColor,
-		Title:       fmt.Sprintf("%s tutorial", appName),
-		Description: tutorialText,
-		Footer:      footer,
-	}
+	embed := discord.NewEmbed().
+		WithColor(embedColor).
+		WithTitle(fmt.Sprintf("%s tutorial", appName)).
+		WithDescription(tutorialText).
+		WithEmbedFooter(footer)
 
-	err := discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{embed},
-	})
-	if err != nil {
+	if err := disgoplus.Respond(ctx, discord.NewMessageCreate().AddEmbeds(embed)); err != nil {
 		utils.Logger.Error(err)
 	}
 }
 
-func (m *TutorialModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *TutorialModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "tutorial",
 			Description: "The rules of the game!",
-			Handler:     discordgoplus.HandlerFunc(m.tutorial),
+			Handler:     disgoplus.HandlerFunc(m.tutorial),
 		},
 	}
 }

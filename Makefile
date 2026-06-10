@@ -4,6 +4,9 @@ iro:
 	@echo "Starting Iro..."
 	cd apps/iro && make watch 
 
+iro-migrate:
+	@echo "No migrations for Iro"
+
 build-iro:
 	@echo "Building Iro..."
 	cd apps/iro && make build-prod

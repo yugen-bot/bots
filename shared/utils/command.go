@@ -1,26 +1,28 @@
 package utils
 
 import (
-	"jurien.dev/yugen/shared/config"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"jurien.dev/yugen/shared/config"
 )
 
-func SyncCommands(
-	bot *discordgoplus.Bot,
-	cfg *config.Config,
-	amount int,
-) (err error) {
-	if cfg.SyncCommands {
-		Logger.Infof("Syncing commands of %d modules", amount)
-
-		var developmentGuildID string
-		if cfg.Env != productionEnv {
-			developmentGuildID = cfg.DiscordDevelopmentGuild
-		}
-
-		err = bot.Router.Sync(bot.Session, cfg.DiscordAppID, developmentGuildID)
+func SyncCommands(bot *disgoplus.Bot, cfg *config.Config, amount int) error {
+	if !cfg.SyncCommands {
+		return nil
 	}
 
-	return
+	Logger.Infof("Syncing commands of %d modules", amount)
+
+	appID := bot.ApplicationID()
+
+	var guildID snowflake.ID
+	if cfg.Env != productionEnv {
+		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
+		if err == nil {
+			guildID = id
+		}
+	}
+
+	return bot.Router.Sync(bot.Client(), appID, guildID)
 }

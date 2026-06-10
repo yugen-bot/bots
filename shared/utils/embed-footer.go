@@ -3,8 +3,9 @@ package utils
 import (
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 )
 
 type CreateEmbedFooterParams struct {
@@ -13,31 +14,36 @@ type CreateEmbedFooterParams struct {
 }
 
 func CreateEmbedFooter(
-	bot *discordgoplus.Bot,
+	bot *disgoplus.Bot,
 	params *CreateEmbedFooterParams,
 	ownerID string,
-) *discordgo.MessageEmbedFooter {
-	botAuthor, err := bot.User(ownerID)
+) *discord.EmbedFooter {
+	ownerSnowflake, err := snowflake.Parse(ownerID)
 	if err != nil {
 		return nil
 	}
 
-	text := fmt.Sprintf("Created by @%s", botAuthor.Username)
+	owner, err := bot.Client().Rest.GetUser(ownerSnowflake)
+	if err != nil {
+		return nil
+	}
+
+	text := fmt.Sprintf("Created by @%s", owner.Username)
 	if len(params.Text) > 0 {
 		text = fmt.Sprintf("%s | %s", params.Text, text)
 	}
 
 	if !params.IsVote && len(params.Text) == 0 {
-		name := "me"
-		if b, err := bot.ShardByShardID(0); err == nil {
-			name = b.State.User.Username
+		name := owner.Username
+		if self, ok := bot.Client().Caches.SelfUser(); ok {
+			name = self.Username
 		}
-
 		text = fmt.Sprintf("Like %s? Please vote using /vote! | %s", name, text)
 	}
 
-	return &discordgo.MessageEmbedFooter{
-		IconURL: botAuthor.AvatarURL("64"),
+	iconURL := owner.EffectiveAvatarURL()
+	return &discord.EmbedFooter{
+		IconURL: iconURL,
 		Text:    text,
 	}
 }

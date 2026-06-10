@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
@@ -17,53 +17,40 @@ type SupportModule struct {
 }
 
 func GetSupportModule(container *di.Container) *SupportModule {
-	return &SupportModule{
-		container: container,
-	}
+	return &SupportModule{container: container}
 }
 
-func (m *SupportModule) support(ctx *discordgoplus.Ctx) {
+func (m *SupportModule) support(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*discordgoplus.Bot),
-		&utils.CreateEmbedFooterParams{
-			IsVote: false,
-		},
-		cfg.OwnerID,
-	)
+	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
 
+	footer := utils.CreateEmbedFooter(bot, &utils.CreateEmbedFooterParams{IsVote: false}, cfg.OwnerID)
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 	appName := m.container.Get(static.DiAppName).(string)
 
-	embed := &discordgo.MessageEmbed{
-		Color: embedColor,
-		Title: fmt.Sprintf("%s support", appName),
-		Description: fmt.Sprintf(`Found a bug? Or having issues setting up %s?
-Join our support server with the button below, we'll try to help you out the best we can!`, appName),
-		Footer: footer,
-	}
+	embed := discord.NewEmbed().
+		WithColor(embedColor).
+		WithTitle(fmt.Sprintf("%s support", appName)).
+		WithDescription(fmt.Sprintf(
+			`Found a bug? Or having issues setting up %s?
+Join our support server with the button below, we'll try to help you out the best we can!`,
+			appName,
+		)).
+		WithEmbedFooter(footer)
 
-	err := discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{embed},
-		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					static.ButtonDiscordSupportServer,
-				},
-			},
-		},
-	})
-	if err != nil {
+	msg := discord.NewMessageCreate().AddEmbeds(embed).AddActionRow(static.ButtonDiscordSupportServer)
+
+	if err := disgoplus.Respond(ctx, msg); err != nil {
 		utils.Logger.Error(err)
 	}
 }
 
-func (m *SupportModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SupportModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "support",
 			Description: "Get a support discord invite to join the support server!",
-			Handler:     discordgoplus.HandlerFunc(m.support),
+			Handler:     disgoplus.HandlerFunc(m.support),
 		},
 	}
 }

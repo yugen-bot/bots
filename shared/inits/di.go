@@ -27,13 +27,14 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 		},
 		Close: func(obj any) error {
 			bot := obj.(*discordgoplus.Bot)
-
 			utils.Logger.Info("Shutting down bot...")
 			bot.Close()
-
 			return nil
 		},
 	})
+
+	// DiClient (*disgoplus.Bot) is NOT registered here — each app registers it in
+	// its own di.go with the correct intents for that bot.
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiCron,
@@ -47,10 +48,8 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 		},
 		Close: func(obj any) error {
 			c := obj.(*cron.Cron)
-
 			utils.Logger.Info("Stopping cron jobs...")
 			c.Stop()
-
 			return nil
 		},
 	})

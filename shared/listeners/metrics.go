@@ -4,11 +4,12 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
 	"github.com/shirou/gopsutil/v3/process"
@@ -18,75 +19,32 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-var disconnectedAt sync.Map
+// lastHeartbeatTime stores the last heartbeat ACK timestamp per shard for
+// approximate reconnect-duration logging (no explicit disconnect event in disgo).
+var lastHeartbeatTime sync.Map // shardID (int) → time.Time
 
-func setLatency(bot *discordgoplus.Bot) {
-	bot.Each(func(b *discordgoplus.Bot) {
-		shard := strconv.Itoa(b.ShardID)
-		if b.ShardID < 0 {
-			shard = "0"
-		}
-
-		metrics.DiscordLatency.WithLabelValues(shard).
-			Set(float64(b.HeartbeatLatency().Milliseconds()))
-	})
+func reloadGauges(client *bot.Client) {
+	time.Sleep(time.Second)
+	metrics.TotalGuilds.Set(float64(client.Caches.GuildsLen()))
+	metrics.TotalChannels.Set(float64(client.Caches.ChannelsLen()))
 }
 
-func reloadGuilds(bot *discordgoplus.Bot) {
-	time.Sleep(time.Second)
-
-	var total int64
-
-	bot.Each(func(b *discordgoplus.Bot) {
-		atomic.AddInt64(&total, int64(len(b.State.Guilds)))
-	})
-	metrics.TotalGuilds.Set(float64(atomic.LoadInt64(&total)))
-}
-
-func reloadChannels(bot *discordgoplus.Bot) {
-	time.Sleep(time.Second)
-
-	var total int64
-
-	bot.Each(func(b *discordgoplus.Bot) {
-		var n int64
-		for _, g := range b.State.Guilds {
-			n += int64(len(g.Channels))
+func countCommands(bot *disgoplus.Bot) int {
+	n := 0
+	for _, cmd := range bot.Router.Commands() {
+		if cmd.SubCommands != nil && cmd.SubCommands.Count() > 0 {
+			n += cmd.SubCommands.Count()
+		} else {
+			n++
 		}
-
-		atomic.AddInt64(&total, n)
-	})
-	metrics.TotalChannels.Set(float64(atomic.LoadInt64(&total)))
-}
-
-func reloadInteractions(bot *discordgoplus.Bot) {
-	time.Sleep(time.Second)
-
-	interactionsLen := 0
-
-	for _, command := range bot.Router.Commands {
-		if command.SubCommands != nil {
-			interactionsLen += len(command.SubCommands.Commands)
-			continue
-		}
-
-		interactionsLen++
 	}
-
-	metrics.TotalInteractions.Set(float64(interactionsLen))
-}
-
-func reloadGuages(bot *discordgoplus.Bot) {
-	go reloadGuilds(bot)
-	go reloadChannels(bot)
-	go reloadInteractions(bot)
+	return n
 }
 
 func getCPUPercentage(proc *process.Process) float64 {
 	if pct, err := proc.Percent(0); err == nil {
 		return pct
 	}
-
 	return 0
 }
 
@@ -96,124 +54,126 @@ func startCPUMetrics(cron *cron.Cron) {
 		panic("metrics: cannot create process handle: " + err.Error())
 	}
 
-	pct := getCPUPercentage(proc)
-	metrics.ProcessCPUUsagePercentage.Set(pct)
+	metrics.ProcessCPUUsagePercentage.Set(getCPUPercentage(proc))
 
 	if _, err := cron.AddFunc("@every 1m", func() {
-		pct := getCPUPercentage(proc)
-		metrics.ProcessCPUUsagePercentage.Set(pct)
+		metrics.ProcessCPUUsagePercentage.Set(getCPUPercentage(proc))
 	}); err != nil {
 		panic(err)
 	}
 }
 
 func AddMetricsListeners(container *di.Container) {
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
+	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	client := disgoBot.Client()
 	cron := container.Get(static.DiCron).(*cron.Cron)
 
 	startCPUMetrics(cron)
 
-	setLatency(bot)
+	// Set latency cron based on HeartbeatAck events
 	if _, err := cron.AddFunc("@every 1m", func() {
-		go setLatency(bot)
+		lastHeartbeatTime.Range(func(k, v any) bool {
+			shardID := k.(int)
+			t := v.(time.Time)
+			shard := strconv.Itoa(shardID)
+			if shardID < 0 {
+				shard = "0"
+			}
+			elapsed := time.Since(t)
+			metrics.DiscordLatency.WithLabelValues(shard).Set(float64(elapsed.Milliseconds()))
+			return true
+		})
 	}); err != nil {
 		panic(err)
 	}
 
-	shards := 0
-	bot.AddHandler(func(session *discordgo.Session, event *discordgo.Ready) {
-		if bot.Sharded {
-			shards = shards + 1
-		}
+	client.EventManager.AddEventListeners(
+		bot.NewListenerFunc(func(e *events.HeartbeatAck) {
+			lastHeartbeatTime.Store(e.ShardID(), time.Now())
+			latency := e.NewHeartbeat.Sub(e.LastHeartbeat)
+			shard := strconv.Itoa(e.ShardID())
+			if e.ShardID() < 0 {
+				shard = "0"
+			}
+			metrics.DiscordLatency.WithLabelValues(shard).Set(float64(latency.Milliseconds()))
+		}),
 
-		if !bot.Sharded {
-			shards = 1
-		}
-
-		metrics.DiscordShards.Set(float64(shards))
-
-		go reloadGuages(bot)
-	})
-
-	bot.AddHandler(
-		func(session *discordgo.Session, event *discordgo.Connect) {
+		bot.NewListenerFunc(func(e *events.Ready) {
+			shardID := e.ShardID()
 			metrics.DiscordConnected.Set(1)
 
-			if v, ok := disconnectedAt.LoadAndDelete(session.ShardID); ok {
-				t := v.(time.Time)
+			if lh, ok := lastHeartbeatTime.Load(shardID); ok {
+				gap := time.Since(lh.(time.Time))
+				if gap > 10*time.Second {
+					utils.Logger.Infof(
+						"Reconnected to Discord (shard %d) after ~%s",
+						shardID,
+						gap.Round(time.Second),
+					)
+				} else {
+					utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
+				}
+			} else {
+				utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
+			}
+
+			metrics.DiscordShards.Inc()
+			go reloadGauges(client)
+			metrics.TotalInteractions.Set(float64(countCommands(disgoBot)))
+		}),
+
+		bot.NewListenerFunc(func(e *events.Resumed) {
+			shardID := e.ShardID()
+			metrics.DiscordConnected.Set(1)
+
+			if lh, ok := lastHeartbeatTime.Load(shardID); ok {
+				gap := time.Since(lh.(time.Time))
 				utils.Logger.Infof(
-					"Reconnected to Discord (shard %d) after %s",
-					session.ShardID,
-					time.Since(t).Round(time.Second),
+					"Reconnected to Discord (shard %d) after ~%s",
+					shardID,
+					gap.Round(time.Second),
 				)
+			} else {
+				utils.Logger.Infof("Resumed connection to Discord (shard %d)", shardID)
+			}
+		}),
+
+		bot.NewListenerFunc(func(e *events.GuildJoin) {
+			go reloadGauges(client)
+		}),
+
+		bot.NewListenerFunc(func(e *events.GuildAvailable) {
+			go reloadGauges(client)
+		}),
+
+		bot.NewListenerFunc(func(e *events.GuildLeave) {
+			go reloadGauges(client)
+		}),
+
+		bot.NewListenerFunc(func(e *events.GuildUnavailable) {
+			go reloadGauges(client)
+		}),
+
+		bot.NewListenerFunc(func(e *events.GuildChannelCreate) {
+			go reloadGauges(client)
+		}),
+
+		bot.NewListenerFunc(func(e *events.GuildChannelDelete) {
+			go reloadGauges(client)
+		}),
+
+		bot.NewListenerFunc(func(e *events.ApplicationCommandInteractionCreate) {
+			if e.Data.Type() != discord.ApplicationCommandTypeSlash {
 				return
 			}
+			data := e.Data.(discord.SlashCommandInteractionData)
+			name := disgoplus.GetInteractionName(data)
+			metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).Inc()
+		}),
 
-			utils.Logger.Infof(
-				"Connected to Discord (shard %d)",
-				session.ShardID,
-			)
-		},
-	)
-
-	bot.AddHandler(
-		func(session *discordgo.Session, event *discordgo.Disconnect) {
-			metrics.DiscordConnected.Set(0)
-			disconnectedAt.Store(session.ShardID, time.Now())
-			utils.Logger.Infof(
-				"Disconnected from Discord (shard %d)",
-				session.ShardID,
-			)
-		},
-	)
-
-	bot.AddHandler(
-		func(session *discordgo.Session, event *discordgo.GuildCreate) {
-			go reloadGuilds(bot)
-		},
-	)
-
-	bot.AddHandler(
-		func(session *discordgo.Session, event *discordgo.GuildDelete) {
-			go reloadGuilds(bot)
-		},
-	)
-
-	bot.AddHandler(
-		func(session *discordgo.Session, event *discordgo.ChannelCreate) {
-			go reloadChannels(bot)
-		},
-	)
-
-	bot.AddHandler(
-		func(session *discordgo.Session, event *discordgo.ChannelDelete) {
-			go reloadChannels(bot)
-		},
-	)
-
-	bot.AddHandler(
-		func(session *discordgo.Session, event *discordgo.InteractionCreate) {
-			if event.Type != discordgo.InteractionApplicationCommand {
-				return
-			}
-
-			data := event.ApplicationCommandData()
-			name := discordgoplus.GetInteractionName(&data)
-
-			metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).
-				Inc()
-		},
-	)
-
-	bot.AddHandler(
-		func(bot *discordgo.Session, event *discordgo.InteractionCreate) {
-			if event.Type != discordgo.InteractionMessageComponent {
-				return
-			}
-
-			data := event.MessageComponentData()
-			metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", data.CustomID).
-				Inc()
-		},
+		bot.NewListenerFunc(func(e *events.ComponentInteractionCreate) {
+			customID := e.ComponentInteraction.Data.CustomID()
+			metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", customID).Inc()
+		}),
 	)
 }

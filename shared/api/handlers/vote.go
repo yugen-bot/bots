@@ -3,9 +3,10 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/config"
@@ -28,9 +29,7 @@ type VoteHandler struct {
 }
 
 func GetVoteHandler(container *di.Container) *VoteHandler {
-	return &VoteHandler{
-		container: container,
-	}
+	return &VoteHandler{container: container}
 }
 
 func (handler *VoteHandler) AddRoutes(app *fiber.App, router fiber.Router) {
@@ -59,29 +58,23 @@ func (handler *VoteHandler) authMiddleware(c *fiber.Ctx) error {
 
 func (handler *VoteHandler) handleTopGG(c *fiber.Ctx) error {
 	body := new(TopGGBody)
-
 	if err := c.BodyParser(body); err != nil {
 		return err
 	}
-
 	if len(body.BotID) == 0 {
 		return c.Status(400).SendString("Missing bot ID in body")
 	}
-
 	if len(body.ID) == 0 {
 		return c.Status(400).SendString("Missing user ID in body")
 	}
 
-	bot := handler.container.Get(static.DiBot).(*discordgoplus.Bot)
-
-	b, err := bot.ShardByShardID(0)
-	if err != nil {
-		return c.Status(500).SendString("Could not retrieve shard")
+	disgoBot := handler.container.Get(static.DiClient).(*disgoplus.Bot)
+	self, ok := disgoBot.Client().Caches.SelfUser()
+	if !ok {
+		return c.Status(500).SendString("Self user not in cache")
 	}
 
-	self := b.State.User
-
-	if body.BotID != self.ID {
+	if body.BotID != self.ID.String() {
 		return c.Status(400).SendString("Bot ID does not match bot user")
 	}
 
@@ -92,15 +85,12 @@ func (handler *VoteHandler) handleTopGG(c *fiber.Ctx) error {
 
 func (handler *VoteHandler) handleDiscordBotList(c *fiber.Ctx) error {
 	body := new(DiscordBotListBody)
-
 	if err := c.BodyParser(body); err != nil {
 		return err
 	}
-
 	if body.Admin {
 		return c.SendStatus(200)
 	}
-
 	if len(body.ID) == 0 {
 		return c.Status(400).SendString("Missing user ID in body")
 	}
@@ -135,15 +125,15 @@ func (handler *VoteHandler) handleVote(userID string, source string) {
 }
 
 func (handler *VoteHandler) sendLogMessage(userID string, source string) {
-	bot := handler.container.Get(static.DiBot).(*discordgoplus.Bot)
-
+	disgoBot := handler.container.Get(static.DiClient).(*disgoplus.Bot)
 	cfg := handler.container.Get(static.DiConfig).(*config.Config)
+
 	content := fmt.Sprintf("<@%s> has voted on **%s**!", userID, source)
 	channelID := cfg.VoteChannelID
 
-	b, err := bot.ShardByChannel(channelID)
+	chID, err := snowflake.Parse(channelID)
 	if err != nil {
-		utils.Logger.Errorw("vote: Failed to get shard", err)
+		utils.Logger.Errorw("vote: invalid vote channel ID", "error", err)
 		return
 	}
 
@@ -153,18 +143,17 @@ func (handler *VoteHandler) sendLogMessage(userID string, source string) {
 		content,
 		"channelID",
 		channelID,
-		"shard",
-		b.ShardID,
 	)
-	_, err = b.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+
+	_, err = disgoBot.Client().Rest.CreateMessage(chID, discord.MessageCreate{
 		Content:         content,
-		AllowedMentions: &discordgo.MessageAllowedMentions{},
+		AllowedMentions: &discord.AllowedMentions{},
 	})
 	if err != nil {
 		utils.Logger.Errorw(
-			"vote: Failed to send message to development discord",
+			"vote: Failed to send message to vote channel",
+			"error",
 			err,
 		)
-		return
 	}
 }
