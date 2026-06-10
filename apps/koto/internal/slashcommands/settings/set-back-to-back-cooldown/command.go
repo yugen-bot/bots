@@ -3,18 +3,18 @@ package setbacktobackcooldown
 import (
 	"context"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetBackToBackCooldownModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *SetBackToBackCooldownModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
-	enable := ctx.Options["enabled"].BoolValue()
+	guildID := ctx.GuildID.String()
+	enable := ctx.CommandData.Bool("enabled")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || existing == nil {
@@ -27,22 +27,24 @@ func (m *SetBackToBackCooldownModule) set(ctx *discordgoplus.Ctx) {
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) {
 			u.SetEnableBackToBackCooldown(enable)
-			if opt, ok := ctx.Options["seconds"]; ok {
-				u.SetBackToBackCooldown(int(opt.IntValue()))
+			if v, ok := ctx.CommandData.OptInt("seconds"); ok {
+				u.SetBackToBackCooldown(v)
 			}
 		},
 	); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	if enable {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Back-to-back cooldown has been **enabled**!",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 	} else {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Back-to-back cooldown has been **disabled**!",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 	}
 }

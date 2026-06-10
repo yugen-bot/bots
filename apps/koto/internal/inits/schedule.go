@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
 	"golang.org/x/sync/errgroup"
@@ -25,7 +25,7 @@ const scheduleConcurrency = 10
 func InitSchedule(container *di.Container) {
 	c := container.Get(sharedStatic.DiCron).(*cron.Cron)
 	database := container.Get(sharedStatic.DiDatabase).(*ent.Client)
-	bot := container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
+	client := container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client()
 	gameSvc := container.Get(localStatic.DiGame).(*services.GameService)
 
 	if _, err := c.AddFunc("* * * * *", func() {
@@ -72,13 +72,9 @@ func InitSchedule(container *di.Container) {
 		g.SetLimit(scheduleConcurrency)
 
 		for _, setting := range allSettings {
-			// State-only membership check — avoids an API call per guild per minute.
+			// Cache-only membership check — avoids an API call per guild per minute.
 			// If the guild isn't in cache yet we'll catch it on the next tick.
-			b, bErr := bot.ShardByGuild(setting.GuildID)
-			if bErr != nil {
-				continue
-			}
-			if _, sErr := b.State.Guild(setting.GuildID); sErr != nil {
+			if !utils.IsBotInGuildClient(client, setting.GuildID) {
 				continue
 			}
 

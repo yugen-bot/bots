@@ -2,8 +2,8 @@
 package setmembersprivilege
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,15 +22,14 @@ func GetSetMembersPrivilegeModule(container *di.Container) *SetMembersPrivilegeM
 	}
 }
 
-func (m *SetMembersPrivilegeModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SetMembersPrivilegeModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "members-privilege",
 			Description: "Set whether members can start games",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionBool{
 					Name:        "value",
 					Description: "Whether members can start games using /game start.",
 					Required:    true,

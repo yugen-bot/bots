@@ -1,19 +1,25 @@
 package inits
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/sharding"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
+	"jurien.dev/yugen/shared/config"
 	sharedInits "jurien.dev/yugen/shared/inits"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -35,6 +41,38 @@ func InitDI() (container di.Container, err error) {
 	})
 
 	sharedInits.InitSharedDi(diBuilder)
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiClient,
+		Build: func(ctn di.Container) (any, error) {
+			cfg := ctn.Get(static.DiConfig).(*config.Config)
+			gatewayOpts := []gateway.ConfigOpt{
+				gateway.WithIntents(
+					gateway.IntentGuilds,
+					gateway.IntentGuildMessages,
+					gateway.IntentGuildMessageReactions,
+					gateway.IntentMessageContent,
+					gateway.IntentGuildExpressions,
+				),
+				gateway.WithPresenceOpts(
+					gateway.WithWatchingActivity("Koto 🖊️"),
+				),
+			}
+			var discordOpt bot.ConfigOpt
+			if cfg.Shard {
+				discordOpt = bot.WithShardManagerConfigOpts(sharding.WithGatewayConfigOpts(gatewayOpts...))
+			} else {
+				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
+			}
+			return disgoplus.New(cfg.DiscordToken, cfg.Shard, discordOpt)
+		},
+		Close: func(obj any) error {
+			b := obj.(*disgoplus.Bot)
+			utils.Logger.Info("Shutting down bot...")
+			b.Close(context.Background())
+			return nil
+		},
+	})
 
 	diBuilder.Add(&di.Def{
 		Name: static.DiEmbedColor,

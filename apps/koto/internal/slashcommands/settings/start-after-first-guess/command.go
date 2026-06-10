@@ -3,18 +3,18 @@ package startafterfirstguess
 import (
 	"context"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *StartAfterFirstGuessModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *StartAfterFirstGuessModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
-	enabled := ctx.Options["value"].BoolValue()
+	guildID := ctx.GuildID.String()
+	enabled := ctx.CommandData.Bool("value")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || existing == nil {
@@ -27,17 +27,19 @@ func (m *StartAfterFirstGuessModule) set(ctx *discordgoplus.Ctx) {
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetStartAfterFirstGuess(enabled) },
 	); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	if enabled {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "The game timer will now start after the first guess!",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 	} else {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "The game timer will now start when the game is created.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 	}
 }

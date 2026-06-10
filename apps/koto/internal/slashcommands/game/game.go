@@ -2,7 +2,7 @@
 package game
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/slashcommands/game/hint"
@@ -11,7 +11,7 @@ import (
 )
 
 type gameSubModule interface {
-	Commands() []*discordgoplus.Command
+	Commands() []*disgoplus.Command
 }
 
 type GameModule struct {
@@ -31,21 +31,21 @@ func GetGameModule(container *di.Container) *GameModule {
 	}
 }
 
-func (m *GameModule) Commands() []*discordgoplus.Command {
-	var subCmds []*discordgoplus.Command
+func (m *GameModule) Commands() []*disgoplus.Command {
+	var subCmds []*disgoplus.Command
 	for _, sm := range m.subModules {
 		subCmds = append(subCmds, sm.Commands()...)
 	}
 
-	return []*discordgoplus.Command{
+	return []*disgoplus.Command{
 		{
 			Name:        "game",
 			Description: "Game commands",
-			SubCommands: discordgoplus.NewRouter(subCmds),
+			SubCommands: disgoplus.NewRouter(subCmds),
 		},
 	}
 }
 
-func (m *GameModule) MessageComponents() []*discordgoplus.MessageComponent {
+func (m *GameModule) MessageComponents() []*disgoplus.MessageComponent {
 	return m.hint.MessageComponents()
 }

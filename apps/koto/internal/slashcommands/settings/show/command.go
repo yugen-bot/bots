@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
@@ -14,12 +14,14 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ShowModule) show(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func boolPtr(b bool) *bool { return &b }
+
+func (m *ShowModule) show(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil || s == nil {
 		localUtils.ReplyNoSettings(ctx)
@@ -81,61 +83,33 @@ func (m *ShowModule) show(ctx *discordgoplus.Ctx) {
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*discordgoplus.Bot),
+		m.container.Get(static.DiClient).(*disgoplus.Bot),
 		&utils.CreateEmbedFooterParams{IsVote: false},
 		cfg.OwnerID,
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Color:       localStatic.EmbedColor,
-		Title:       "Koto settings",
-		Description: "These are the settings currently configured for Koto",
-		Footer:      footer,
-		Fields: []*discordgo.MessageEmbedField{
-			{Name: "Channel", Value: channelIDText, Inline: true},
-			{
-				Name:   "Members privilege",
-				Value:  membersText,
-				Inline: true,
-			},
-			{Name: "Ping role", Value: pingRoleText, Inline: true},
-			{Name: "Ping type", Value: pingTypeText, Inline: true},
-			{Name: "Auto start", Value: autoStartText, Inline: true},
-			{
-				Name:   "Answer cooldown",
-				Value:  cooldownText,
-				Inline: true,
-			},
-			{
-				Name:   "Back-to-back cooldown",
-				Value:  backToBackText,
-				Inline: true,
-			},
-			{
-				Name:   "Inform cooldown",
-				Value:  informCooldownText,
-				Inline: true,
-			},
-			{
-				Name:   "Game frequency",
-				Value:  localUtils.FormatMinutes(s.Frequency),
-				Inline: true,
-			},
-			{
-				Name:   "Time limit",
-				Value:  localUtils.FormatMinutes(s.TimeLimit),
-				Inline: true,
-			},
-			{
-				Name:   "Start after first guess",
-				Value:  startAfterFirstText,
-				Inline: true,
-			},
-			{Name: "​", Value: "​", Inline: true},
-		},
-	}
+	embed := discord.NewEmbed().
+		WithColor(localStatic.EmbedColor).
+		WithTitle("Koto settings").
+		WithDescription("These are the settings currently configured for Koto").
+		WithEmbedFooter(footer).
+		WithFields(
+			discord.EmbedField{Name: "Channel", Value: channelIDText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Members privilege", Value: membersText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Ping role", Value: pingRoleText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Ping type", Value: pingTypeText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Auto start", Value: autoStartText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Answer cooldown", Value: cooldownText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Back-to-back cooldown", Value: backToBackText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Inform cooldown", Value: informCooldownText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Game frequency", Value: localUtils.FormatMinutes(s.Frequency), Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Time limit", Value: localUtils.FormatMinutes(s.TimeLimit), Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Start after first guess", Value: startAfterFirstText, Inline: boolPtr(true)},
+			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
+		)
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Embeds: []*discordgo.MessageEmbed{embed},
-	}, true)
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	})
 }

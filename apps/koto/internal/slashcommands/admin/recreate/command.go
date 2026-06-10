@@ -4,28 +4,29 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
-func (m *RecreateModule) recreate(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *RecreateModule) recreate(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
-	if opt, ok := ctx.Options["guild"]; ok && opt.StringValue() != "" {
-		guildID = opt.StringValue()
+	guildID := ctx.GuildID.String()
+	if v, ok := ctx.CommandData.OptString("guild"); ok && v != "" {
+		guildID = v
 	}
 
 	word := ""
-	if opt, ok := ctx.Options["word"]; ok {
-		word = opt.StringValue()
+	if v, ok := ctx.CommandData.OptString("word"); ok {
+		word = v
 		if word != "" && !m.words.Exists(word) {
-			discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+			disgoplus.FollowUp(ctx, discord.MessageCreate{
 				Content: fmt.Sprintf(
 					"Word **`%s`** is not available in the database.",
 					word,
 				),
-			}, true)
+				Flags: discord.MessageFlagEphemeral,
+			})
 
 			return
 		}
@@ -33,17 +34,19 @@ func (m *RecreateModule) recreate(ctx *discordgoplus.Ctx) {
 
 	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || settings == nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Could not find settings for the specified guild.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
 	if settings.ChannelID == nil || *settings.ChannelID == "" {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Guild has no channel configured.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -56,20 +59,22 @@ func (m *RecreateModule) recreate(ctx *discordgoplus.Ctx) {
 		word,
 	)
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	if started {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"A game has been recreated in <#%s>.",
 				*settings.ChannelID,
 			),
-		}, true)
+			Flags: discord.MessageFlagEphemeral,
+		})
 	} else {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Failed to recreate the game.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 	}
 }

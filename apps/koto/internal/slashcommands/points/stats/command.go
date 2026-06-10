@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
@@ -14,12 +14,14 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *StatsModule) points(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func boolPtr(b bool) *bool { return &b }
+
+func (m *StatsModule) points(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
 	settings, err := m.settingsSvc.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil || settings == nil {
 		localUtils.ReplyNoSettings(ctx)
@@ -33,21 +35,21 @@ func (m *StatsModule) points(ctx *discordgoplus.Ctx) {
 
 	player, err := m.pointsSvc.GetPlayer(
 		context.Background(),
-		ctx.Interaction.GuildID,
-		ctx.Interaction.Member.User.ID,
+		ctx.GuildID.String(),
+		ctx.Member.User.ID.String(),
 		false,
 	)
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	playerHints, _ := m.hintsSvc.GetPlayerHintsByUserID(
 		context.Background(),
-		ctx.Interaction.Member.User.ID,
+		ctx.Member.User.ID.String(),
 	)
 
-	bot := m.container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
+	bot := m.container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
 		bot,
 		&utils.CreateEmbedFooterParams{IsVote: false},
@@ -63,37 +65,22 @@ func (m *StatsModule) points(ctx *discordgoplus.Ctx) {
 		)
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Title: "Your Koto Stats",
-		Color: localStatic.EmbedColor,
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   "Points",
-				Value:  fmt.Sprintf("%d", player.Points),
-				Inline: true,
-			},
-			{
-				Name:   "Games Participated",
-				Value:  fmt.Sprintf("%d", player.Participated),
-				Inline: true,
-			},
-			{
-				Name:   "Games Won",
-				Value:  fmt.Sprintf("%d", player.Wins),
-				Inline: true,
-			},
-			{
-				Name:   "Hints",
-				Value:  hintsValue,
-				Inline: true,
-			},
-		},
-		Footer: footer,
-	}
+	embed := discord.NewEmbed().
+		WithTitle("Your Koto Stats").
+		WithColor(localStatic.EmbedColor).
+		WithFields(
+			discord.EmbedField{Name: "Points", Value: fmt.Sprintf("%d", player.Points), Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Games Participated", Value: fmt.Sprintf("%d", player.Participated), Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Games Won", Value: fmt.Sprintf("%d", player.Wins), Inline: boolPtr(true)},
+			discord.EmbedField{Name: "Hints", Value: hintsValue, Inline: boolPtr(true)},
+		).
+		WithEmbedFooter(footer)
 
-	discordgoplus.FollowUp(
+	disgoplus.FollowUp(
 		ctx,
-		&discordgo.WebhookParams{Embeds: []*discordgo.MessageEmbed{embed}},
-		true,
+		discord.MessageCreate{
+			Embeds: []discord.Embed{embed},
+			Flags:  discord.MessageFlagEphemeral,
+		},
 	)
 }

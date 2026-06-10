@@ -5,15 +5,15 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/koto/internal/services"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *HintModule) hint(ctx *discordgoplus.Ctx) {
+func (m *HintModule) hint(ctx *disgoplus.Ctx) {
 	rawID := ctx.MessageComponentOptions["gameId"]
 	gameID, err := strconv.Atoi(rawID)
 	if err != nil {
@@ -21,15 +21,16 @@ func (m *HintModule) hint(ctx *discordgoplus.Ctx) {
 			"rawID", rawID,
 			"error", err,
 		)
-		discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+		disgoplus.Respond(ctx, discord.MessageCreate{
 			Content: "Invalid game ID.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
-	guildID := ctx.Interaction.GuildID
-	userID := ctx.Interaction.Member.User.ID
+	guildID := ctx.GuildID.String()
+	userID := ctx.Member.User.ID.String()
 
 	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || guildSettings == nil {
@@ -45,16 +46,18 @@ func (m *HintModule) hint(ctx *discordgoplus.Ctx) {
 	)
 	if err != nil {
 		if errors.Is(err, services.ErrNoHints) {
-			discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+			disgoplus.Respond(ctx, discord.MessageCreate{
 				Content: "You don't have any hints available. Vote for Koto to earn hints!",
-			}, true)
+				Flags:   discord.MessageFlagEphemeral,
+			})
 			return
 		}
 
 		if errors.Is(err, services.ErrHintUnavailable) {
-			discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+			disgoplus.Respond(ctx, discord.MessageCreate{
 				Content: "No hint available right now.",
-			}, true)
+				Flags:   discord.MessageFlagEphemeral,
+			})
 			return
 		}
 
@@ -64,11 +67,11 @@ func (m *HintModule) hint(ctx *discordgoplus.Ctx) {
 			"gameID", gameID,
 			"userID", userID,
 		)
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	discordgoplus.Respond(ctx, &discordgo.InteractionResponseData{
+	disgoplus.Respond(ctx, discord.MessageCreate{
 		Content: description,
-	}, false)
+	})
 }

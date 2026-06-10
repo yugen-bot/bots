@@ -4,25 +4,25 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *PruneGamesModule) run(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *PruneGamesModule) run(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
 	utils.Logger.Infow("Game pruning started")
 
 	shouldDelete := false
-	if opt, ok := ctx.Options["delete"]; ok {
-		shouldDelete = opt.BoolValue()
+	if v, ok := ctx.CommandData.OptBool("delete"); ok {
+		shouldDelete = v
 	}
 
 	rows, err := m.games.FindAllGuildIDs(context.Background())
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -31,24 +31,23 @@ func (m *PruneGamesModule) run(ctx *discordgoplus.Ctx) {
 	var orphanGuildIDs []string
 
 	for _, row := range rows {
-		if !utils.IsBotInGuild(m.bot, row.GuildID) {
+		if !utils.IsBotInGuildClient(m.bot.Client(), row.GuildID) {
 			orphanGuildIDs = append(orphanGuildIDs, row.GuildID)
 		}
 	}
 
 	utils.Logger.Infow("Found orphan guilds", "guilds", len(orphanGuildIDs))
 
-	channelID := ctx.Interaction.ChannelID
+	channelID := ctx.ChannelID
 
 	if len(orphanGuildIDs) == 0 {
-		ctx.ChannelMessageSend(
-			channelID,
-			"**Orphan games: 0** — nothing to prune.",
-		)
-		discordgoplus.FollowUp(
+		ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: "**Orphan games: 0** — nothing to prune."}) //nolint:errcheck
+		disgoplus.FollowUp(
 			ctx,
-			&discordgo.WebhookParams{Content: "Done."},
-			true,
+			discord.MessageCreate{
+				Content: "Done.",
+				Flags:   discord.MessageFlagEphemeral,
+			},
 		)
 
 		return
@@ -60,21 +59,24 @@ func (m *PruneGamesModule) run(ctx *discordgoplus.Ctx) {
 			orphanGuildIDs,
 		)
 		if err != nil {
-			discordgoplus.InteractionError(ctx, true)
+			disgoplus.InteractionError(ctx, true)
 			return
 		}
 
-		ctx.ChannelMessageSend(channelID, fmt.Sprintf(
-			"**Orphan games: %d** (guesses: %d) across %d guild(s)",
-			gameCount, guessCount, len(orphanGuildIDs),
-		))
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
+			Content: fmt.Sprintf(
+				"**Orphan games: %d** (guesses: %d) across %d guild(s)",
+				gameCount, guessCount, len(orphanGuildIDs),
+			),
+		})
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Found data for %d orphan guild(s). See <#%s>.",
 				len(orphanGuildIDs),
-				channelID,
+				channelID.String(),
 			),
-		}, true)
+			Flags: discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -84,7 +86,7 @@ func (m *PruneGamesModule) run(ctx *discordgoplus.Ctx) {
 		orphanGuildIDs,
 	)
 	if err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
@@ -94,13 +96,17 @@ func (m *PruneGamesModule) run(ctx *discordgoplus.Ctx) {
 		guessCount,
 		len(orphanGuildIDs),
 	)
-	ctx.ChannelMessageSend(channelID, fmt.Sprintf(
-		"Deleted **%d** game(s) and **%d** guess(es) for %d orphan guild(s).",
-		gameCount, guessCount, len(orphanGuildIDs),
-	))
-	discordgoplus.FollowUp(
+	ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{ //nolint:errcheck
+		Content: fmt.Sprintf(
+			"Deleted **%d** game(s) and **%d** guess(es) for %d orphan guild(s).",
+			gameCount, guessCount, len(orphanGuildIDs),
+		),
+	})
+	disgoplus.FollowUp(
 		ctx,
-		&discordgo.WebhookParams{Content: "Done."},
-		true,
+		discord.MessageCreate{
+			Content: "Done.",
+			Flags:   discord.MessageFlagEphemeral,
+		},
 	)
 }

@@ -2,13 +2,15 @@
 package setcooldown
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
 	"jurien.dev/yugen/shared/static"
 )
+
+func intPtr(i int) *int { return &i }
 
 type SetCooldownModule struct {
 	container *di.Container
@@ -22,20 +24,19 @@ func GetSetCooldownModule(container *di.Container) *SetCooldownModule {
 	}
 }
 
-func (m *SetCooldownModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SetCooldownModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "cooldown",
 			Description: "Set the cooldown between guesses in seconds",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "seconds",
 					Description: "Cooldown between guesses in seconds.",
 					Required:    true,
-					MinValue:    func() *float64 { v := float64(0); return &v }(),
-					MaxValue:    31_536_000,
+					MinValue:    intPtr(0),
+					MaxValue:    intPtr(31_536_000),
 				},
 			},
 		},

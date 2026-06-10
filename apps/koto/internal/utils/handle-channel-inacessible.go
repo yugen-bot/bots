@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
 func HandleChannelInaccessible(
-	ctx *discordgoplus.Ctx,
+	ctx *disgoplus.Ctx,
 	channelID string,
 	err error,
 ) {
@@ -21,19 +21,19 @@ func HandleChannelInaccessible(
 			reason = "Something wen't wrong, The channel does not exist: <#%s>"
 		}
 
-		discordgoplus.FollowUp(
+		disgoplus.FollowUp(
 			ctx,
-			&discordgo.WebhookParams{
+			discord.MessageCreate{
 				Content: fmt.Sprintf(
 					"%s\n**The channel setting has been reset!**",
 					fmt.Sprintf(reason, channelID),
 				),
+				Flags: discord.MessageFlagEphemeral,
 			},
-			true,
 		)
 
 		return
 	}
 
-	discordgoplus.InteractionError(ctx, true)
+	disgoplus.InteractionError(ctx, true)
 }

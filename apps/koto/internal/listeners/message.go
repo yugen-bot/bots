@@ -5,18 +5,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/jurienhamaker/disgoplus"
+	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
-
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
-	"github.com/sarulabs/di/v2"
 )
 
 type MessageListener struct {
-	bot         *discordgoplus.Bot
+	client      *bot.Client
 	settingsSvc *services.SettingsService
 	wordsSvc    *services.WordsService
 	gameSvc     *services.GameService
@@ -24,7 +26,7 @@ type MessageListener struct {
 
 func GetMessageListener(container *di.Container) *MessageListener {
 	return &MessageListener{
-		bot:         container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
+		client:      container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
 		settingsSvc: container.Get(sharedStatic.DiSettings).(*services.SettingsService),
 		wordsSvc:    container.Get(localStatic.DiWords).(*services.WordsService),
 		gameSvc:     container.Get(localStatic.DiGame).(*services.GameService),
@@ -33,35 +35,39 @@ func GetMessageListener(container *di.Container) *MessageListener {
 
 func AddMessageListeners(container *di.Container) {
 	l := GetMessageListener(container)
-	l.bot.AddHandler(l.OnMessageCreate)
+	disgoBot := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	disgoBot.Client().EventManager.AddEventListeners(
+		bot.NewListenerFunc(l.OnMessageCreate),
+	)
 }
 
-func (l *MessageListener) OnMessageCreate(
-	s *discordgo.Session,
-	event *discordgo.MessageCreate,
-) {
-	if event.Author == nil || event.Author.Bot {
+func (l *MessageListener) OnMessageCreate(e *events.MessageCreate) {
+	msg := e.Message
+
+	if msg.Author.Bot {
 		return
 	}
 
-	if event.GuildID == "" {
+	if e.GuildID == nil {
 		return
 	}
 
 	ctx := context.Background()
 
-	guildSettings, err := l.settingsSvc.GetByGuildID(ctx, event.GuildID)
+	guildID := e.GuildID.String()
+
+	guildSettings, err := l.settingsSvc.GetByGuildID(ctx, guildID)
 	if err != nil || guildSettings == nil {
 		return
 	}
 
 	if guildSettings.ChannelID == nil ||
 		*guildSettings.ChannelID == "" ||
-		*guildSettings.ChannelID != event.ChannelID {
+		*guildSettings.ChannelID != msg.ChannelID.String() {
 		return
 	}
 
-	word := event.Content
+	word := msg.Content
 	word = strings.TrimPrefix(word, "!")
 	word = strings.ToLower(strings.TrimSpace(word))
 
@@ -73,16 +79,22 @@ func (l *MessageListener) OnMessageCreate(
 		utils.LogIfErr(
 			utils.Logger,
 			"message: reaction add",
-			s.MessageReactionAdd(event.ChannelID, event.ID, "❌"),
+			l.client.Rest.AddReaction(msg.ChannelID, msg.ID, "❌"),
 		)
 
-		_, replyErr := s.ChannelMessageSendReply(
-			event.ChannelID,
-			fmt.Sprintf(
-				`Sorry, I couldn't find "**%s**" in my database.`,
-				word,
-			),
-			event.Reference(),
+		_, replyErr := l.client.Rest.CreateMessage(
+			msg.ChannelID,
+			discord.MessageCreate{
+				Content: fmt.Sprintf(
+					`Sorry, I couldn't find "**%s**" in my database.`,
+					word,
+				),
+				MessageReference: &discord.MessageReference{
+					MessageID: &msg.ID,
+					ChannelID: &msg.ChannelID,
+					GuildID:   msg.GuildID,
+				},
+			},
 		)
 		utils.LogIfErr(utils.Logger, "message: reply unknown word", replyErr)
 
@@ -91,14 +103,14 @@ func (l *MessageListener) OnMessageCreate(
 
 	if err := l.gameSvc.Guess(
 		ctx,
-		event.GuildID,
+		guildID,
 		word,
-		event.Message,
+		msg,
 		guildSettings,
 	); err != nil {
 		utils.Logger.Warnf(
 			"message: guess failed for guild %s: %v",
-			event.GuildID,
+			guildID,
 			err,
 		)
 	}

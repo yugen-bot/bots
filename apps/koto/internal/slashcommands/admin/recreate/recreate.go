@@ -2,8 +2,8 @@
 package recreate
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -27,21 +27,19 @@ func GetRecreateModule(container *di.Container) *RecreateModule {
 	}
 }
 
-func (m *RecreateModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *RecreateModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "recreate-game",
 			Description: "Recreate a game for a guild",
-			Handler:     discordgoplus.HandlerFunc(m.recreate),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler:     disgoplus.HandlerFunc(m.recreate),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "guild",
 					Description: "Use a guildId to recreate a game.",
 					Required:    false,
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+				discord.ApplicationCommandOptionString{
 					Name:        "word",
 					Description: "Force a specific word on the game.",
 					Required:    false,

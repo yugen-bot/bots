@@ -4,39 +4,42 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
-func (m *GetWordModule) getWord(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *GetWordModule) getWord(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Options["guild"].StringValue()
+	guildID := ctx.CommandData.String("guild")
 
 	game, err := m.game.GetCurrentGame(context.Background(), guildID)
 	if err != nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Failed to fetch game for guild `%s`.",
 				guildID,
 			),
-		}, true)
+			Flags: discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
 	if game == nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Guild currently has no game running.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"The answer for the current game is: **%s**",
 			game.Word,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

@@ -2,15 +2,15 @@
 package reset
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
 	"jurien.dev/yugen/shared/static"
 )
 
-var settingsResetChoices = []*discordgo.ApplicationCommandOptionChoice{
+var settingsResetChoices = []discord.ApplicationCommandOptionChoiceString{
 	{Name: "Channel", Value: "channel"},
 	{Name: "Ping role", Value: "role"},
 	{Name: "Game frequency", Value: "frequency"},
@@ -36,15 +36,14 @@ func GetResetModule(container *di.Container) *ResetModule {
 	}
 }
 
-func (m *ResetModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ResetModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "reset",
 			Description: "Reset a Koto setting to its default value",
-			Handler:     discordgoplus.HandlerFunc(m.reset),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler:     disgoplus.HandlerFunc(m.reset),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "setting",
 					Description: "The setting to reset to its default value.",
 					Required:    true,

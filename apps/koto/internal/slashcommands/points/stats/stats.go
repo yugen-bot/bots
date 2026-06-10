@@ -2,7 +2,7 @@
 package stats
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -26,12 +26,12 @@ func GetStatsModule(container *di.Container) *StatsModule {
 	}
 }
 
-func (m *StatsModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *StatsModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "points",
 			Description: "View your Koto points",
-			Handler:     discordgoplus.HandlerFunc(m.points),
+			Handler:     disgoplus.HandlerFunc(m.points),
 		},
 	}
 }

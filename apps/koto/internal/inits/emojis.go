@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	localStatic "jurien.dev/yugen/koto/internal/static"
@@ -24,10 +25,15 @@ var knownColors = map[string]localStatic.EmojiColor{
 
 // InitEmojis fetches application emojis from Discord and populates the emoji table.
 func InitEmojis(container *di.Container) error {
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
+	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
 	cfg := container.Get(static.DiConfig).(*config.Config)
 
-	emojis, err := bot.ApplicationEmojis(cfg.DiscordAppID)
+	appID, err := snowflake.Parse(cfg.DiscordAppID)
+	if err != nil {
+		return fmt.Errorf("emojis: parse app ID: %w", err)
+	}
+
+	emojis, err := disgoBot.Client().Rest.GetApplicationEmojis(appID)
 	if err != nil {
 		return fmt.Errorf("emojis: list application emojis: %w", err)
 	}
@@ -36,11 +42,12 @@ func InitEmojis(container *di.Container) error {
 		map[localStatic.EmojiColor]map[string]localStatic.EmojiData,
 		len(knownColors),
 	)
-	totalEmojis := 0
 
 	for _, c := range knownColors {
 		table[c] = make(map[string]localStatic.EmojiData, 27)
 	}
+
+	totalEmojis := 0
 
 	for _, e := range emojis {
 		color, letter, ok := parseEmojiName(e.Name)
@@ -48,7 +55,7 @@ func InitEmojis(container *di.Container) error {
 			continue
 		}
 
-		table[color][letter] = localStatic.EmojiData{Name: e.Name, ID: e.ID}
+		table[color][letter] = localStatic.EmojiData{Name: e.Name, ID: e.ID.String()}
 		totalEmojis++
 	}
 
@@ -112,11 +119,7 @@ func validateEmojiTable(
 	}
 
 	if total != expectedEmojiCount {
-		return fmt.Errorf(
-			"expected %d emojis, got %d",
-			expectedEmojiCount,
-			total,
-		)
+		return fmt.Errorf("expected %d emojis, got %d", expectedEmojiCount, total)
 	}
 
 	return nil

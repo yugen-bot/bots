@@ -2,8 +2,8 @@
 package setinformcooldown
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,15 +22,14 @@ func GetSetInformCooldownModule(container *di.Container) *SetInformCooldownModul
 	}
 }
 
-func (m *SetInformCooldownModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SetInformCooldownModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "inform-cooldown",
 			Description: "Set whether to inform users of their cooldown after a guess",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionBool{
 					Name:        "value",
 					Description: "Whether to inform users of their cooldown after a guess.",
 					Required:    true,

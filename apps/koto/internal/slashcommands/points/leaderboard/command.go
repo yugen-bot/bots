@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
@@ -16,27 +16,27 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *LeaderboardModule) leaderboard(ctx *discordgoplus.Ctx) {
+func (m *LeaderboardModule) leaderboard(ctx *disgoplus.Ctx) {
 	leaderboardType := "points"
-	if opt, ok := ctx.Options["type"]; ok {
-		leaderboardType = opt.StringValue()
+	if v, ok := ctx.CommandData.OptString("type"); ok {
+		leaderboardType = v
 	}
 
 	page := 1
-	if opt, ok := ctx.Options["page"]; ok {
-		page = int(opt.IntValue())
+	if v, ok := ctx.CommandData.OptInt("page"); ok {
+		page = v
 	}
 
 	ephemeral := true
-	if opt, ok := ctx.Options["ephemeral"]; ok {
-		ephemeral = opt.BoolValue()
+	if v, ok := ctx.CommandData.OptBool("ephemeral"); ok {
+		ephemeral = v
 	}
 
-	discordgoplus.Defer(ctx, ephemeral)
+	disgoplus.Defer(ctx, ephemeral)
 	m.showLeaderboard(ctx, leaderboardType, page, ephemeral, false)
 }
 
-func (m *LeaderboardModule) leaderboardPage(ctx *discordgoplus.Ctx) {
+func (m *LeaderboardModule) leaderboardPage(ctx *disgoplus.Ctx) {
 	data := ctx.MessageComponentOptions["data"]
 	leaderboardType := "points"
 	page := 1
@@ -56,7 +56,7 @@ func (m *LeaderboardModule) leaderboardPage(ctx *discordgoplus.Ctx) {
 }
 
 func (m *LeaderboardModule) showLeaderboard(
-	ctx *discordgoplus.Ctx,
+	ctx *disgoplus.Ctx,
 	leaderboardType string,
 	page int,
 	ephemeral bool,
@@ -64,7 +64,7 @@ func (m *LeaderboardModule) showLeaderboard(
 ) {
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 	)
 	if err != nil || settings == nil {
 		localUtils.ReplyNoSettings(ctx)
@@ -78,12 +78,12 @@ func (m *LeaderboardModule) showLeaderboard(
 
 	players, total, err := m.points.GetLeaderboard(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		leaderboardType,
 		page,
 	)
 	if err != nil {
-		discordgoplus.InteractionError(ctx, ephemeral)
+		disgoplus.InteractionError(ctx, ephemeral)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (m *LeaderboardModule) showLeaderboard(
 		sb.WriteString("No players found.")
 	}
 
-	bot := m.container.Get(sharedStatic.DiBot).(*discordgoplus.Bot)
+	bot := m.container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
 
 	footer := utils.CreateEmbedFooter(
 		bot,
@@ -128,47 +128,41 @@ func (m *LeaderboardModule) showLeaderboard(
 		footer.Text = fmt.Sprintf("Page %d/%d | %s", page, maxPage, footer.Text)
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Title:       fmt.Sprintf("Koto Leaderboard — %s", typeLabel),
-		Color:       localStatic.EmbedColor,
-		Description: sb.String(),
-		Footer:      footer,
-	}
+	embed := discord.NewEmbed().
+		WithTitle(fmt.Sprintf("Koto Leaderboard — %s", typeLabel)).
+		WithColor(localStatic.EmbedColor).
+		WithDescription(sb.String()).
+		WithEmbedFooter(footer)
 
-	var buttons []discordgo.MessageComponent
+	var buttons []discord.InteractiveComponent
 	if page > 1 {
-		buttons = append(buttons, discordgo.Button{
-			CustomID: fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page-1),
-			Style:    discordgo.PrimaryButton,
-			Label:    "◀️",
-		})
+		buttons = append(buttons, discord.NewPrimaryButton("◀️", fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page-1)))
 	}
 
 	if page < maxPage {
-		buttons = append(buttons, discordgo.Button{
-			CustomID: fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page+1),
-			Style:    discordgo.PrimaryButton,
-			Label:    "▶️",
-		})
+		buttons = append(buttons, discord.NewPrimaryButton("▶️", fmt.Sprintf("LEADERBOARD/%s/%d", leaderboardType, page+1)))
 	}
 
-	components := []discordgo.MessageComponent{}
+	components := []discord.LayoutComponent{}
 	if len(buttons) > 0 {
-		components = append(
-			components,
-			discordgo.ActionsRow{Components: buttons},
-		)
+		components = append(components, discord.NewActionRow(buttons...))
 	}
 
 	if isComponent {
-		discordgoplus.Update(ctx, &discordgo.InteractionResponseData{
-			Embeds:     []*discordgo.MessageEmbed{embed},
-			Components: components,
+		embeds := []discord.Embed{embed}
+		disgoplus.Update(ctx, discord.MessageUpdate{
+			Embeds:     &embeds,
+			Components: &components,
 		})
 	} else {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Embeds:     []*discordgo.MessageEmbed{embed},
+		flags := discord.MessageFlags(0)
+		if ephemeral {
+			flags = discord.MessageFlagEphemeral
+		}
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
+			Embeds:     []discord.Embed{embed},
 			Components: components,
-		}, ephemeral)
+			Flags:      flags,
+		})
 	}
 }

@@ -1,25 +1,24 @@
 package utils
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
 const NoSettingsDescription = "Koto hasn't been configured yet! Ask a moderator to set the channel using `/settings channel`."
 
 // ReplyNoSettings sends an ephemeral reply indicating settings are not configured.
-func ReplyNoSettings(ctx *discordgoplus.Ctx, deffered ...bool) {
+func ReplyNoSettings(ctx *disgoplus.Ctx, deffered ...bool) {
 	if deffered != nil && deffered[0] {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: NoSettingsDescription,
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return
 	}
 
-	discordgoplus.Respond(
-		ctx,
-		&discordgo.InteractionResponseData{
-			Content: NoSettingsDescription,
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	)
+	disgoplus.Respond(ctx, discord.MessageCreate{
+		Content: NoSettingsDescription,
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

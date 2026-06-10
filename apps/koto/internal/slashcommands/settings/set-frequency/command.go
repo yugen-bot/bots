@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetFrequencyModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *SetFrequencyModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
-	minutes := int(ctx.Options["minutes"].IntValue())
+	guildID := ctx.GuildID.String()
+	minutes := ctx.CommandData.Int("minutes")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || existing == nil {
@@ -28,14 +28,15 @@ func (m *SetFrequencyModule) set(ctx *discordgoplus.Ctx) {
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetFrequency(minutes) },
 	); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Koto will start a new game every **%d** minutes!",
 			minutes,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

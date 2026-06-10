@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jurienhamaker/discordgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/ent"
@@ -15,7 +14,6 @@ import (
 
 type SettingsService struct {
 	database *ent.Client
-	bot      *discordgoplus.Bot
 }
 
 func CreateSettingsService(container *di.Container) *SettingsService {
@@ -23,7 +21,6 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 
 	return &SettingsService{
 		database: container.Get(static.DiDatabase).(*ent.Client),
-		bot:      container.Get(static.DiBot).(*discordgoplus.Bot),
 	}
 }
 

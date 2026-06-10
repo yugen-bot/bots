@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetCooldownModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *SetCooldownModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
-	seconds := int(ctx.Options["seconds"].IntValue())
+	guildID := ctx.GuildID.String()
+	seconds := ctx.CommandData.Int("seconds")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || existing == nil {
@@ -28,14 +28,15 @@ func (m *SetCooldownModule) set(ctx *discordgoplus.Ctx) {
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetCooldown(seconds) },
 	); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Cooldown between guesses has been set to **%d** seconds!",
 			seconds,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

@@ -2,8 +2,8 @@
 package setchannel
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,15 +22,14 @@ func GetSetChannelModule(container *di.Container) *SetChannelModule {
 	}
 }
 
-func (m *SetChannelModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SetChannelModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "channel",
 			Description: "Set the channel where Koto listens for guesses",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionChannel,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionChannel{
 					Name:        "channel",
 					Description: "The channel to listen in.",
 					Required:    true,

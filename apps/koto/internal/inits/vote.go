@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 
@@ -20,8 +22,7 @@ func CreateVoteHandler(
 	container *di.Container,
 ) func(userID string, source string) error {
 	hints := container.Get(localStatic.DiHints).(*services.HintsService)
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
-	shard, _ := bot.ShardByShardID(0)
+	client := container.Get(static.DiClient).(*disgoplus.Bot).Client()
 
 	return func(userID string, source string) error {
 		utils.Logger.With(
@@ -42,7 +43,12 @@ func CreateVoteHandler(
 			amount,
 		)
 
-		userChannel, chanErr := shard.UserChannelCreate(userID)
+		userSnowflake, parseErr := snowflake.Parse(userID)
+		if parseErr != nil {
+			return parseErr
+		}
+
+		dmChannel, chanErr := client.Rest.CreateDMChannel(userSnowflake)
 		if chanErr != nil {
 			return chanErr
 		}
@@ -60,11 +66,12 @@ func CreateVoteHandler(
 			)
 		}
 
-		_, err = shard.ChannelMessageSend(userChannel.ID, msg)
+		_, err = client.Rest.CreateMessage(dmChannel.ID(), discord.MessageCreate{Content: msg})
 
 		return err
 	}
 }
+
 
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
 	voteReward := func(userID string) string {

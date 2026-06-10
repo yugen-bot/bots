@@ -2,7 +2,7 @@
 package show
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -21,12 +21,12 @@ func GetShowModule(container *di.Container) *ShowModule {
 	}
 }
 
-func (m *ShowModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ShowModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "show",
 			Description: "Show the current settings",
-			Handler:     discordgoplus.HandlerFunc(m.show),
+			Handler:     disgoplus.HandlerFunc(m.show),
 		},
 	}
 }

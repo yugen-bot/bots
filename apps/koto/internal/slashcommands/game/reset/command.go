@@ -3,17 +3,17 @@ package reset
 import (
 	"context"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetModule) reset(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
+	guildID := ctx.GuildID.String()
 
 	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || guildSettings == nil {
@@ -35,20 +35,22 @@ func (m *ResetModule) reset(ctx *discordgoplus.Ctx) {
 	}
 
 	if !started {
-		discordgoplus.FollowUp(
+		disgoplus.FollowUp(
 			ctx,
-			&discordgo.WebhookParams{Content: "Failed to reset the game."},
-			true,
+			discord.MessageCreate{
+				Content: "Failed to reset the game.",
+				Flags:   discord.MessageFlagEphemeral,
+			},
 		)
 
 		return
 	}
 
-	discordgoplus.FollowUp(
+	disgoplus.FollowUp(
 		ctx,
-		&discordgo.WebhookParams{
+		discord.MessageCreate{
 			Content: "Game has been reset and a new one started!",
+			Flags:   discord.MessageFlagEphemeral,
 		},
-		true,
 	)
 }

@@ -5,19 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ResetLeaderboardModule) resetLeaderboard(ctx *discordgoplus.Ctx) {
-	required := true
-
+func (m *ResetLeaderboardModule) resetLeaderboard(ctx *disgoplus.Ctx) {
 	var memberID *string
 
-	if opt, ok := ctx.Options["member"]; ok {
-		id := opt.UserValue(ctx.Session).ID
+	if user, ok := ctx.CommandData.OptUser("member"); ok {
+		id := user.ID.String()
 		memberID = &id
 	}
 
@@ -26,50 +24,37 @@ func (m *ResetLeaderboardModule) resetLeaderboard(ctx *discordgoplus.Ctx) {
 		userIDValue = *memberID
 	}
 
-	err := discordgoplus.ModalRespond(ctx, &discordgo.InteractionResponseData{
-		CustomID: fmt.Sprintf("RESET_LEADERBOARD/%s", userIDValue),
-		Title:    "Reset Leaderboard",
-		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.TextInput{
-						CustomID: "confirm",
-						Label:    "Type CONFIRM to reset the leaderboard",
-						Style:    discordgo.TextInputShort,
-						Required: &required,
-					},
-				},
-			},
-		},
-	})
+	modal := discord.NewModalCreate(
+		fmt.Sprintf("RESET_LEADERBOARD/%s", userIDValue),
+		"Reset Leaderboard",
+	).AddLabel(
+		"Type CONFIRM to reset the leaderboard",
+		discord.NewShortTextInput("confirm").WithRequired(true),
+	)
+
+	err := disgoplus.ModalRespond(ctx, modal)
 	if err != nil {
 		utils.Logger.Errorw("reset-leaderboard: modal respond failed",
 			"error", err,
-			"guildID", ctx.Interaction.GuildID,
+			"guildID", ctx.GuildID.String(),
 		)
 	}
 }
 
-func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
-	fields := discordgoplus.ParseModalData(ctx.ModalData)
+func (m *ResetLeaderboardModule) handleModal(ctx *disgoplus.Ctx) {
+	fields := disgoplus.ParseModalData(*ctx.ModalData)
 
 	confirm := fields["confirm"]
 	if confirm != "CONFIRM" {
-		ctx.InteractionRespond(
-			ctx.Interaction,
-			&discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Reset cancelled — you must type exactly `CONFIRM`.",
-					Flags:   discordgo.MessageFlagsEphemeral,
-				},
-			},
-		)
+		ctx.CreateMessage(discord.MessageCreate{ //nolint:errcheck
+			Content: "Reset cancelled — you must type exactly `CONFIRM`.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
-	customID := ctx.Interaction.ModalSubmitData().CustomID
+	customID := ctx.ModalData.CustomID
 	parts := strings.SplitN(customID, "/", 2)
 
 	var userID *string
@@ -79,33 +64,21 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 		userID = &id
 	}
 
-	ctx.InteractionRespond(
-		ctx.Interaction,
-		&discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Flags: discordgo.MessageFlagsEphemeral,
-			},
-		},
-	)
+	ctx.DeferCreateMessage(true) //nolint:errcheck
 
 	if err := m.points.ResetLeaderboard(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		userID,
 	); err != nil {
 		utils.Logger.Warnw("reset leaderboard failed",
 			"error", err,
-			"guildID", ctx.Interaction.GuildID,
+			"guildID", ctx.GuildID.String(),
 		)
-		ctx.FollowupMessageCreate(
-			ctx.Interaction,
-			true,
-			&discordgo.WebhookParams{
-				Content: "Failed to reset leaderboard.",
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		)
+		ctx.CreateFollowupMessage(discord.MessageCreate{ //nolint:errcheck
+			Content: "Failed to reset leaderboard.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -115,12 +88,8 @@ func (m *ResetLeaderboardModule) handleModal(ctx *discordgoplus.Ctx) {
 		msg = fmt.Sprintf("Leaderboard for <@%s> has been reset!", *userID)
 	}
 
-	ctx.FollowupMessageCreate(
-		ctx.Interaction,
-		true,
-		&discordgo.WebhookParams{
-			Content: msg,
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	)
+	ctx.CreateFollowupMessage(discord.MessageCreate{ //nolint:errcheck
+		Content: msg,
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

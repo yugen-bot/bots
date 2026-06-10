@@ -5,27 +5,27 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 )
 
-func (m *ResetModule) reset(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ResetModule) reset(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	setting := ctx.Options["setting"].StringValue()
+	setting := ctx.CommandData.String("setting")
 
 	if _, err := m.settings.Reset(
 		context.Background(),
-		ctx.Interaction.GuildID,
+		ctx.GuildID.String(),
 		[]string{setting},
 	); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
 	idx := slices.IndexFunc(
 		settingsResetChoices,
-		func(c *discordgo.ApplicationCommandOptionChoice) bool {
+		func(c discord.ApplicationCommandOptionChoiceString) bool {
 			return c.Value == setting
 		},
 	)
@@ -35,10 +35,11 @@ func (m *ResetModule) reset(ctx *discordgoplus.Ctx) {
 		name = settingsResetChoices[idx].Name
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"**%s** has been reset to its default value.",
 			name,
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

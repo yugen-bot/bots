@@ -3,35 +3,29 @@ package sendwelcome
 import (
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 
 	sharedUtils "jurien.dev/yugen/shared/utils"
 )
 
-func (m *SendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *SendWelcomeModule) sendWelcome(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Options["guild"].StringValue()
-	channelID := ctx.Options["channel"].StringValue()
+	guildID := ctx.CommandData.String("guild")
+	channelIDStr := ctx.CommandData.String("channel")
 
-	perms, err := ctx.UserChannelPermissions(ctx.State.User.ID, channelID)
+	channelID, err := snowflake.Parse(channelIDStr)
 	if err != nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Could not access channel `%s` in guild `%s`.",
-				channelID,
+				channelIDStr,
 				guildID,
 			),
-		}, true)
-
-		return
-	}
-
-	if perms&discordgo.PermissionSendMessages == 0 {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-			Content: "Koto does not have permission to send messages in that channel.",
-		}, true)
+			Flags: discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -41,28 +35,31 @@ func (m *SendWelcomeModule) sendWelcome(ctx *discordgoplus.Ctx) {
 		&sharedUtils.CreateEmbedFooterParams{IsVote: false},
 		"",
 	)
-	embed := &discordgo.MessageEmbed{
-		Title:       "👋 Hello! I'm Koto!",
-		Description: "Thanks for adding me! Use `/settings channel` to configure me.",
-		Color:       0xbaad6d,
-		Footer:      footer,
-	}
+	embed := discord.NewEmbed().
+		WithTitle("👋 Hello! I'm Koto!").
+		WithDescription("Thanks for adding me! Use `/settings channel` to configure me.").
+		WithColor(0xbaad6d).
+		WithEmbedFooter(footer)
 
-	msg, err := ctx.ChannelMessageSendEmbed(channelID, embed)
+	msg, err := ctx.Client.Rest.CreateMessage(channelID, discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+	})
 	if err != nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Failed to send welcome message.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Message has been sent: https://discord.com/channels/%s/%s/%s",
 			guildID,
-			channelID,
-			msg.ID,
+			channelIDStr,
+			msg.ID.String(),
 		),
-	}, true)
+		Flags: discord.MessageFlagEphemeral,
+	})
 }

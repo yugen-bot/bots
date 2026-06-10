@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *EmojisModule) emojis(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *EmojisModule) emojis(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
 	colors := []string{"GREEN", "YELLOW", "GRAY", "WHITE"}
 	letters := []string{
@@ -35,13 +35,15 @@ func (m *EmojisModule) emojis(ctx *discordgoplus.Ctx) {
 			sb.WriteString(emoji)
 		}
 
-		ctx.Session.ChannelMessageSend(ctx.Interaction.ChannelID, sb.String())
+		ctx.Client.Rest.CreateMessage(ctx.ChannelID, discord.MessageCreate{Content: sb.String()}) //nolint:errcheck
 		sb.Reset()
 	}
 
-	discordgoplus.FollowUp(
+	disgoplus.FollowUp(
 		ctx,
-		&discordgo.WebhookParams{Content: "There you go!"},
-		true,
+		discord.MessageCreate{
+			Content: "There you go!",
+			Flags:   discord.MessageFlagEphemeral,
+		},
 	)
 }

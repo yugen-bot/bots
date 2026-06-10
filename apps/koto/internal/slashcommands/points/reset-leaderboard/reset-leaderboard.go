@@ -2,8 +2,8 @@
 package resetleaderboard
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -25,15 +25,14 @@ func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule 
 	}
 }
 
-func (m *ResetLeaderboardModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *ResetLeaderboardModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "reset-leaderboard",
 			Description: "Reset the Koto leaderboard",
-			Handler:     discordgoplus.HandlerFunc(m.resetLeaderboard),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
+			Handler:     disgoplus.HandlerFunc(m.resetLeaderboard),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionUser{
 					Name:        "member",
 					Description: "Reset only this member's stats",
 					Required:    false,
@@ -43,11 +42,11 @@ func (m *ResetLeaderboardModule) Commands() []*discordgoplus.Command {
 	}
 }
 
-func (m *ResetLeaderboardModule) Modals() []*discordgoplus.Modal {
-	return []*discordgoplus.Modal{
+func (m *ResetLeaderboardModule) Modals() []*disgoplus.Modal {
+	return []*disgoplus.Modal{
 		{
 			CustomID: "RESET_LEADERBOARD/:userID",
-			Handler:  discordgoplus.HandlerFunc(m.handleModal),
+			Handler:  disgoplus.HandlerFunc(m.handleModal),
 		},
 	}
 }

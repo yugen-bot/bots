@@ -2,8 +2,8 @@
 package getword
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,15 +22,14 @@ func GetGetWordModule(container *di.Container) *GetWordModule {
 	}
 }
 
-func (m *GetWordModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *GetWordModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "get-word",
 			Description: "Get the current game's answer for a guild",
-			Handler:     discordgoplus.HandlerFunc(m.getWord),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler:     disgoplus.HandlerFunc(m.getWord),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "guild",
 					Description: "The guildId to target.",
 					Required:    true,

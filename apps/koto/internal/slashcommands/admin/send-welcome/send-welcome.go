@@ -2,8 +2,8 @@
 package sendwelcome
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	sharedStatic "jurien.dev/yugen/shared/static"
@@ -11,31 +11,29 @@ import (
 
 type SendWelcomeModule struct {
 	container *di.Container
-	bot       *discordgoplus.Bot
+	bot       *disgoplus.Bot
 }
 
 func GetSendWelcomeModule(container *di.Container) *SendWelcomeModule {
 	return &SendWelcomeModule{
 		container: container,
-		bot:       container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
+		bot:       container.Get(sharedStatic.DiClient).(*disgoplus.Bot),
 	}
 }
 
-func (m *SendWelcomeModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SendWelcomeModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "send-welcome",
 			Description: "Send welcome message to specified channel within a guild",
-			Handler:     discordgoplus.HandlerFunc(m.sendWelcome),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler:     disgoplus.HandlerFunc(m.sendWelcome),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "guild",
 					Description: "The guildId to target.",
 					Required:    true,
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+				discord.ApplicationCommandOptionString{
 					Name:        "channel",
 					Description: "The channelId to send the welcome message to.",
 					Required:    true,

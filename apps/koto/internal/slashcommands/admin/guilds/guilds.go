@@ -2,8 +2,8 @@
 package guilds
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,15 +22,14 @@ func GetGuildsModule(container *di.Container) *GuildsModule {
 	}
 }
 
-func (m *GuildsModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *GuildsModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "guilds",
 			Description: "Get a list of guilds sorted by member count",
-			Handler:     discordgoplus.HandlerFunc(m.list),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Handler:     disgoplus.HandlerFunc(m.list),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "page",
 					Description: "View a specific page.",
 					Required:    false,
@@ -40,11 +39,11 @@ func (m *GuildsModule) Commands() []*discordgoplus.Command {
 	}
 }
 
-func (m *GuildsModule) MessageComponents() []*discordgoplus.MessageComponent {
-	return []*discordgoplus.MessageComponent{
+func (m *GuildsModule) MessageComponents() []*disgoplus.MessageComponent {
+	return []*disgoplus.MessageComponent{
 		{
 			CustomID: "ADMIN_GUILDS_LIST/:page",
-			Handler:  discordgoplus.HandlerFunc(m.listPage),
+			Handler:  disgoplus.HandlerFunc(m.listPage),
 		},
 	}
 }

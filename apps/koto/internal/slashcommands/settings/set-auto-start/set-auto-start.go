@@ -2,8 +2,8 @@
 package setautostart
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -22,15 +22,14 @@ func GetSetAutoStartModule(container *di.Container) *SetAutoStartModule {
 	}
 }
 
-func (m *SetAutoStartModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SetAutoStartModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "auto-start",
 			Description: "Set whether Koto automatically starts a new game after one ends",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionBool{
 					Name:        "value",
 					Description: "Whether to automatically start a new game after one ends.",
 					Required:    true,

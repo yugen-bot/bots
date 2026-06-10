@@ -2,14 +2,16 @@
 package leaderboard
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	sharedStatic "jurien.dev/yugen/shared/static"
 )
+
+func intPtr(i int) *int { return &i }
 
 type LeaderboardModule struct {
 	container *di.Container
@@ -25,36 +27,30 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 	}
 }
 
-func (m *LeaderboardModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *LeaderboardModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "leaderboard",
 			Description: "View the Koto leaderboard",
-			Handler:     discordgoplus.HandlerFunc(m.leaderboard),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Handler:     disgoplus.HandlerFunc(m.leaderboard),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "type",
 					Description: "Leaderboard type",
 					Required:    false,
-					Choices: []*discordgo.ApplicationCommandOptionChoice{
+					Choices: []discord.ApplicationCommandOptionChoiceString{
 						{Name: "Points", Value: "points"},
 						{Name: "Guessed words", Value: "wins"},
-						{
-							Name:  "Guessed games participations",
-							Value: "participated",
-						},
+						{Name: "Guessed games participations", Value: "participated"},
 					},
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+				discord.ApplicationCommandOptionInt{
 					Name:        "page",
 					Description: "Page number",
 					Required:    false,
-					MinValue:    func() *float64 { v := float64(1); return &v }(),
+					MinValue:    intPtr(1),
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionBoolean,
+				discord.ApplicationCommandOptionBool{
 					Name:        "ephemeral",
 					Description: "Show only to you",
 					Required:    false,
@@ -64,11 +60,11 @@ func (m *LeaderboardModule) Commands() []*discordgoplus.Command {
 	}
 }
 
-func (m *LeaderboardModule) MessageComponents() []*discordgoplus.MessageComponent {
-	return []*discordgoplus.MessageComponent{
+func (m *LeaderboardModule) MessageComponents() []*disgoplus.MessageComponent {
+	return []*disgoplus.MessageComponent{
 		{
 			CustomID: "LEADERBOARD/:data",
-			Handler:  discordgoplus.HandlerFunc(m.leaderboardPage),
+			Handler:  disgoplus.HandlerFunc(m.leaderboardPage),
 		},
 	}
 }

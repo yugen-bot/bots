@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/ent"
@@ -38,7 +39,8 @@ type GameService struct {
 	message    *MessageService
 	points     *PointsService
 	hints      *HintsService
-	bot        *discordgoplus.Bot
+	bot        *disgoplus.Bot
+	client     *bot.Client
 	startLocks sync.Map // keyed by guildID → *sync.Mutex
 }
 
@@ -52,6 +54,8 @@ var (
 func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 
+	b := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+
 	return &GameService{
 		database: container.Get(sharedStatic.DiDatabase).(*ent.Client),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
@@ -59,7 +63,8 @@ func CreateGameService(container *di.Container) *GameService {
 		message:  container.Get(localStatic.DiGameMessage).(*MessageService),
 		points:   container.Get(localStatic.DiPoints).(*PointsService),
 		hints:    container.Get(localStatic.DiHints).(*HintsService),
-		bot:      container.Get(sharedStatic.DiBot).(*discordgoplus.Bot),
+		bot:      b,
+		client:   b.Client(),
 	}
 }
 
@@ -83,26 +88,13 @@ func (s *GameService) Start(
 	mu.Lock()
 	defer mu.Unlock()
 
-	b, err := s.bot.ShardByGuild(guildID)
-	if err != nil {
+	if !utils.IsBotInGuildClient(s.client, guildID) {
 		utils.Logger.Debugf(
-			"Skipping game start, ShardByGuild failed for guild %s: %v",
+			"Skipping game start, bot not in guild %s",
 			guildID,
-			err,
 		)
 
 		return false, nil
-	}
-
-	if _, gErr := b.State.Guild(guildID); gErr != nil {
-		if _, gErr2 := b.Guild(guildID); gErr2 != nil {
-			utils.Logger.Debugf(
-				"Skipping game start, bot not in guild %s",
-				guildID,
-			)
-
-			return false, nil
-		}
 	}
 
 	currentGame, err := s.GetCurrentGame(ctx, guildID)
@@ -249,7 +241,7 @@ func (s *GameService) Guess(
 	ctx context.Context,
 	guildID string,
 	word string,
-	message *discordgo.Message,
+	message discord.Message,
 	guildSettings *ent.Settings,
 ) error {
 	currentGame, err := s.GetCurrentGame(ctx, guildID)
@@ -261,30 +253,17 @@ func (s *GameService) Guess(
 		return nil
 	}
 
-	b, err := s.bot.ShardByGuild(guildID)
-	if err != nil {
-		utils.Logger.Warnw(
-			"game: guess: ShardByGuild failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-		)
-
-		return nil
-	}
-
 	// Ensure player exists
 	if _, pErr := s.points.GetPlayer(
 		ctx,
 		guildID,
-		message.Author.ID,
+		message.Author.ID.String(),
 	); pErr != nil {
 		utils.Logger.Warnw("game: guess: get player failed",
 			"error", pErr,
 			"guildID", guildID,
 			"gameID", currentGame.ID,
-			"userID", message.Author.ID,
+			"userID", message.Author.ID.String(),
 		)
 	}
 
@@ -301,10 +280,8 @@ func (s *GameService) Guess(
 	if os.Getenv("ENV") == "production" {
 		for _, g := range guesses {
 			if g.Word == word {
-				b.MessageReactionAdd(
-					message.ChannelID,
-					message.ID,
-					"❌",
+				utils.LogIfErr(utils.Logger, "reaction-add",
+					s.client.Rest.AddReaction(message.ChannelID, message.ID, "❌"),
 				)
 
 				return nil
@@ -313,12 +290,10 @@ func (s *GameService) Guess(
 	}
 
 	// Cooldown check
-	cooldown := s.checkCooldown(message.Author.ID, guesses, guildSettings)
+	cooldown := s.checkCooldown(message.Author.ID.String(), guesses, guildSettings)
 	if cooldown.Hit || cooldown.RepeatHit {
-		b.MessageReactionAdd(
-			message.ChannelID,
-			message.ID,
-			"🕒",
+		utils.LogIfErr(utils.Logger, "reaction-add",
+			s.client.Rest.AddReaction(message.ChannelID, message.ID, "🕒"),
 		)
 
 		suffix := fmt.Sprintf(
@@ -338,11 +313,13 @@ func (s *GameService) Guess(
 			)
 		}
 
-		_, sendErr := b.ChannelMessageSendReply(
-			message.ChannelID,
-			fmt.Sprintf("You're on a cooldown, %s", suffix),
-			message.Reference(),
-		)
+		msgID := message.ID
+		_, sendErr := s.client.Rest.CreateMessage(message.ChannelID, discord.MessageCreate{
+			Content: fmt.Sprintf("You're on a cooldown, %s", suffix),
+			MessageReference: &discord.MessageReference{
+				MessageID: &msgID,
+			},
+		})
 		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 
 		return nil
@@ -368,7 +345,7 @@ func (s *GameService) Guess(
 	}
 
 	createdGuess, err := s.database.Guess.Create().
-		SetUserID(message.Author.ID).
+		SetUserID(message.Author.ID.String()).
 		SetGameID(currentGame.ID).
 		SetWord(word).
 		SetPoints(points).
@@ -417,13 +394,13 @@ func (s *GameService) Guess(
 
 	// React to guess message
 	if guessed {
-		b.MessageReactionAdd(
-			message.ChannelID,
-			message.ID,
-			"🎉",
+		utils.LogIfErr(utils.Logger, "reaction-add",
+			s.client.Rest.AddReaction(message.ChannelID, message.ID, "🎉"),
 		)
 	} else {
-		b.MessageReactionAdd(message.ChannelID, message.ID, "✅")
+		utils.LogIfErr(utils.Logger, "reaction-add",
+			s.client.Rest.AddReaction(message.ChannelID, message.ID, "✅"),
+		)
 	}
 
 	// Fetch updated guesses list (with new guess)
@@ -439,7 +416,7 @@ func (s *GameService) Guess(
 				context.Background(),
 				updatedGame,
 				allGuesses,
-				message.Author.ID,
+				message.Author.ID.String(),
 			); applyErr != nil {
 				utils.Logger.Warnw("game: guess: apply points failed",
 					"error", applyErr,
@@ -475,11 +452,13 @@ func (s *GameService) Guess(
 					Unix(),
 				afterPart,
 			)
-			_, sendErr := b.ChannelMessageSendReply(
-				message.ChannelID,
-				msg,
-				message.Reference(),
-			)
+			msgID := message.ID
+			_, sendErr := s.client.Rest.CreateMessage(message.ChannelID, discord.MessageCreate{
+				Content: msg,
+				MessageReference: &discord.MessageReference{
+					MessageID: &msgID,
+				},
+			})
 			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
 		}()
 	}
@@ -559,26 +538,13 @@ func (s *GameService) EndGame(
 		return fmt.Errorf("game: end: update: %w", err)
 	}
 
-	b, err := s.bot.ShardByGuild(endedGame.GuildID)
-	if err != nil {
+	if !utils.IsBotInGuildClient(s.client, endedGame.GuildID) {
 		utils.Logger.Debugf(
-			"Skipping end message, ShardByGuild failed for guild %s: %v",
+			"Skipping end message, bot not in guild %s",
 			endedGame.GuildID,
-			err,
 		)
 
 		return nil
-	}
-
-	if _, gErr := b.State.Guild(endedGame.GuildID); gErr != nil {
-		if _, gErr2 := b.Guild(endedGame.GuildID); gErr2 != nil {
-			utils.Logger.Debugf(
-				"Skipping end message, bot not in guild %s",
-				endedGame.GuildID,
-			)
-
-			return nil
-		}
 	}
 
 	guesses, _ := s.database.Guess.Query().

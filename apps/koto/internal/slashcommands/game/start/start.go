@@ -2,7 +2,7 @@
 package start
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -24,12 +24,12 @@ func GetStartModule(container *di.Container) *StartModule {
 	}
 }
 
-func (m *StartModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *StartModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "start",
 			Description: "Start a new Koto game",
-			Handler:     discordgoplus.HandlerFunc(m.start),
+			Handler:     disgoplus.HandlerFunc(m.start),
 		},
 	}
 }

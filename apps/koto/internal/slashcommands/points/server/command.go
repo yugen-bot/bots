@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	"jurien.dev/yugen/shared/config"
@@ -16,25 +17,36 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *ServerModule) server(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
+	guildID := ctx.GuildID.String()
 	bg := context.Background()
 
 	settings, err := m.settingsSvc.GetByGuildID(bg, guildID)
 	if err != nil || settings == nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Sorry, couldn't retrieve the server information.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 		return
 	}
 
-	guild, err := m.bot.Guild(guildID)
+	guildSnowflake, err := snowflake.Parse(guildID)
 	if err != nil {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Sorry, couldn't retrieve the server information.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		return
+	}
+
+	guild, err := m.bot.Client().Rest.GetGuild(guildSnowflake, false)
+	if err != nil {
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
+			Content: "Sorry, couldn't retrieve the server information.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
 		return
 	}
 
@@ -93,17 +105,18 @@ func (m *ServerModule) server(ctx *discordgoplus.Ctx) {
 		cfg.OwnerID,
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Color: localStatic.EmbedColor,
-		Title: guild.Name,
-		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: guild.IconURL("64"),
-		},
-		Description: description,
-		Footer:      footer,
+	embed := discord.NewEmbed().
+		WithColor(localStatic.EmbedColor).
+		WithTitle(guild.Name).
+		WithDescription(description).
+		WithEmbedFooter(footer)
+
+	if iconURL := guild.IconURL(); iconURL != nil {
+		embed = embed.WithThumbnail(*iconURL)
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Embeds: []*discordgo.MessageEmbed{embed},
-	}, true)
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	})
 }

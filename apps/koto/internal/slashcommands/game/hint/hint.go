@@ -2,7 +2,7 @@
 package hint
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -24,11 +24,11 @@ func GetHintModule(container *di.Container) *HintModule {
 	}
 }
 
-func (m *HintModule) MessageComponents() []*discordgoplus.MessageComponent {
-	return []*discordgoplus.MessageComponent{
+func (m *HintModule) MessageComponents() []*disgoplus.MessageComponent {
+	return []*disgoplus.MessageComponent{
 		{
 			CustomID: "GAME_HINT/:gameId",
-			Handler:  discordgoplus.HandlerFunc(m.hint),
+			Handler:  disgoplus.HandlerFunc(m.hint),
 		},
 	}
 }

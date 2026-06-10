@@ -3,17 +3,17 @@ package start
 import (
 	"context"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *StartModule) start(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *StartModule) start(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
+	guildID := ctx.GuildID.String()
 
 	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || guildSettings == nil {
@@ -26,13 +26,14 @@ func (m *StartModule) start(ctx *discordgoplus.Ctx) {
 		return
 	}
 
-	isModerator := ctx.Interaction.Member != nil &&
-		ctx.Interaction.Member.Permissions&discordgo.PermissionManageGuild != 0
+	isModerator := ctx.Member != nil &&
+		ctx.Member.Permissions.Has(discord.PermissionManageGuild)
 
 	if !guildSettings.MembersCanStart && !isModerator {
-		discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
+		disgoplus.FollowUp(ctx, discord.MessageCreate{
 			Content: "Only moderators can start games unless members privilege is enabled.",
-		}, true)
+			Flags:   discord.MessageFlagEphemeral,
+		})
 
 		return
 	}
@@ -46,20 +47,22 @@ func (m *StartModule) start(ctx *discordgoplus.Ctx) {
 	}
 
 	if !started {
-		discordgoplus.FollowUp(
+		disgoplus.FollowUp(
 			ctx,
-			&discordgo.WebhookParams{
+			discord.MessageCreate{
 				Content: "There is already an active game!",
+				Flags:   discord.MessageFlagEphemeral,
 			},
-			true,
 		)
 
 		return
 	}
 
-	discordgoplus.FollowUp(
+	disgoplus.FollowUp(
 		ctx,
-		&discordgo.WebhookParams{Content: "Game started!"},
-		true,
+		discord.MessageCreate{
+			Content: "Game started!",
+			Flags:   discord.MessageFlagEphemeral,
+		},
 	)
 }

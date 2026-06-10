@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 
 	"jurien.dev/yugen/koto/internal/ent"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 )
 
-func (m *SetRoleModule) set(ctx *discordgoplus.Ctx) {
-	discordgoplus.Defer(ctx, true)
+func (m *SetRoleModule) set(ctx *disgoplus.Ctx) {
+	disgoplus.Defer(ctx, true)
 
-	guildID := ctx.Interaction.GuildID
-	role := ctx.Options["role"].RoleValue(ctx.Session, guildID)
+	guildID := ctx.GuildID.String()
+	role := ctx.CommandData.Role("role")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || existing == nil {
@@ -27,17 +27,18 @@ func (m *SetRoleModule) set(ctx *discordgoplus.Ctx) {
 		context.Background(),
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) {
-			u.SetPingRoleID(role.ID)
-			if opt, ok := ctx.Options["only-new"]; ok {
-				u.SetPingOnlyNew(opt.BoolValue())
+			u.SetPingRoleID(role.ID.String())
+			if v, ok := ctx.CommandData.OptBool("only-new"); ok {
+				u.SetPingOnlyNew(v)
 			}
 		},
 	); err != nil {
-		discordgoplus.InteractionError(ctx, true)
+		disgoplus.InteractionError(ctx, true)
 		return
 	}
 
-	discordgoplus.FollowUp(ctx, &discordgo.WebhookParams{
-		Content: fmt.Sprintf("Koto will ping <@&%s> on new games!", role.ID),
-	}, true)
+	disgoplus.FollowUp(ctx, discord.MessageCreate{
+		Content: fmt.Sprintf("Koto will ping <@&%s> on new games!", role.ID.String()),
+		Flags:   discord.MessageFlagEphemeral,
+	})
 }

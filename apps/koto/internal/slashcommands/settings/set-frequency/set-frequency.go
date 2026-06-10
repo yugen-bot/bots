@@ -2,13 +2,15 @@
 package setfrequency
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
 	"jurien.dev/yugen/shared/static"
 )
+
+func intPtr(i int) *int { return &i }
 
 type SetFrequencyModule struct {
 	container *di.Container
@@ -22,20 +24,19 @@ func GetSetFrequencyModule(container *di.Container) *SetFrequencyModule {
 	}
 }
 
-func (m *SetFrequencyModule) Commands() []*discordgoplus.Command {
-	return []*discordgoplus.Command{
+func (m *SetFrequencyModule) Commands() []*disgoplus.Command {
+	return []*disgoplus.Command{
 		{
 			Name:        "frequency",
 			Description: "Set how many minutes between games",
-			Handler:     discordgoplus.HandlerFunc(m.set),
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Handler:     disgoplus.HandlerFunc(m.set),
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "minutes",
 					Description: "How many minutes between games (1-525600).",
 					Required:    true,
-					MinValue:    func() *float64 { v := float64(1); return &v }(),
-					MaxValue:    525_600,
+					MinValue:    intPtr(1),
+					MaxValue:    intPtr(525_600),
 				},
 			},
 		},
