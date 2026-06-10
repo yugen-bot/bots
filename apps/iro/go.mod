@@ -1,11 +1,12 @@
 module jurien.dev/yugen/iro
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/joho/godotenv v1.5.1
 	github.com/jurienhamaker/discordgoplus v1.0.5
+	github.com/jurienhamaker/disgoplus v0.1.0
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/zekroTJA/colorname v1.0.0
 	github.com/zekroTJA/shinpuru v0.0.0-20240828005211-d93172643d5f
@@ -27,7 +28,13 @@ require (
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4 // indirect
 	github.com/gofiber/fiber/v2 v2.52.5 // indirect
 	github.com/google/uuid v1.5.0 // indirect
+	github.com/disgoorg/disgo v0.19.6 // indirect
+	github.com/disgoorg/godave v0.1.0 // indirect
+	github.com/disgoorg/json/v2 v2.0.0 // indirect
+	github.com/disgoorg/omit v1.0.0 // indirect
+	github.com/disgoorg/snowflake/v2 v2.0.3 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/sasha-s/go-csync v0.0.0-20240107134140-fcbab37b09ad // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

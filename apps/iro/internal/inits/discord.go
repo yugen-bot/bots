@@ -4,59 +4,47 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/events"
+	"github.com/jurienhamaker/disgoplus"
+	"github.com/sarulabs/di/v2"
+
 	"jurien.dev/yugen/iro/internal/listeners"
-	sharedInits "jurien.dev/yugen/shared/inits"
 	sharedListeners "jurien.dev/yugen/shared/listeners"
 	"jurien.dev/yugen/shared/middlewares"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
-
-	"github.com/bwmarrin/discordgo"
-	"github.com/jurienhamaker/discordgoplus"
-	"github.com/sarulabs/di/v2"
-)
-
-const (
-	Intents = discordgo.IntentGuilds |
-		discordgo.IntentsGuildMessageReactions |
-		discordgo.IntentsGuildMessages
 )
 
 func InitDiscordBot(ctx context.Context, container *di.Container) error {
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
+	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
 
-	bot.Identify.Intents = Intents
-
-	bot.AddHandler(func(bot *discordgo.Session, event *discordgo.Ready) {
-		utils.Logger.Infof(
-			"Logged in as: %v#%v (%d/%d)",
-			bot.State.User.Username,
-			bot.State.User.Discriminator,
-			bot.ShardID+1,
-			bot.ShardCount,
-		)
-		bot.UpdateWatchStatus(0, "colors 🎨")
-	})
+	disgoBot.Client().EventManager.AddEventListeners(
+		bot.NewListenerFunc(func(e *events.Ready) {
+			self, _ := e.Client().Caches.SelfUser()
+			utils.Logger.Infof(
+				"Logged in as: %v (shard %d)",
+				self.Username,
+				e.ShardID(),
+			)
+		}),
+	)
 
 	middlewares.InitMiddlewares(container)
 
-	// shared
 	sharedListeners.AddLogListeners(container)
 	sharedListeners.AddMetricsListeners(container)
 	sharedListeners.AddVoteListeners(container)
 
-	// internal
 	listeners.AddColorListeners(container)
 
 	if err := InitCommands(container); err != nil {
 		return fmt.Errorf("discord: init commands: %w", err)
 	}
 
-	if err := bot.Open(); err != nil {
+	if err := disgoBot.Open(ctx); err != nil {
 		return fmt.Errorf("discord: open: %w", err)
 	}
-
-	sharedInits.StartShardWatchdog(bot, ctx)
 
 	return nil
 }
