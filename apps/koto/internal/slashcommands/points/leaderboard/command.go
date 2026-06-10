@@ -37,19 +37,17 @@ func (m *LeaderboardModule) leaderboard(ctx *disgoplus.Ctx) {
 }
 
 func (m *LeaderboardModule) leaderboardPage(ctx *disgoplus.Ctx) {
-	data := ctx.MessageComponentOptions["data"]
 	leaderboardType := "points"
-	page := 1
-
-	parts := strings.SplitN(data, "/", 2)
-	if len(parts) >= 1 && parts[0] != "" {
-		leaderboardType = parts[0]
+	if t := ctx.MessageComponentOptions["type"]; t != "" {
+		leaderboardType = t
 	}
 
-	if len(parts) >= 2 {
-		if p, err := strconv.Atoi(parts[1]); err == nil && p > 0 {
-			page = p
-		}
+	page := 1
+	if p, err := strconv.Atoi(
+		ctx.MessageComponentOptions["page"],
+	); err == nil &&
+		p > 0 {
+		page = p
 	}
 
 	m.showLeaderboard(ctx, leaderboardType, page, true, true)

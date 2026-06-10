@@ -63,7 +63,7 @@ func (m *LeaderboardModule) Commands() []*disgoplus.Command {
 func (m *LeaderboardModule) MessageComponents() []*disgoplus.MessageComponent {
 	return []*disgoplus.MessageComponent{
 		{
-			CustomID: "LEADERBOARD/:data",
+			CustomID: "LEADERBOARD/:type/:page",
 			Handler:  disgoplus.HandlerFunc(m.leaderboardPage),
 		},
 	}
