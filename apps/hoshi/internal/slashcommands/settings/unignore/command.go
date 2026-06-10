@@ -13,7 +13,7 @@ func (m *UnignoreModule) unignore(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	channelID := e.Channel().ID().String()
@@ -26,7 +26,7 @@ func (m *UnignoreModule) unignore(
 
 	if err := m.settings.IgnoreChannel(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		channelID,
 		false,
 	); err != nil {
@@ -35,16 +35,19 @@ func (m *UnignoreModule) unignore(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("ignore channel: %w", err)
 	}
 
 	_, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf("Starboards are now **unignored** for %s!", label),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }

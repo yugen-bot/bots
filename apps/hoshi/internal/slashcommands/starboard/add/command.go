@@ -18,7 +18,7 @@ func (m *AddModule) add(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
@@ -38,10 +38,25 @@ func (m *AddModule) add(
 			Content: "You can only use emojis from guilds that the bot is in.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("follow-up message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
+	return m.validateStarboardSetup(
+		e, data, key, display, unicode, destination.ID.String(),
+	)
+}
+
+func (m *AddModule) validateStarboardSetup(
+	e *handler.CommandEvent,
+	data discord.SlashCommandInteractionData,
+	key, display string,
+	unicode bool,
+	destinationID string,
+) error {
 	var sourceChannelID *string
 
 	sourceLabel := ""
@@ -54,7 +69,7 @@ func (m *AddModule) add(
 
 	existing, err := m.starboard.GetStarboardBySourceIDAndEmoji(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		key,
 		sourceChannelID,
 	)
@@ -66,10 +81,10 @@ func (m *AddModule) add(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("get starboard by source and emoji: %w", err)
 	}
 
 	if existing != nil {
@@ -77,16 +92,37 @@ func (m *AddModule) add(
 			Content: "A starboard for the supplied rules already exists.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("follow-up message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = m.starboard.AddStarboard(
+	return m.addStarboardToGuild(
+		e,
+		key,
+		display,
+		unicode,
+		sourceChannelID,
+		sourceLabel,
+		destinationID,
+	)
+}
+
+func (m *AddModule) addStarboardToGuild(
+	e *handler.CommandEvent,
+	key, display string,
+	unicode bool,
+	sourceChannelID *string,
+	sourceLabel, destinationID string,
+) error {
+	_, err := m.starboard.AddStarboard(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		key,
 		sourceChannelID,
-		destination.ID.String(),
+		destinationID,
 	)
 	if err != nil {
 		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
@@ -94,10 +130,10 @@ func (m *AddModule) add(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("add starboard: %w", err)
 	}
 
 	emojiDisplay := display
@@ -108,12 +144,15 @@ func (m *AddModule) add(
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"A starboard has been added;\nDestination: <#%s>\nEmoji: %s%s",
-			destination.ID.String(),
+			destinationID,
 			emojiDisplay,
 			sourceLabel,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }

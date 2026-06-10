@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"go.uber.org/zap"
@@ -42,7 +43,11 @@ func (h *zapSlogHandler) Handle(_ context.Context, r slog.Record) error {
 		Message: r.Message,
 	}
 
-	return h.core.Write(entry, fields)
+	if err := h.core.Write(entry, fields); err != nil {
+		return fmt.Errorf("zap core write: %w", err)
+	}
+
+	return nil
 }
 
 func (h *zapSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {

@@ -13,14 +13,14 @@ func (m *RemoveModule) remove(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	id := data.Int("id")
 
 	config, err := m.starboard.RemoveStarboardByID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		id,
 	)
 	if err != nil || config == nil {
@@ -31,8 +31,11 @@ func (m *RemoveModule) remove(
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+		if ferr != nil {
+			return fmt.Errorf("follow-up message: %w", ferr)
+		}
 
-		return ferr
+		return nil
 	}
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
@@ -42,6 +45,9 @@ func (m *RemoveModule) remove(
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }

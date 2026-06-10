@@ -37,20 +37,22 @@ func (m *GameModule) startGame(
 	recreate bool,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("game: defer create message: %w", err)
 	}
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("game: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
 	channelId := settings.ChannelID
@@ -66,18 +68,20 @@ func (m *GameModule) startGame(
 
 	_, started, err := m.game.Start(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		game.TypeNORMAL,
 		startingNumber,
 		recreate,
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("game: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
 	respond := "A game has been started"
@@ -88,22 +92,23 @@ func (m *GameModule) startGame(
 	if *channelId != e.Channel().ID().String() {
 		respond = fmt.Sprintf("%s in the <#%s> channel.", respond, *channelId)
 	} else {
-		respond = respond + "."
+		respond += "."
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: respond,
 		Flags:   discord.MessageFlagEphemeral,
-	})
-	if err != nil {
+	}); err != nil {
 		utils.Logger.Errorw(
 			"game: start game: follow up failed",
 			"error", err,
-			"guildID", (*e.GuildID()).String(),
+			"guildID", e.GuildID().String(),
 		)
+
+		return fmt.Errorf("game: create followup message: %w", err)
 	}
 
-	return err
+	return nil
 }
 
 func (m *GameModule) start(

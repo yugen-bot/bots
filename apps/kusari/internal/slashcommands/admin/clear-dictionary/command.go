@@ -14,7 +14,7 @@ func (m *ClearDictionaryModule) run(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("clear dictionary: defer create message: %w", err)
 	}
 
 	cleared := m.dictionary.Clear()
@@ -27,6 +27,9 @@ func (m *ClearDictionaryModule) run(
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("clear dictionary: create follow up message: %w", err)
+	}
 
-	return err
+	return nil
 }

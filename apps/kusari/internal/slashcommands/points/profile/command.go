@@ -14,7 +14,7 @@ func (m *ProfileModule) profile(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("profile: defer create message: %w", err)
 	}
 
 	player := e.Member().User
@@ -27,27 +27,39 @@ func (m *ProfileModule) profile(
 		player.ID.String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"profile: create follow up message: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	points, err := m.points.GetPlayer(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		player.ID.String(),
 		true,
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Sorry couldn't find your profile...",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"profile: create follow up message: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	name := "You"
@@ -73,6 +85,9 @@ And you have **%s/%s** saves available!`,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("profile: create follow up message: %w", err)
+	}
 
-	return err
+	return nil
 }

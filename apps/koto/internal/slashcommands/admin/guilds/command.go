@@ -15,7 +15,7 @@ func (m *GuildsModule) list(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("guilds list: defer: %w", err)
 	}
 
 	page := 1
@@ -48,22 +48,30 @@ func (m *GuildsModule) showList(
 
 	if total == 0 {
 		content := "There is no guild data available."
-		_, err := e.CreateFollowupMessage(discord.MessageCreate{
+
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: content,
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("guilds list: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	if len(guilds) == 0 {
 		content := fmt.Sprintf("No guilds found for page %d", page)
-		_, err := e.CreateFollowupMessage(discord.MessageCreate{
+
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: content,
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("guilds list: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	maxPage := int(math.Ceil(float64(total) / 10))
@@ -114,13 +122,16 @@ func (m *GuildsModule) showList(
 		components = append(components, discord.NewActionRow(buttons...))
 	}
 
-	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds:     []discord.Embed{embed},
 		Components: components,
 		Flags:      discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("guilds list: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }
 
 func (m *GuildsModule) showListComponent(
@@ -134,11 +145,15 @@ func (m *GuildsModule) showListComponent(
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if updateErr := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
 			Components: &emptyComponents,
-		})
+		}); updateErr != nil {
+			return fmt.Errorf("guilds list: update message: %w", updateErr)
+		}
+
+		return nil
 	}
 
 	if len(guilds) == 0 {
@@ -146,11 +161,15 @@ func (m *GuildsModule) showListComponent(
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if updateErr := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
 			Components: &emptyComponents,
-		})
+		}); updateErr != nil {
+			return fmt.Errorf("guilds list: update message: %w", updateErr)
+		}
+
+		return nil
 	}
 
 	maxPage := int(math.Ceil(float64(total) / 10))
@@ -203,8 +222,12 @@ func (m *GuildsModule) showListComponent(
 
 	embeds := []discord.Embed{embed}
 
-	return e.UpdateMessage(discord.MessageUpdate{
+	if updateErr := e.UpdateMessage(discord.MessageUpdate{
 		Embeds:     &embeds,
 		Components: &components,
-	})
+	}); updateErr != nil {
+		return fmt.Errorf("guilds list: update message: %w", updateErr)
+	}
+
+	return nil
 }

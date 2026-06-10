@@ -82,48 +82,16 @@ func (s *GameService) Start(
 		return g, started, err
 	}
 
-	guildSettings, err := s.settings.GetByGuildID(ctx, guildID)
-	if err != nil {
-		utils.Logger.Errorw(
-			"game: start: get settings failed",
-			"error", err,
-			"guildID", guildID,
-		)
-
-		return g, started, fmt.Errorf("game: start: get settings: %w", err)
-	}
-
-	channelID := guildSettings.ChannelID
-	if channelID == nil {
-		err = ErrNoChannelIDConfigured
-		utils.Logger.Errorw(
-			"game: start: no channel id configured",
-			"error", err,
-			"guildID", guildID,
-		)
-
-		return g, started, err
-	}
-
-	channelSnowflake, err := snowflake.Parse(*channelID)
-	if err != nil {
-		return g, started, fmt.Errorf("game: start: parse channel id: %w", err)
-	}
-
-	channel, err := s.client.Client().Rest.GetChannel(channelSnowflake)
-	if err != nil {
-		utils.Logger.Errorw(
-			"game: start: get channel failed",
-			"error", err,
-			"guildID", guildID,
-			"channelID", *channelID,
-		)
-
-		return g, started, fmt.Errorf("game: start: get channel: %w", err)
+	channelSnowflake, _, channel, setupErr := s.resolveGameChannel(
+		ctx,
+		guildID,
+	)
+	if setupErr != nil {
+		return g, started, setupErr
 	}
 
 	if exists && !recreate {
-		return g, started, err
+		return g, started, nil
 	}
 
 	if (exists && recreate) || (exists && currentGame.Type != gameType) {
@@ -131,7 +99,8 @@ func (s *GameService) Start(
 			ctx,
 			currentGame.ID,
 			game.StatusFAILED,
-			shame...); endErr != nil {
+			shame...,
+		); endErr != nil {
 			utils.Logger.Warnw(
 				"game: start: end current game failed",
 				"error", endErr,
@@ -169,32 +138,100 @@ func (s *GameService) Start(
 		number = 0
 	}
 
-	_, err = s.database.History.Create().
+	if _, histErr := s.database.History.Create().
 		SetUserID(self.ID.String()).
 		SetGameID(g.ID).
 		SetNumber(number).
-		Save(ctx)
+		Save(ctx); histErr != nil {
+		return g, started, fmt.Errorf(
+			"game: start: create history: %w",
+			histErr,
+		)
+	}
+
+	s.sendGameStartMessage(channelSnowflake, channel, number)
+
+	return g, started, nil
+}
+
+// resolveGameChannel fetches and validates the channel configured for the guild.
+func (s *GameService) resolveGameChannel(
+	ctx context.Context,
+	guildID string,
+) (
+	channelSnowflake snowflake.ID,
+	channelIDStr string,
+	channel discord.Channel,
+	err error,
+) {
+	guildSettings, err := s.settings.GetByGuildID(ctx, guildID)
 	if err != nil {
-		return g, started, fmt.Errorf("game: start: create history: %w", err)
+		utils.Logger.Errorw(
+			"game: start: get settings failed",
+			"error", err,
+			"guildID", guildID,
+		)
+
+		return channelSnowflake, channelIDStr, channel,
+			fmt.Errorf("game: start: get settings: %w", err)
 	}
 
+	channelID := guildSettings.ChannelID
+	if channelID == nil {
+		utils.Logger.Errorw(
+			"game: start: no channel id configured",
+			"guildID", guildID,
+		)
+
+		return channelSnowflake, channelIDStr, channel, ErrNoChannelIDConfigured
+	}
+
+	channelSnowflake, err = snowflake.Parse(*channelID)
+	if err != nil {
+		return channelSnowflake, channelIDStr, channel,
+			fmt.Errorf("game: start: parse channel id: %w", err)
+	}
+
+	channel, err = s.client.Client().Rest.GetChannel(channelSnowflake)
+	if err != nil {
+		utils.Logger.Errorw(
+			"game: start: get channel failed",
+			"error", err,
+			"guildID", guildID,
+			"channelID", *channelID,
+		)
+
+		return channelSnowflake, channelIDStr, channel,
+			fmt.Errorf("game: start: get channel: %w", err)
+	}
+
+	return channelSnowflake, *channelID, channel, nil
+}
+
+// sendGameStartMessage posts the "game started" message to the channel
+// in a goroutine, if the channel type supports it.
+func (s *GameService) sendGameStartMessage(
+	channelSnowflake snowflake.ID,
+	channel discord.Channel,
+	number int,
+) {
 	channelType := channel.Type()
-	if channelType == discord.ChannelTypeGuildText ||
-		channelType == discord.ChannelTypeGuildPublicThread ||
-		channelType == discord.ChannelTypeGuildPrivateThread {
-		go func() {
-			_, sendErr := s.client.Client().Rest.CreateMessage(
-				channelSnowflake,
-				discord.MessageCreate{
-					Content: fmt.Sprintf(`**A new game has started!**
-Start the count from **%d**`, number+1),
-				},
-			)
-			utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
-		}()
+	if channelType != discord.ChannelTypeGuildText &&
+		channelType != discord.ChannelTypeGuildPublicThread &&
+		channelType != discord.ChannelTypeGuildPrivateThread {
+		return
 	}
 
-	return g, started, err
+	go func() {
+		_, sendErr := s.client.Client().Rest.CreateMessage(
+			channelSnowflake,
+			discord.MessageCreate{
+				Content: fmt.Sprintf(`**A new game has started!**
+Start the count from **%d**`, number+1),
+			},
+		)
+		utils.LogIfErr(utils.Logger, "channel-message-send", sendErr)
+	}()
 }
 
 func (s *GameService) End(
@@ -399,241 +436,22 @@ func (s *GameService) AddNumber(
 		s.cfg.Env != "development"
 
 	if !isNextNumber || isSameUser {
-		// Build failure reason
-		failReason := fmt.Sprintf(
-			"<@%s> counted twice in a row!",
-			message.Author.ID.String(),
-		)
-		if !isNextNumber {
-			failReason = fmt.Sprintf("%d is not the next number!", number)
-		}
-
-		utils.LogIfErr(
-			utils.Logger,
-			"message-reaction-add",
-			s.client.Client().Rest.AddReaction(
-				message.ChannelID,
-				message.ID,
-				"❌",
-			),
-		)
-
-		saves, err := s.saves.GetSaves(
-			ctx,
-			guildSettings,
-			message.Author.ID.String(),
-		)
-		if err != nil {
-			utils.Logger.Errorw(
-				"game: add number: get saves failed",
-				"error", err,
-				"guildID", guildID,
-				"userID", message.Author.ID.String(),
-				"messageID", message.ID.String(),
-			)
-
-			return
-		}
-
-		if saves.player >= 1 {
-			leftoverSaves, maxSaves, err := s.saves.DeductSaveFromPlayer(
-				ctx,
-				message.Author.ID.String(),
-				1,
-			)
-			if err != nil {
-				utils.Logger.Errorw(
-					"game: add number: deduct player save failed",
-					"error", err,
-					"guildID", guildID,
-					"userID", message.Author.ID.String(),
-				)
-
-				return
-			}
-
-			msgID := message.ID
-			channelID := message.ChannelID
-			guildIDPtr := message.GuildID
-
-			go func() {
-				_, sendErr := s.client.Client().Rest.CreateMessage(
-					channelID,
-					discord.MessageCreate{
-						Content: fmt.Sprintf(
-							`%s
-Used **1 of your own** saves, You have **%s/%s** saves left.`,
-							failReason,
-							strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-							strconv.FormatFloat(maxSaves, 'f', -1, 64),
-						),
-						MessageReference: &discord.MessageReference{
-							MessageID: &msgID,
-							ChannelID: &channelID,
-							GuildID:   guildIDPtr,
-						},
-					},
-				)
-				utils.LogIfErr(
-					utils.Logger,
-					"channel-message-send-reply",
-					sendErr,
-				)
-			}()
-
-			return
-		}
-
-		if saves.guild >= 1 {
-			leftoverSaves, maxSaves, err := s.saves.DeductSaveFromGuild(
-				ctx,
-				message.GuildID.String(),
-				guildSettings,
-				1,
-			)
-			if err != nil {
-				utils.Logger.Errorw(
-					"game: add number: deduct guild save failed",
-					"error", err,
-					"guildID", guildID,
-					"userID", message.Author.ID.String(),
-				)
-
-				return
-			}
-
-			msgID := message.ID
-			channelID := message.ChannelID
-			guildIDPtr := message.GuildID
-
-			go func() {
-				_, sendErr := s.client.Client().Rest.CreateMessage(
-					channelID,
-					discord.MessageCreate{
-						Content: fmt.Sprintf(
-							`%s
-Used **1 server** save, There are **%s/%s** server saves left.`,
-							failReason,
-							strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
-							strconv.FormatFloat(maxSaves, 'f', -1, 64),
-						),
-						MessageReference: &discord.MessageReference{
-							MessageID: &msgID,
-							ChannelID: &channelID,
-							GuildID:   guildIDPtr,
-						},
-					},
-				)
-				utils.LogIfErr(
-					utils.Logger,
-					"channel-message-send-reply",
-					sendErr,
-				)
-			}()
-
-			return
-		}
-
-		isHighscore, _, err := s.checkStreak(ctx, guildSettings, g, number)
-		if err != nil {
-			utils.Logger.Errorw(
-				"game: add number: check streak failed",
-				"error", err,
-				"guildID", guildID,
-				"gameID", g.ID,
-			)
-
-			return
-		}
-
-		highScoreText := ""
-		if isHighscore {
-			highScoreText = "\n**A new highscore has been set! 🎉**"
-		}
-
-		// Deduct points from the player who broke the chain
-		pointsRemoved := int(h.Number / 10)
-
-		go func() {
-			utils.LogIfErr(
-				utils.Logger,
-				"remove-game-points",
-				s.points.RemoveGamePoints(
-					ctx,
-					guildID,
-					message.Author.ID.String(),
-					pointsRemoved,
-				),
-			)
-		}()
-
-		if pointsRemoved == 0 {
-			pointsRemoved = 1
-		}
-
-		pointText := "Points have"
-		if pointsRemoved == 1 {
-			pointText = "Point has"
-		}
-
-		pointsRemovedText := fmt.Sprintf(
-			"\n\n**%d %s been removed from your account.**",
-			pointsRemoved,
-			pointText,
-		)
-
-		msgID := message.ID
-		channelID := message.ChannelID
-		guildIDPtr := message.GuildID
-
-		go func() {
-			_, sendErr := s.client.Client().Rest.CreateMessage(
-				channelID,
-				discord.MessageCreate{
-					Content: fmt.Sprintf(
-						`%s
-**The game has ended on a streak of %d!**%s%s
-
-**Want to save the game?** Make sure to **/vote** for Kazu and earn yourself saves to save the game!`,
-						failReason,
-						number,
-						highScoreText,
-						pointsRemovedText,
-					),
-					MessageReference: &discord.MessageReference{
-						MessageID: &msgID,
-						ChannelID: &channelID,
-						GuildID:   guildIDPtr,
-					},
-				},
-			)
-			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
-		}()
-
-		shameOpts := ShameOptions{
-			message:  message,
-			settings: guildSettings,
-		}
-		if _, _, startErr := s.Start(
+		s.handleNumberFailure(
 			ctx,
 			guildID,
-			game.TypeNORMAL,
-			1,
-			true,
-			&shameOpts,
-		); startErr != nil {
-			utils.Logger.Warnw(
-				"game: add number: restart failed",
-				"error", startErr,
-				"guildID", guildID,
-				"userID", message.Author.ID.String(),
-			)
-		}
+			number,
+			message,
+			guildSettings,
+			g,
+			h,
+			isNextNumber,
+		)
 
 		return
 	}
 
-	cooldown, err := s.checkCooldown(ctx,
+	cooldown, err := s.checkCooldown(
+		ctx,
 		message.Author.ID.String(),
 		g.ID,
 		guildSettings.Cooldown,
@@ -664,6 +482,19 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
+	s.recordSuccessfulNumber(ctx, guildID, number, message, guildSettings, g)
+}
+
+// recordSuccessfulNumber records history, points, and emoji reactions for a
+// valid number. Extracted from AddNumber to keep function length in check.
+func (s *GameService) recordSuccessfulNumber(
+	ctx context.Context,
+	guildID string,
+	number int,
+	message discord.Message,
+	guildSettings *ent.Settings,
+	g *ent.Game,
+) {
 	// Record points and history
 	go func() {
 		utils.LogIfErr(
@@ -675,13 +506,12 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 
 	msgIDStr := message.ID.String()
 
-	_, err = s.database.History.Create().
+	if _, err := s.database.History.Create().
 		SetUserID(message.Author.ID.String()).
 		SetGameID(g.ID).
 		SetNumber(number).
 		SetNillableMessageID(&msgIDStr).
-		Save(ctx)
-	if err != nil {
+		Save(ctx); err != nil {
 		utils.Logger.Errorw(
 			"game: add number: create history failed",
 			"error", err,
@@ -694,21 +524,12 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		return
 	}
 
-	// Check streak and react
-	isHighscore, isGameHighscored, err := s.checkStreak(
+	isHighscore, isGameHighscored := s.checkStreak(
 		ctx,
 		guildSettings,
 		g,
 		number,
 	)
-	if err != nil {
-		utils.Logger.Errorw(
-			"game: add number: check streak failed after history",
-			"error", err,
-			"guildID", guildID,
-			"gameID", g.ID,
-		)
-	}
 
 	if isGameHighscored {
 		utils.LogIfErrNoRateLimit(
@@ -744,6 +565,286 @@ Used **1 server** save, There are **%s/%s** server saves left.`,
 		),
 	)
 	s.checkSpecialReactions(message, number)
+}
+
+// handleNumberFailure processes an incorrect number or same-user violation,
+// applying saves if available or ending the game.
+func (s *GameService) handleNumberFailure(
+	ctx context.Context,
+	guildID string,
+	number int,
+	message discord.Message,
+	guildSettings *ent.Settings,
+	g *ent.Game,
+	h *ent.History,
+	isNextNumber bool,
+) {
+	failReason := fmt.Sprintf(
+		"<@%s> counted twice in a row!",
+		message.Author.ID.String(),
+	)
+	if !isNextNumber {
+		failReason = fmt.Sprintf("%d is not the next number!", number)
+	}
+
+	utils.LogIfErr(
+		utils.Logger,
+		"message-reaction-add",
+		s.client.Client().Rest.AddReaction(
+			message.ChannelID,
+			message.ID,
+			"❌",
+		),
+	)
+
+	saves, savesErr := s.saves.GetSaves(
+		ctx,
+		guildSettings,
+		message.Author.ID.String(),
+	)
+	if savesErr != nil {
+		utils.Logger.Errorw(
+			"game: add number: get saves failed",
+			"error", savesErr,
+			"guildID", guildID,
+			"userID", message.Author.ID.String(),
+			"messageID", message.ID.String(),
+		)
+
+		return
+	}
+
+	if s.tryPlayerSave(ctx, guildID, failReason, message, saves) {
+		return
+	}
+
+	if s.tryGuildSave(ctx, guildID, failReason, message, guildSettings, saves) {
+		return
+	}
+
+	s.endGameOnFailure(
+		ctx,
+		guildID,
+		number,
+		message,
+		guildSettings,
+		g,
+		h,
+		failReason,
+	)
+}
+
+// tryPlayerSave attempts to consume a player save to recover from failure.
+// Returns true if a save was consumed (caller should return early).
+func (s *GameService) tryPlayerSave(
+	ctx context.Context,
+	guildID string,
+	failReason string,
+	message discord.Message,
+	saves *GetSavesResult,
+) bool {
+	if saves.player < 1 {
+		return false
+	}
+
+	leftoverSaves, maxSaves, playerSaveErr := s.saves.DeductSaveFromPlayer(
+		ctx,
+		message.Author.ID.String(),
+		1,
+	)
+	if playerSaveErr != nil {
+		utils.Logger.Errorw(
+			"game: add number: deduct player save failed",
+			"error", playerSaveErr,
+			"guildID", guildID,
+			"userID", message.Author.ID.String(),
+		)
+
+		return true
+	}
+
+	msgID := message.ID
+	channelID := message.ChannelID
+	guildIDPtr := message.GuildID
+
+	go func() {
+		_, sendErr := s.client.Client().Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{
+				Content: fmt.Sprintf(
+					`%s
+Used **1 of your own** saves, You have **%s/%s** saves left.`,
+					failReason,
+					strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+					strconv.FormatFloat(maxSaves, 'f', -1, 64),
+				),
+				MessageReference: &discord.MessageReference{
+					MessageID: &msgID,
+					ChannelID: &channelID,
+					GuildID:   guildIDPtr,
+				},
+			},
+		)
+		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+	}()
+
+	return true
+}
+
+// tryGuildSave attempts to consume a guild save to recover from failure.
+// Returns true if a save was consumed (caller should return early).
+func (s *GameService) tryGuildSave(
+	ctx context.Context,
+	guildID string,
+	failReason string,
+	message discord.Message,
+	guildSettings *ent.Settings,
+	saves *GetSavesResult,
+) bool {
+	if saves.guild < 1 {
+		return false
+	}
+
+	leftoverSaves, maxSaves, guildSaveErr := s.saves.DeductSaveFromGuild(
+		ctx,
+		message.GuildID.String(),
+		guildSettings,
+		1,
+	)
+	if guildSaveErr != nil {
+		utils.Logger.Errorw(
+			"game: add number: deduct guild save failed",
+			"error", guildSaveErr,
+			"guildID", guildID,
+			"userID", message.Author.ID.String(),
+		)
+
+		return true
+	}
+
+	msgID := message.ID
+	channelID := message.ChannelID
+	guildIDPtr := message.GuildID
+
+	go func() {
+		_, sendErr := s.client.Client().Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{
+				Content: fmt.Sprintf(
+					`%s
+Used **1 server** save, There are **%s/%s** server saves left.`,
+					failReason,
+					strconv.FormatFloat(leftoverSaves, 'f', -1, 64),
+					strconv.FormatFloat(maxSaves, 'f', -1, 64),
+				),
+				MessageReference: &discord.MessageReference{
+					MessageID: &msgID,
+					ChannelID: &channelID,
+					GuildID:   guildIDPtr,
+				},
+			},
+		)
+		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+	}()
+
+	return true
+}
+
+// endGameOnFailure ends the current game, notifies the channel, and restarts.
+func (s *GameService) endGameOnFailure(
+	ctx context.Context,
+	guildID string,
+	number int,
+	message discord.Message,
+	guildSettings *ent.Settings,
+	g *ent.Game,
+	h *ent.History,
+	failReason string,
+) {
+	isHighscore, _ := s.checkStreak(ctx, guildSettings, g, number)
+
+	highScoreText := ""
+	if isHighscore {
+		highScoreText = "\n**A new highscore has been set! 🎉**"
+	}
+
+	pointsRemoved := h.Number / 10
+
+	go func() {
+		utils.LogIfErr(
+			utils.Logger,
+			"remove-game-points",
+			s.points.RemoveGamePoints(
+				ctx,
+				guildID,
+				message.Author.ID.String(),
+				pointsRemoved,
+			),
+		)
+	}()
+
+	if pointsRemoved == 0 {
+		pointsRemoved = 1
+	}
+
+	pointText := "Points have"
+	if pointsRemoved == 1 {
+		pointText = "Point has"
+	}
+
+	pointsRemovedText := fmt.Sprintf(
+		"\n\n**%d %s been removed from your account.**",
+		pointsRemoved,
+		pointText,
+	)
+
+	msgID := message.ID
+	channelID := message.ChannelID
+	guildIDPtr := message.GuildID
+
+	go func() {
+		_, sendErr := s.client.Client().Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{
+				Content: fmt.Sprintf(
+					`%s
+**The game has ended on a streak of %d!**%s%s
+
+**Want to save the game?** Make sure to **/vote** for Kazu and earn yourself saves to save the game!`,
+					failReason,
+					number,
+					highScoreText,
+					pointsRemovedText,
+				),
+				MessageReference: &discord.MessageReference{
+					MessageID: &msgID,
+					ChannelID: &channelID,
+					GuildID:   guildIDPtr,
+				},
+			},
+		)
+		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+	}()
+
+	shameOpts := ShameOptions{
+		message:  message,
+		settings: guildSettings,
+	}
+	if _, _, startErr := s.Start(
+		ctx,
+		guildID,
+		game.TypeNORMAL,
+		1,
+		true,
+		&shameOpts,
+	); startErr != nil {
+		utils.Logger.Warnw(
+			"game: add number: restart failed",
+			"error", startErr,
+			"guildID", guildID,
+			"userID", message.Author.ID.String(),
+		)
+	}
 }
 
 func (s *GameService) IsEqualToLast(
@@ -868,30 +969,46 @@ func (s *GameService) checkStreak(
 	guildSettings *ent.Settings,
 	g *ent.Game,
 	number int,
-) (isHighscore bool, isGameHighscored bool, err error) {
+) (isHighscore bool, isGameHighscored bool) {
 	if number <= guildSettings.Highscore {
-		return false, false, nil
+		return false, false
 	}
 
 	isHighscore = true
 
-	go s.settings.SetHighscoreByGuildID(
-		ctx,
-		guildSettings.GuildID,
-		number,
-	)
+	go func() {
+		if _, highscoreErr := s.settings.SetHighscoreByGuildID(
+			ctx,
+			guildSettings.GuildID,
+			number,
+		); highscoreErr != nil {
+			utils.Logger.Errorw(
+				"game: check streak: set highscore failed",
+				"error", highscoreErr,
+				"guildID", guildSettings.GuildID,
+			)
+		}
+	}()
 
 	if g.IsHighscored {
-		return isHighscore, false, nil
+		return isHighscore, false
 	}
 
 	isGameHighscored = true
 
-	go s.database.Game.UpdateOneID(g.ID).
-		SetIsHighscored(true).
-		Save(ctx)
+	go func() {
+		if _, saveErr := s.database.Game.UpdateOneID(g.ID).
+			SetIsHighscored(true).
+			Save(ctx); saveErr != nil {
+			utils.Logger.Errorw(
+				"game: check streak: update game highscored failed",
+				"error", saveErr,
+				"gameID", g.ID,
+			)
+		}
+	}()
 
-	return isHighscore, isGameHighscored, nil
+	return isHighscore, isGameHighscored
 }
 
 func (s *GameService) checkCooldown(
@@ -1037,10 +1154,15 @@ func (s *GameService) DeleteByGuildIDs(
 }
 
 func (s *GameService) FindAllGuildIDs(ctx context.Context) ([]string, error) {
-	return s.database.Game.Query().
+	result, err := s.database.Game.Query().
 		Unique(true).
 		Select(game.FieldGuildID).
 		Strings(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("game: find all guild ids: %w", err)
+	}
+
+	return result, nil
 }
 
 // LoadActiveGameChannels pre-populates the shared active-game registry from

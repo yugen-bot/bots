@@ -20,12 +20,12 @@ func (m *ShowModule) show(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		true,
 	)
 	if err != nil {
@@ -34,10 +34,10 @@ func (m *ShowModule) show(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("get settings: %w", err)
 	}
 
 	ignoredText := "-"
@@ -80,7 +80,11 @@ func (m *ShowModule) show(
 				Value:  authorStarringValue,
 				Inline: boolPtr(true),
 			},
-			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "\u200b",
+				Value:  "\u200b",
+				Inline: boolPtr(true),
+			},
 			discord.EmbedField{
 				Name:   "Ignored Channels",
 				Value:  ignoredText,
@@ -92,8 +96,11 @@ func (m *ShowModule) show(
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func boolPtr(b bool) *bool { return &b }

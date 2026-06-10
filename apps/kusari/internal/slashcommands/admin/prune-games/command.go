@@ -6,6 +6,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/snowflake/v2"
 
 	"jurien.dev/yugen/shared/utils"
 )
@@ -15,7 +16,7 @@ func (m *PruneGamesModule) run(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("prune games: defer create message: %w", err)
 	}
 
 	utils.Logger.Infow("Game pruning started")
@@ -27,12 +28,18 @@ func (m *PruneGamesModule) run(
 
 	rows, err := m.games.FindAllGuildIDs(context.Background())
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"prune games: create follow up message: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
@@ -51,92 +58,167 @@ func (m *PruneGamesModule) run(
 	channelSnowflake := e.Channel().ID()
 
 	if len(orphanGuildIDs) == 0 {
-		e.Client().Rest.CreateMessage( //nolint:errcheck
-			channelSnowflake,
-			discord.MessageCreate{
-				Content: "**Orphan games: 0** — nothing to prune.",
-			},
-		)
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Done.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
-
-		return err
+		return m.sendNoOrphansResponse(e, channelSnowflake, channelID)
 	}
 
 	if !shouldDelete {
-		gameCount, historyCount, err := m.games.CountByGuildIDs(
-			context.Background(),
-			orphanGuildIDs,
+		return m.sendCountResponse(
+			e, orphanGuildIDs, channelSnowflake, channelID,
 		)
-		if err != nil {
-			_, err = e.CreateFollowupMessage(discord.MessageCreate{
-				Content: "Something went wrong, try again later.",
-				Flags:   discord.MessageFlagEphemeral,
-			})
-
-			return err
-		}
-
-		e.Client().Rest.CreateMessage( //nolint:errcheck
-			channelSnowflake,
-			discord.MessageCreate{
-				Content: fmt.Sprintf(
-					"**Orphan games: %d** (history entries: %d) across %d guild(s)",
-					gameCount,
-					historyCount,
-					len(orphanGuildIDs),
-				),
-			},
-		)
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: fmt.Sprintf(
-				"Found data for %d orphan guild(s). See <#%s>.",
-				len(orphanGuildIDs),
-				channelID,
-			),
-			Flags: discord.MessageFlagEphemeral,
-		})
-
-		return err
 	}
 
-	gameCount, historyCount, err := m.games.DeleteByGuildIDs(
+	return m.sendDeleteResponse(
+		e, orphanGuildIDs, channelSnowflake, channelID,
+	)
+}
+
+func (m *PruneGamesModule) sendNoOrphansResponse(
+	e *handler.CommandEvent,
+	channelSnowflake snowflake.ID,
+	_ string,
+) error {
+	if _, msgErr := e.Client().Rest.CreateMessage(
+		channelSnowflake,
+		discord.MessageCreate{
+			Content: "**Orphan games: 0** — nothing to prune.",
+		},
+	); msgErr != nil {
+		utils.Logger.Errorw(
+			"prune games: create message failed",
+			"error", msgErr,
+		)
+	}
+
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+		Content: "Done.",
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("prune games: create follow up message: %w", err)
+	}
+
+	return nil
+}
+
+func (m *PruneGamesModule) sendCountResponse(
+	e *handler.CommandEvent,
+	orphanGuildIDs []string,
+	channelSnowflake snowflake.ID,
+	channelID string,
+) error {
+	gameCount, historyCount, countErr := m.games.CountByGuildIDs(
 		context.Background(),
 		orphanGuildIDs,
 	)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	if countErr != nil {
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"prune games: create follow up message: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
-	utils.Logger.Infof(
-		"Deleted **%d** game(s) and **%d** history entry/entries for %d orphan guild(s)",
-		gameCount,
-		historyCount,
-		len(orphanGuildIDs),
-	)
-
-	e.Client().Rest.CreateMessage( //nolint:errcheck
+	if _, msgErr := e.Client().Rest.CreateMessage(
 		channelSnowflake,
 		discord.MessageCreate{
 			Content: fmt.Sprintf(
-				"Deleted **%d** game(s) and **%d** history entry/entries for %d orphan guild(s).",
+				"**Orphan games: %d** (history entries: %d) across %d guild(s)",
 				gameCount,
 				historyCount,
 				len(orphanGuildIDs),
 			),
 		},
-	)
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
-		Content: "Done.",
-		Flags:   discord.MessageFlagEphemeral,
-	})
+	); msgErr != nil {
+		utils.Logger.Errorw(
+			"prune games: create message failed",
+			"error", msgErr,
+		)
+	}
 
-	return err
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+		Content: fmt.Sprintf(
+			"Found data for %d orphan guild(s). See <#%s>.",
+			len(orphanGuildIDs),
+			channelID,
+		),
+		Flags: discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("prune games: create follow up message: %w", err)
+	}
+
+	return nil
+}
+
+func (m *PruneGamesModule) sendDeleteResponse(
+	e *handler.CommandEvent,
+	orphanGuildIDs []string,
+	channelSnowflake snowflake.ID,
+	channelID string,
+) error {
+	gameCount, historyCount, deleteErr := m.games.DeleteByGuildIDs(
+		context.Background(),
+		orphanGuildIDs,
+	)
+	if deleteErr != nil {
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"prune games: create follow up message: %w",
+				followupErr,
+			)
+		}
+
+		return nil
+	}
+
+	const deletedFmt = "Deleted **%d** game(s) and **%d** history" +
+		" entry/entries for %d orphan guild(s)"
+
+	utils.Logger.Infof(
+		deletedFmt,
+		gameCount,
+		historyCount,
+		len(orphanGuildIDs),
+	)
+
+	if _, msgErr := e.Client().Rest.CreateMessage(
+		channelSnowflake,
+		discord.MessageCreate{
+			Content: fmt.Sprintf(
+				deletedFmt+".",
+				gameCount,
+				historyCount,
+				len(orphanGuildIDs),
+			),
+		},
+	); msgErr != nil {
+		utils.Logger.Errorw(
+			"prune games: create message failed",
+			"error", msgErr,
+		)
+	}
+
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+		Content: fmt.Sprintf(
+			"Done. See <#%s> for details.",
+			channelID,
+		),
+		Flags: discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("prune games: create follow up message: %w", err)
+	}
+
+	return nil
 }

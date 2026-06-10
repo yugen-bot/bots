@@ -2,6 +2,7 @@ package setinformcooldown
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
@@ -15,10 +16,10 @@ func (m *SetInformCooldownModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("set inform cooldown: defer: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 	enabled := data.Bool("value")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
@@ -26,30 +27,36 @@ func (m *SetInformCooldownModule) set(
 		return localUtils.ReplyNoSettings(e, true)
 	}
 
-	if _, err := m.settings.Update(
+	if _, updateErr := m.settings.Update(
 		context.Background(),
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetInformCooldownAfterGuess(enabled) },
-	); err != nil {
+	); updateErr != nil {
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("set inform cooldown: send followup: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
+	var msg string
 	if enabled {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Koto will now inform users of their cooldown after each guess!",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		msg = "Koto will now inform users of their cooldown after each guess!"
 	} else {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Koto will no longer inform users of their cooldown after each guess.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		msg = "Koto will no longer inform users of their cooldown after each guess."
 	}
 
-	return err
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: msg,
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("set inform cooldown: send followup: %w", err)
+	}
+
+	return nil
 }

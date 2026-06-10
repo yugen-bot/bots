@@ -58,8 +58,11 @@ func AddMetricsListeners(container *di.Container) {
 	cron := container.Get(static.DiCron).(*cron.Cron)
 
 	startCPUMetrics(cron)
+	startLatencyCron(cron)
+	registerMetricEventListeners(client)
+}
 
-	// Set latency cron based on HeartbeatAck events
+func startLatencyCron(cron *cron.Cron) {
 	if _, err := cron.AddFunc("@every 1m", func() {
 		lastHeartbeatTime.Range(func(k, v any) bool {
 			shardID := k.(int)
@@ -79,69 +82,16 @@ func AddMetricsListeners(container *di.Container) {
 	}); err != nil {
 		panic(err)
 	}
+}
 
+func registerMetricEventListeners(client *bot.Client) {
 	client.EventManager.AddEventListeners(
-		bot.NewListenerFunc(func(e *events.HeartbeatAck) {
-			lastHeartbeatTime.Store(e.ShardID(), time.Now())
-			latency := e.NewHeartbeat.Sub(e.LastHeartbeat)
-
-			shard := strconv.Itoa(e.ShardID())
-			if e.ShardID() < 0 {
-				shard = "0"
-			}
-
-			metrics.DiscordLatency.WithLabelValues(shard).
-				Set(float64(latency.Milliseconds()))
-		}),
+		bot.NewListenerFunc(onHeartbeatAck),
 		bot.NewListenerFunc(func(e *events.Ready) {
-			shardID := e.ShardID()
-
-			metrics.DiscordConnected.Set(1)
-
-			if lh, ok := lastHeartbeatTime.Load(shardID); ok {
-				gap := time.Since(lh.(time.Time))
-				if gap > 10*time.Second {
-					utils.Logger.Infof(
-						"Reconnected to Discord (shard %d) after ~%s",
-						shardID,
-						gap.Round(time.Second),
-					)
-				} else {
-					utils.Logger.Infof(
-						"Connected to Discord (shard %d)",
-						shardID,
-					)
-				}
-			} else {
-				utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
-			}
-
-			metrics.DiscordShards.Inc()
-
-			go reloadGauges(client)
-
-			metrics.TotalInteractions.Set(
-				float64(utils.TotalRegisteredCommands()),
-			)
+			onReady(e, client)
 		}),
 		bot.NewListenerFunc(func(e *events.Resumed) {
-			shardID := e.ShardID()
-
-			metrics.DiscordConnected.Set(1)
-
-			if lh, ok := lastHeartbeatTime.Load(shardID); ok {
-				gap := time.Since(lh.(time.Time))
-				utils.Logger.Infof(
-					"Reconnected to Discord (shard %d) after ~%s",
-					shardID,
-					gap.Round(time.Second),
-				)
-			} else {
-				utils.Logger.Infof(
-					"Resumed connection to Discord (shard %d)",
-					shardID,
-				)
-			}
+			onResumed(e)
 		}),
 		bot.NewListenerFunc(func(e *events.GuildJoin) {
 			go reloadGauges(client)
@@ -161,22 +111,81 @@ func AddMetricsListeners(container *di.Container) {
 		bot.NewListenerFunc(func(e *events.GuildChannelDelete) {
 			go reloadGauges(client)
 		}),
-		bot.NewListenerFunc(
-			func(e *events.ApplicationCommandInteractionCreate) {
-				if e.Data.Type() != discord.ApplicationCommandTypeSlash {
-					return
-				}
-
-				data := e.Data.(discord.SlashCommandInteractionData)
-				name := disgoplus.GetInteractionName(data)
-				metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).
-					Inc()
-			},
-		),
-		bot.NewListenerFunc(func(e *events.ComponentInteractionCreate) {
-			customID := e.Data.CustomID()
-			metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", customID).
-				Inc()
-		}),
+		bot.NewListenerFunc(onSlashCommandInteraction),
+		bot.NewListenerFunc(onComponentInteraction),
 	)
+}
+
+func onHeartbeatAck(e *events.HeartbeatAck) {
+	lastHeartbeatTime.Store(e.ShardID(), time.Now())
+	latency := e.NewHeartbeat.Sub(e.LastHeartbeat)
+
+	shard := strconv.Itoa(e.ShardID())
+	if e.ShardID() < 0 {
+		shard = "0"
+	}
+
+	metrics.DiscordLatency.WithLabelValues(shard).
+		Set(float64(latency.Milliseconds()))
+}
+
+func onReady(e *events.Ready, client *bot.Client) {
+	shardID := e.ShardID()
+
+	metrics.DiscordConnected.Set(1)
+
+	if lh, ok := lastHeartbeatTime.Load(shardID); ok {
+		gap := time.Since(lh.(time.Time))
+		if gap > 10*time.Second {
+			utils.Logger.Infof(
+				"Reconnected to Discord (shard %d) after ~%s",
+				shardID,
+				gap.Round(time.Second),
+			)
+		} else {
+			utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
+		}
+	} else {
+		utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
+	}
+
+	metrics.DiscordShards.Inc()
+
+	go reloadGauges(client)
+
+	metrics.TotalInteractions.Set(float64(utils.TotalRegisteredCommands()))
+}
+
+func onResumed(e *events.Resumed) {
+	shardID := e.ShardID()
+
+	metrics.DiscordConnected.Set(1)
+
+	if lh, ok := lastHeartbeatTime.Load(shardID); ok {
+		gap := time.Since(lh.(time.Time))
+		utils.Logger.Infof(
+			"Reconnected to Discord (shard %d) after ~%s",
+			shardID,
+			gap.Round(time.Second),
+		)
+	} else {
+		utils.Logger.Infof("Resumed connection to Discord (shard %d)", shardID)
+	}
+}
+
+func onSlashCommandInteraction(e *events.ApplicationCommandInteractionCreate) {
+	if e.Data.Type() != discord.ApplicationCommandTypeSlash {
+		return
+	}
+
+	data := e.Data.(discord.SlashCommandInteractionData)
+	name := disgoplus.GetInteractionName(data)
+	metrics.InteractionEventTotal.WithLabelValues("ChatInputCommandInteraction", name).
+		Inc()
+}
+
+func onComponentInteraction(e *events.ComponentInteractionCreate) {
+	customID := e.Data.CustomID()
+	metrics.InteractionEventTotal.WithLabelValues("ButtonInteraction", customID).
+		Inc()
 }

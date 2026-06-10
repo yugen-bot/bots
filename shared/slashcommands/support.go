@@ -46,11 +46,15 @@ Join our support server with the button below, we'll try to help you out the bes
 		)).
 		WithEmbedFooter(footer)
 
-	return e.CreateMessage(
+	if err := e.CreateMessage(
 		discord.NewMessageCreate().
 			AddEmbeds(embed).
 			AddActionRow(static.ButtonDiscordSupportServer),
-	)
+	); err != nil {
+		return fmt.Errorf("create message: %w", err)
+	}
+
+	return nil
 }
 
 func (m *SupportModule) Commands() []discord.ApplicationCommandCreate {

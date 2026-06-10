@@ -2,6 +2,7 @@ package authorstarring
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
@@ -14,14 +15,14 @@ func (m *AuthorStarringModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	allowed := data.Bool("allowed")
 
 	err := m.settings.Set(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		func(u *ent.SettingsUpdateOne) { u.SetSelf(allowed) },
 	)
 	if err != nil {
@@ -30,10 +31,10 @@ func (m *AuthorStarringModule) set(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("settings set: %w", err)
 	}
 
 	state := "disallowed"
@@ -45,6 +46,9 @@ func (m *AuthorStarringModule) set(
 		Content: "Message authors are now **" + state + "** to star their own message.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }

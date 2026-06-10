@@ -28,12 +28,16 @@ func (m *ResetLeaderboardModule) request(
 		cfg.OwnerID,
 	)
 
-	guildSnowflake, parseErr := snowflake.Parse((*e.GuildID()).String())
+	guildSnowflake, parseErr := snowflake.Parse(e.GuildID().String())
 	if parseErr != nil {
-		return e.CreateMessage(discord.MessageCreate{
+		if err := e.CreateMessage(discord.MessageCreate{
 			Content: "Something wen't wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); err != nil {
+			return fmt.Errorf("reset leaderboard: create message: %w", err)
+		}
+
+		return nil
 	}
 
 	guild, err := e.Client().Rest.GetGuild(guildSnowflake, false)
@@ -46,10 +50,17 @@ func (m *ResetLeaderboardModule) request(
 			e.GuildID(),
 		)
 
-		return e.CreateMessage(discord.MessageCreate{
+		if createErr := e.CreateMessage(discord.MessageCreate{
 			Content: "Something wen't wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); createErr != nil {
+			return fmt.Errorf(
+				"reset leaderboard: create message: %w",
+				createErr,
+			)
+		}
+
+		return nil
 	}
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
@@ -72,7 +83,7 @@ func (m *ResetLeaderboardModule) request(
 		)).
 		WithEmbedFooter(footer)
 
-	err = e.CreateMessage(discord.MessageCreate{
+	if createErr := e.CreateMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Components: []discord.LayoutComponent{
 			discord.NewActionRow(
@@ -86,18 +97,19 @@ func (m *ResetLeaderboardModule) request(
 				),
 			),
 		},
-	})
-	if err != nil {
+	}); createErr != nil {
 		utils.Logger.Errorw(
 			"reset-leaderboard: respond failed",
 			"error",
-			err,
+			createErr,
 			"guildID",
 			e.GuildID(),
 		)
+
+		return fmt.Errorf("reset leaderboard: create message: %w", createErr)
 	}
 
-	return err
+	return nil
 }
 
 func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
@@ -116,11 +128,15 @@ func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
 		emptyEmbeds := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if err := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &contentText,
 			Components: &emptyComponents,
 			Embeds:     &emptyEmbeds,
-		})
+		}); err != nil {
+			return fmt.Errorf("reset leaderboard: update message: %w", err)
+		}
+
+		return nil
 	}
 
 	contentText := "The leaderboard points have been reset"
@@ -130,24 +146,43 @@ func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
 			contentText,
 			e.Vars["userID"],
 		)
-		go m.points.ResetLeaderboardByGuildIDAndUserID(
-			context.Background(),
-			(*e.GuildID()).String(),
-			e.Vars["userID"],
-		)
+
+		go func() {
+			if resetErr := m.points.ResetLeaderboardByGuildIDAndUserID(
+				context.Background(),
+				e.GuildID().String(),
+				e.Vars["userID"],
+			); resetErr != nil {
+				utils.Logger.Errorw(
+					"reset leaderboard: reset by guild and user failed",
+					"error", resetErr,
+				)
+			}
+		}()
 	} else {
-		go m.points.ResetLeaderboardByGuildID(
-			context.Background(),
-			(*e.GuildID()).String(),
-		)
+		go func() {
+			if resetErr := m.points.ResetLeaderboardByGuildID(
+				context.Background(),
+				e.GuildID().String(),
+			); resetErr != nil {
+				utils.Logger.Errorw(
+					"reset leaderboard: reset by guild failed",
+					"error", resetErr,
+				)
+			}
+		}()
 	}
 
 	emptyEmbeds := []discord.Embed{}
 	emptyComponents := []discord.LayoutComponent{}
 
-	return e.UpdateMessage(discord.MessageUpdate{
+	if err := e.UpdateMessage(discord.MessageUpdate{
 		Content:    &contentText,
 		Components: &emptyComponents,
 		Embeds:     &emptyEmbeds,
-	})
+	}); err != nil {
+		return fmt.Errorf("reset leaderboard: update message: %w", err)
+	}
+
+	return nil
 }

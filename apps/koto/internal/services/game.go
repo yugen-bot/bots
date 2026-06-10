@@ -128,7 +128,15 @@ func (s *GameService) Start(
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	// Get past 50 games to avoid repeating words
+	return s.createNewGame(ctx, guildID, schedule, word)
+}
+
+func (s *GameService) createNewGame(
+	ctx context.Context,
+	guildID string,
+	schedule bool,
+	word string,
+) (bool, error) {
 	pastGames, err := s.database.Game.Query().
 		Where(entgame.GuildIDEQ(guildID)).
 		Order(ent.Desc(entgame.FieldCreatedAt)).
@@ -166,7 +174,6 @@ func (s *GameService) Start(
 
 	var endingAt time.Time
 	if guildSettings.StartAfterFirstGuess {
-		// Year-3000 sentinel: timer doesn't start until first guess
 		endingAt = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
 	} else {
 		endingAt = roundToNearestMinute(
@@ -201,40 +208,54 @@ func (s *GameService) Start(
 			"gameID", newGame.ID,
 		)
 
-		// if we fail to send the message because the channel is not found or inaccessible, reset channel.
-		if strings.Contains(err.Error(), "404 Not Found") ||
-			strings.Contains(err.Error(), "403 Forbidden") {
-			if _, updateErr := s.settings.Update(
-				context.Background(),
-				guildSettings.ID,
-				func(u *ent.SettingsUpdateOne) { u.ClearChannelID() },
-			); updateErr != nil {
-				utils.Logger.Warnw("game: start: reset channel failed",
-					"error", updateErr)
-			}
-
-			if endErr := s.EndGame(
-				ctx,
-				newGame.ID,
-				entgame.StatusFAILED,
-			); endErr != nil {
-				utils.Logger.Warnw("game: start: end current failed",
-					"error", endErr,
-					"guildID", guildID,
-					"gameID", newGame.ID,
-				)
-			}
-
-			reason := "Forbidden"
-			if strings.Contains(err.Error(), "404 Not Found") {
-				reason = "Not found"
-			}
-
-			return false, fmt.Errorf("game: start: %s: %w", reason, err)
+		if chanErr := s.handleChannelError(
+			ctx, err, guildSettings, newGame,
+		); chanErr != nil {
+			return false, chanErr
 		}
 	}
 
 	return true, nil
+}
+
+func (s *GameService) handleChannelError(
+	ctx context.Context,
+	msgErr error,
+	guildSettings *ent.Settings,
+	game *ent.Game,
+) error {
+	if !strings.Contains(msgErr.Error(), "404 Not Found") &&
+		!strings.Contains(msgErr.Error(), "403 Forbidden") {
+		return nil
+	}
+
+	if _, updateErr := s.settings.Update(
+		context.Background(),
+		guildSettings.ID,
+		func(u *ent.SettingsUpdateOne) { u.ClearChannelID() },
+	); updateErr != nil {
+		utils.Logger.Warnw("game: start: reset channel failed",
+			"error", updateErr)
+	}
+
+	if endErr := s.EndGame(
+		ctx,
+		game.ID,
+		entgame.StatusFAILED,
+	); endErr != nil {
+		utils.Logger.Warnw("game: start: end current failed",
+			"error", endErr,
+			"guildID", game.GuildID,
+			"gameID", game.ID,
+		)
+	}
+
+	reason := "Forbidden"
+	if strings.Contains(msgErr.Error(), "404 Not Found") {
+		reason = "Not found"
+	}
+
+	return fmt.Errorf("game: start: %s: %w", reason, msgErr)
 }
 
 // Guess processes a player's word guess.
@@ -277,82 +298,56 @@ func (s *GameService) Guess(
 		return fmt.Errorf("game: guess: find guesses: %w", err)
 	}
 
-	// Dedupe check (production only)
-	if os.Getenv("ENV") == "production" {
-		for _, g := range guesses {
-			if g.Word == word {
-				utils.LogIfErr(
-					utils.Logger,
-					"reaction-add",
-					s.client.Rest.AddReaction(
-						message.ChannelID,
-						message.ID,
-						"❌",
-					),
-				)
+	if s.isDuplicate(guesses, word) {
+		utils.LogIfErr(
+			utils.Logger,
+			"reaction-add",
+			s.client.Rest.AddReaction(message.ChannelID, message.ID, "❌"),
+		)
 
-				return nil
-			}
-		}
+		return nil
 	}
 
-	// Cooldown check
 	cooldown := s.checkCooldown(
 		message.Author.ID.String(),
 		guesses,
 		guildSettings,
 	)
 	if cooldown.Hit || cooldown.RepeatHit {
-		utils.LogIfErr(utils.Logger, "reaction-add",
-			s.client.Rest.AddReaction(message.ChannelID, message.ID, "🕒"),
-		)
-
-		suffix := fmt.Sprintf(
-			"you can guess again <t:%d:R>",
-			cooldown.Result.Unix(),
-		)
-		if cooldown.Hit && cooldown.RepeatHit {
-			suffix = fmt.Sprintf(
-				"you can guess again <t:%d:R> on your own or <t:%d:R> after a guess from another player.",
-				cooldown.RepeatResult.Unix(),
-				cooldown.Result.Unix(),
-			)
-		} else if !cooldown.Hit && cooldown.RepeatHit {
-			suffix = fmt.Sprintf(
-				"you can guess again <t:%d:R> or immediately after a guess from another player.",
-				cooldown.RepeatResult.Unix(),
-			)
-		}
-
-		msgID := message.ID
-		_, sendErr := s.client.Rest.CreateMessage(
-			message.ChannelID,
-			discord.MessageCreate{
-				Content: fmt.Sprintf("You're on a cooldown, %s", suffix),
-				MessageReference: &discord.MessageReference{
-					MessageID: &msgID,
-				},
-			},
-		)
-		utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
-
-		return nil
+		return s.handleCooldown(message, cooldown)
 	}
 
-	// Parse current game meta
-	gameMeta, err := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
+	return s.processGuess(
+		ctx,
+		guildID,
+		word,
+		message,
+		currentGame,
+		guesses,
+		guildSettings,
+	)
+}
+
+func (s *GameService) processGuess(
+	ctx context.Context,
+	guildID string,
+	word string,
+	message discord.Message,
+	currentGame *ent.Game,
+	guesses []*ent.Guess,
+	guildSettings *ent.Settings,
+) error {
+	gameMeta, err := localUtils.ParseGameMeta(currentGame.Meta)
 	if err != nil {
 		return fmt.Errorf("game: guess: parse meta: %w", err)
 	}
 
-	// Score the guess
 	guessMeta, guessed, points, updatedGameMeta := s.checkWord(
 		currentGame.Word,
 		word,
 		gameMeta,
 	)
 
-	// Persist the guess
 	guessMetaJSON, err := json.Marshal(guessMeta)
 	if err != nil {
 		return fmt.Errorf("game: guess: marshal guess meta: %w", err)
@@ -369,7 +364,29 @@ func (s *GameService) Guess(
 		return fmt.Errorf("game: guess: create guess: %w", err)
 	}
 
-	// Determine new game status
+	updatedGame, newStatus, err := s.updateGameAfterGuess(
+		ctx, currentGame, guesses, guessed, updatedGameMeta, guildSettings,
+	)
+	if err != nil {
+		return err
+	}
+
+	s.finalizeGuess(
+		ctx, guildID, message, currentGame, updatedGame,
+		createdGuess, newStatus, guessed, guildSettings,
+	)
+
+	return nil
+}
+
+func (s *GameService) updateGameAfterGuess(
+	ctx context.Context,
+	currentGame *ent.Game,
+	guesses []*ent.Guess,
+	guessed bool,
+	updatedGameMeta *localUtils.GameMeta,
+	guildSettings *ent.Settings,
+) (*ent.Game, entgame.Status, error) {
 	newStatus := currentGame.Status
 	if guessed {
 		newStatus = entgame.StatusCOMPLETED
@@ -377,23 +394,23 @@ func (s *GameService) Guess(
 		newStatus = entgame.StatusFAILED
 	}
 
-	// Recompute hint availability after scoring
 	updatedGameMeta.CanHint = localUtils.ComputeCanHint(
 		currentGame.Word,
 		updatedGameMeta,
 	)
 
-	// Update game meta + status + possibly start timer
 	updatedMetaJSON, err := json.Marshal(updatedGameMeta)
 	if err != nil {
-		return fmt.Errorf("game: guess: marshal game meta: %w", err)
+		return nil, newStatus, fmt.Errorf(
+			"game: guess: marshal game meta: %w",
+			err,
+		)
 	}
 
 	upd := s.database.Game.UpdateOneID(currentGame.ID).
 		SetStatus(newStatus).
 		SetMeta(updatedMetaJSON)
 
-	// If startAfterFirstGuess and this is the first guess, set real endingAt
 	if guildSettings.StartAfterFirstGuess && len(guesses) == 0 {
 		realEndingAt := roundToNearestMinute(
 			time.Now().
@@ -404,27 +421,37 @@ func (s *GameService) Guess(
 
 	updatedGame, err := upd.Save(ctx)
 	if err != nil {
-		return fmt.Errorf("game: guess: update game: %w", err)
+		return nil, newStatus, fmt.Errorf("game: guess: update game: %w", err)
 	}
 
-	// React to guess message
+	return updatedGame, newStatus, nil
+}
+
+func (s *GameService) finalizeGuess(
+	ctx context.Context,
+	guildID string,
+	message discord.Message,
+	currentGame *ent.Game,
+	updatedGame *ent.Game,
+	createdGuess *ent.Guess,
+	newStatus entgame.Status,
+	guessed bool,
+	guildSettings *ent.Settings,
+) {
+	reactionEmoji := "✅"
 	if guessed {
-		utils.LogIfErr(utils.Logger, "reaction-add",
-			s.client.Rest.AddReaction(message.ChannelID, message.ID, "🎉"),
-		)
-	} else {
-		utils.LogIfErr(utils.Logger, "reaction-add",
-			s.client.Rest.AddReaction(message.ChannelID, message.ID, "✅"),
-		)
+		reactionEmoji = "🎉"
 	}
 
-	// Fetch updated guesses list (with new guess)
+	utils.LogIfErr(utils.Logger, "reaction-add",
+		s.client.Rest.AddReaction(message.ChannelID, message.ID, reactionEmoji),
+	)
+
 	allGuesses, _ := s.database.Guess.Query().
 		Where(guess.GameIDEQ(currentGame.ID)).
 		Order(ent.Desc(guess.FieldCreatedAt)).
 		All(ctx)
 
-	// Apply points if won
 	if guessed {
 		go func() {
 			if applyErr := s.points.ApplyPoints(
@@ -442,46 +469,11 @@ func (s *GameService) Guess(
 		}()
 	}
 
-	// Inform cooldown
 	if newStatus != entgame.StatusCOMPLETED &&
 		guildSettings.InformCooldownAfterGuess {
-		go func() {
-			backToBackPart := ""
-			if guildSettings.EnableBackToBackCooldown {
-				backToBackPart = fmt.Sprintf(
-					"<t:%d:R> on your own or ",
-					createdGuess.CreatedAt.Add(time.Duration(guildSettings.BackToBackCooldown)*time.Second).
-						Unix(),
-				)
-			}
-
-			afterPart := ""
-			if guildSettings.EnableBackToBackCooldown {
-				afterPart = " after a guess from another player"
-			}
-
-			msg := fmt.Sprintf(
-				"You are now on a cooldown. You can guess again %s<t:%d:R>%s.",
-				backToBackPart,
-				createdGuess.CreatedAt.Add(time.Duration(guildSettings.Cooldown)*time.Second).
-					Unix(),
-				afterPart,
-			)
-			msgID := message.ID
-			_, sendErr := s.client.Rest.CreateMessage(
-				message.ChannelID,
-				discord.MessageCreate{
-					Content: msg,
-					MessageReference: &discord.MessageReference{
-						MessageID: &msgID,
-					},
-				},
-			)
-			utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
-		}()
+		go s.sendCooldownInfo(message, createdGuess, guildSettings)
 	}
 
-	// Recreate embed message
 	go func() {
 		if msgErr := s.message.Create(
 			context.Background(),
@@ -497,51 +489,98 @@ func (s *GameService) Guess(
 		}
 	}()
 
-	// Handle terminal status
 	if newStatus != entgame.StatusIN_PROGRESS {
-		// Delete guesses for privacy; keep the solving guess for completed games.
-		delQuery := s.database.Guess.Delete().
-			Where(guess.GameIDEQ(updatedGame.ID))
-		if newStatus == entgame.StatusCOMPLETED {
-			delQuery = s.database.Guess.Delete().
-				Where(
-					guess.GameIDEQ(updatedGame.ID),
-					guess.WordNotIn(updatedGame.Word),
-				)
-		}
+		s.handleTerminalStatus(guildID, updatedGame, newStatus, guildSettings)
+	}
+}
 
-		if _, delErr := delQuery.Exec(context.Background()); delErr != nil {
-			utils.Logger.Warnw(
-				"game: guess: delete guesses failed",
-				"error", delErr,
-				"guildID", guildID,
-				"gameID", updatedGame.ID,
-			)
-		}
-
-		// Auto-start if configured
-		if guildSettings.AutoStart {
-			time.Sleep(500 * time.Millisecond)
-
-			go func() {
-				if _, startErr := s.Start(
-					context.Background(),
-					guildID,
-					false,
-					false,
-					"",
-				); startErr != nil {
-					utils.Logger.Warnw(
-						"game: guess: auto-start failed",
-						"guildID", guildID,
-						"error", startErr,
-					)
-				}
-			}()
-		}
+func (s *GameService) sendCooldownInfo(
+	message discord.Message,
+	createdGuess *ent.Guess,
+	guildSettings *ent.Settings,
+) {
+	backToBackPart := ""
+	if guildSettings.EnableBackToBackCooldown {
+		backToBackPart = fmt.Sprintf(
+			"<t:%d:R> on your own or ",
+			createdGuess.CreatedAt.Add(
+				time.Duration(guildSettings.BackToBackCooldown)*time.Second,
+			).Unix(),
+		)
 	}
 
-	return nil
+	afterPart := ""
+	if guildSettings.EnableBackToBackCooldown {
+		afterPart = " after a guess from another player"
+	}
+
+	msg := fmt.Sprintf(
+		"You are now on a cooldown. You can guess again %s<t:%d:R>%s.",
+		backToBackPart,
+		createdGuess.CreatedAt.Add(
+			time.Duration(guildSettings.Cooldown)*time.Second,
+		).Unix(),
+		afterPart,
+	)
+	msgID := message.ID
+	_, sendErr := s.client.Rest.CreateMessage(
+		message.ChannelID,
+		discord.MessageCreate{
+			Content: msg,
+			MessageReference: &discord.MessageReference{
+				MessageID: &msgID,
+			},
+		},
+	)
+	utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+}
+
+func (s *GameService) handleTerminalStatus(
+	guildID string,
+	updatedGame *ent.Game,
+	newStatus entgame.Status,
+	guildSettings *ent.Settings,
+) {
+	delQuery := s.database.Guess.Delete().
+		Where(guess.GameIDEQ(updatedGame.ID))
+	if newStatus == entgame.StatusCOMPLETED {
+		delQuery = s.database.Guess.Delete().
+			Where(
+				guess.GameIDEQ(updatedGame.ID),
+				guess.WordNotIn(updatedGame.Word),
+			)
+	}
+
+	if _, delErr := delQuery.Exec(context.Background()); delErr != nil {
+		utils.Logger.Warnw(
+			"game: guess: delete guesses failed",
+			"error", delErr,
+			"guildID", guildID,
+			"gameID", updatedGame.ID,
+		)
+	}
+
+	if !guildSettings.AutoStart {
+		return
+	}
+
+	time.Sleep(500 * time.Millisecond)
+
+	go func() {
+		if _, startErr := s.Start(
+			context.Background(),
+			guildID,
+			false,
+			false,
+			"",
+		); startErr != nil {
+			utils.Logger.Warnw(
+				"game: guess: auto-start failed",
+				"guildID", guildID,
+				"error", startErr,
+			)
+		}
+	}()
 }
 
 // EndGame ends a game with the given status, recreates message, deletes guesses.
@@ -668,7 +707,11 @@ func (s *GameService) GetCurrentGame(
 		return nil, nil
 	}
 
-	return currentGame, err
+	if err != nil {
+		return nil, fmt.Errorf("game: get current game: %w", err)
+	}
+
+	return currentGame, nil
 }
 
 // GetNextGameStart computes when the next scheduled game will start for the guild.
@@ -724,13 +767,29 @@ func (s *GameService) checkWord(
 	state *localUtils.GameMeta,
 ) (localUtils.GuessMetaSlice, bool, int, *localUtils.GameMeta) {
 	meta := make(localUtils.GuessMetaSlice, len(guessWord))
-	unmatched := map[rune]int{}   // unmatched word letters
-	letterCount := map[rune]int{} // matched count per letter
+	unmatched := map[rune]int{}
+	letterCount := map[rune]int{}
 
 	wordRunes := []rune(word)
 	guessRunes := []rune(guessWord)
 
-	// Pass 1: find exact matches (CORRECT)
+	checkWordPass1(wordRunes, guessRunes, state, meta, unmatched, letterCount)
+	checkWordPass2(wordRunes, guessRunes, state, meta, unmatched, letterCount)
+
+	totalPoints := 0
+	for _, m := range meta {
+		totalPoints += m.Points
+	}
+
+	return meta, word == guessWord, totalPoints, state
+}
+
+func checkWordPass1(
+	wordRunes, guessRunes []rune,
+	state *localUtils.GameMeta,
+	meta localUtils.GuessMetaSlice,
+	unmatched, letterCount map[rune]int,
+) {
 	for i, letter := range wordRunes {
 		if i >= len(guessRunes) {
 			break
@@ -776,59 +835,59 @@ func (s *GameService) checkWord(
 
 		unmatched[letter]++
 	}
+}
 
-	// Pass 2: handle non-exact-match positions (ALMOST or WRONG)
+func checkWordPass2(
+	wordRunes, guessRunes []rune,
+	state *localUtils.GameMeta,
+	meta localUtils.GuessMetaSlice,
+	unmatched, letterCount map[rune]int,
+) {
 	for i, element := range wordRunes {
 		if i >= len(guessRunes) {
 			break
 		}
 
 		letter := guessRunes[i]
-		if letter != element {
-			if unmatched[letter] > 0 {
-				letterCount[letter]++
+		if letter == element {
+			continue
+		}
 
-				var pts int
-				if prev, ok := state.Discovery.Almost[string(letter)]; !ok ||
-					prev < letterCount[letter] {
-					pts = 1
-					state.Discovery.Almost[string(letter)] = letterCount[letter]
-				}
+		if unmatched[letter] > 0 {
+			letterCount[letter]++
 
-				meta[i] = localUtils.GuessMeta{
-					Type:   localUtils.GameTypeAlmost,
-					Points: pts,
-					Letter: string(letter),
-				}
-				unmatched[letter]--
-
-				if existing, ok := state.Keyboard[string(letter)]; !ok ||
-					existing != localUtils.GameTypeCorrect {
-					state.Keyboard[string(letter)] = localUtils.GameTypeAlmost
-				}
-
-				continue
+			var pts int
+			if prev, ok := state.Discovery.Almost[string(letter)]; !ok ||
+				prev < letterCount[letter] {
+				pts = 1
+				state.Discovery.Almost[string(letter)] = letterCount[letter]
 			}
 
 			meta[i] = localUtils.GuessMeta{
-				Type:   localUtils.GameTypeWrong,
-				Points: 0,
+				Type:   localUtils.GameTypeAlmost,
+				Points: pts,
 				Letter: string(letter),
 			}
+			unmatched[letter]--
 
-			if _, ok := state.Keyboard[string(letter)]; !ok {
-				state.Keyboard[string(letter)] = localUtils.GameTypeWrong
+			if existing, ok := state.Keyboard[string(letter)]; !ok ||
+				existing != localUtils.GameTypeCorrect {
+				state.Keyboard[string(letter)] = localUtils.GameTypeAlmost
 			}
+
+			continue
+		}
+
+		meta[i] = localUtils.GuessMeta{
+			Type:   localUtils.GameTypeWrong,
+			Points: 0,
+			Letter: string(letter),
+		}
+
+		if _, ok := state.Keyboard[string(letter)]; !ok {
+			state.Keyboard[string(letter)] = localUtils.GameTypeWrong
 		}
 	}
-
-	// Calculate total points
-	totalPoints := 0
-	for _, m := range meta {
-		totalPoints += m.Points
-	}
-
-	return meta, word == guessWord, totalPoints, state
 }
 
 // checkCooldown returns cooldown status for a user.
@@ -885,6 +944,62 @@ func (s *GameService) checkCooldown(
 	return cooldownResult{}
 }
 
+func (s *GameService) isDuplicate(guesses []*ent.Guess, word string) bool {
+	if os.Getenv("ENV") != "production" {
+		return false
+	}
+
+	for _, g := range guesses {
+		if g.Word == word {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s *GameService) handleCooldown(
+	message discord.Message,
+	cooldown cooldownResult,
+) error {
+	utils.LogIfErr(utils.Logger, "reaction-add",
+		s.client.Rest.AddReaction(message.ChannelID, message.ID, "🕒"),
+	)
+
+	suffix := fmt.Sprintf(
+		"you can guess again <t:%d:R>",
+		cooldown.Result.Unix(),
+	)
+
+	switch {
+	case cooldown.Hit && cooldown.RepeatHit:
+		suffix = fmt.Sprintf(
+			"you can guess again <t:%d:R> on your own or <t:%d:R> after a guess from another player.",
+			cooldown.RepeatResult.Unix(),
+			cooldown.Result.Unix(),
+		)
+	case !cooldown.Hit && cooldown.RepeatHit:
+		suffix = fmt.Sprintf(
+			"you can guess again <t:%d:R> or immediately after a guess from another player.",
+			cooldown.RepeatResult.Unix(),
+		)
+	}
+
+	msgID := message.ID
+	_, sendErr := s.client.Rest.CreateMessage(
+		message.ChannelID,
+		discord.MessageCreate{
+			Content: fmt.Sprintf("You're on a cooldown, %s", suffix),
+			MessageReference: &discord.MessageReference{
+				MessageID: &msgID,
+			},
+		},
+	)
+	utils.LogIfErr(utils.Logger, "channel-message-send-reply", sendErr)
+
+	return nil
+}
+
 // createBaseState initializes the game meta for a new game.
 func (s *GameService) createBaseState(word string) *localUtils.GameMeta {
 	discovery := localUtils.DiscoveryState{
@@ -936,7 +1051,7 @@ func (s *GameService) UseHint(
 		return "", ErrHintUnavailable
 	}
 
-	gameMeta, err := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
+	gameMeta, err := localUtils.ParseGameMeta(currentGame.Meta)
 	if err != nil {
 		return "", fmt.Errorf("game: hint: parse meta: %w", err)
 	}
@@ -968,14 +1083,15 @@ func (s *GameService) UseHint(
 		usedPersonal bool
 	)
 
-	if hintsResult.player >= 1 {
+	switch {
+	case hintsResult.player >= 1:
 		leftover, maxHints, err = s.hints.DeductHintFromPlayer(ctx, userID, 1)
 		if err != nil {
 			return "", fmt.Errorf("game: hint: deduct player: %w", err)
 		}
 
 		usedPersonal = true
-	} else if hintsResult.guild >= 1 {
+	case hintsResult.guild >= 1:
 		leftover, maxHints, err = s.hints.DeductHintFromGuild(
 			ctx,
 			currentGame.GuildID,
@@ -985,7 +1101,7 @@ func (s *GameService) UseHint(
 		if err != nil {
 			return "", fmt.Errorf("game: hint: deduct guild: %w", err)
 		}
-	} else {
+	default:
 		return "", ErrNoHints
 	}
 
@@ -997,9 +1113,37 @@ func (s *GameService) UseHint(
 		return "", computeErr
 	}
 
+	if err = s.persistHintGuess(
+		ctx, currentGame, userID, hintMeta, updatedGameMeta,
+	); err != nil {
+		return "", err
+	}
+
+	poolKind := "personal"
+	if !usedPersonal {
+		poolKind = "server"
+	}
+
+	return fmt.Sprintf(
+		"%s\nUsed **1** %s hint. You have **%s/%s** %s hints remaining.",
+		description,
+		poolKind,
+		strconv.FormatFloat(leftover, 'f', -1, 64),
+		strconv.FormatFloat(maxHints, 'f', -1, 64),
+		poolKind,
+	), nil
+}
+
+func (s *GameService) persistHintGuess(
+	ctx context.Context,
+	currentGame *ent.Game,
+	userID string,
+	hintMeta localUtils.GuessMetaSlice,
+	updatedGameMeta *localUtils.GameMeta,
+) error {
 	hintMetaJSON, err := json.Marshal(hintMeta)
 	if err != nil {
-		return "", fmt.Errorf("game: hint: marshal hint meta: %w", err)
+		return fmt.Errorf("game: hint: marshal hint meta: %w", err)
 	}
 
 	_, err = s.database.Guess.Create().
@@ -1010,7 +1154,7 @@ func (s *GameService) UseHint(
 		SetMeta(hintMetaJSON).
 		Save(ctx)
 	if err != nil {
-		return "", fmt.Errorf("game: hint: create guess: %w", err)
+		return fmt.Errorf("game: hint: create guess: %w", err)
 	}
 
 	updatedGameMeta.CanHint = localUtils.ComputeCanHint(
@@ -1020,14 +1164,14 @@ func (s *GameService) UseHint(
 
 	updatedMetaJSON, err := json.Marshal(updatedGameMeta)
 	if err != nil {
-		return "", fmt.Errorf("game: hint: marshal game meta: %w", err)
+		return fmt.Errorf("game: hint: marshal game meta: %w", err)
 	}
 
 	updatedGame, err := s.database.Game.UpdateOneID(currentGame.ID).
 		SetMeta(updatedMetaJSON).
 		Save(ctx)
 	if err != nil {
-		return "", fmt.Errorf("game: hint: update game: %w", err)
+		return fmt.Errorf("game: hint: update game: %w", err)
 	}
 
 	allGuesses, _ := s.database.Guess.Query().
@@ -1050,19 +1194,7 @@ func (s *GameService) UseHint(
 		}
 	}()
 
-	poolKind := "personal"
-	if !usedPersonal {
-		poolKind = "server"
-	}
-
-	return fmt.Sprintf(
-		"%s\nUsed **1** %s hint. You have **%s/%s** %s hints remaining.",
-		description,
-		poolKind,
-		strconv.FormatFloat(leftover, 'f', -1, 64),
-		strconv.FormatFloat(maxHints, 'f', -1, 64),
-		poolKind,
-	), nil
+	return nil
 }
 
 // computeHint applies hints in priority order and returns the row meta, updated
@@ -1072,11 +1204,31 @@ func (s *GameService) computeHint(
 	state *localUtils.GameMeta,
 ) (localUtils.GuessMetaSlice, *localUtils.GameMeta, string, error) {
 	meta := make(localUtils.GuessMetaSlice, localStatic.WordLength)
-	description := ""
 
 	wordRunes := []rune(word)
 	wordCount := localUtils.WordLetterCount(word)
 
+	nonCorrect := countNonCorrect(state)
+
+	description, hintDone := applyHintTier1(state, nonCorrect)
+
+	if !hintDone {
+		description, hintDone = applyHintTier2(state, wordRunes, wordCount)
+	}
+
+	if !hintDone {
+		var err error
+		if description, err = applyHintTier3(state, nonCorrect); err != nil {
+			return nil, nil, "", err
+		}
+	}
+
+	buildHintRow(meta, state, wordRunes)
+
+	return meta, state, description, nil
+}
+
+func countNonCorrect(state *localUtils.GameMeta) int {
 	nonCorrect := 0
 
 	for _, ws := range state.Word {
@@ -1085,96 +1237,109 @@ func (s *GameService) computeHint(
 		}
 	}
 
-	hintDone := false
+	return nonCorrect
+}
 
-	// Tier 1: upgrade the first ALMOST letter to a correct position.
-	if nonCorrect >= 2 {
-		for i, ws := range state.Word {
-			if ws.Type == localUtils.GameTypeCorrect {
-				continue
-			}
-			// Eligible when keyboard is ALMOST, or CORRECT with unplaced occurrences.
-			kb := state.Keyboard[ws.Letter]
+func applyHintTier1(
+	state *localUtils.GameMeta,
+	nonCorrect int,
+) (string, bool) {
+	if nonCorrect < 2 {
+		return "", false
+	}
 
-			hasUnplaced := kb == localUtils.GameTypeCorrect &&
-				state.Discovery.Almost[ws.Letter] > state.Discovery.Correct[ws.Letter]
-			if kb != localUtils.GameTypeAlmost && !hasUnplaced {
-				continue
-			}
+	for i, ws := range state.Word {
+		if ws.Type == localUtils.GameTypeCorrect {
+			continue
+		}
 
+		kb := state.Keyboard[ws.Letter]
+
+		hasUnplaced := kb == localUtils.GameTypeCorrect &&
+			state.Discovery.Almost[ws.Letter] > state.Discovery.Correct[ws.Letter]
+		if kb != localUtils.GameTypeAlmost && !hasUnplaced {
+			continue
+		}
+
+		letter := ws.Letter
+		state.Word[i].Type = localUtils.GameTypeCorrect
+		state.Keyboard[letter] = localUtils.GameTypeCorrect
+		state.Discovery.Correct[letter]++
+
+		return fmt.Sprintf(
+			"Solved position **%d** with **%s**",
+			i+1, strings.ToUpper(letter),
+		), true
+	}
+
+	return "", false
+}
+
+func applyHintTier2(
+	state *localUtils.GameMeta,
+	wordRunes []rune,
+	wordCount map[rune]int,
+) (string, bool) {
+	seen := map[rune]bool{}
+
+	for _, r := range wordRunes {
+		if seen[r] {
+			continue
+		}
+
+		seen[r] = true
+
+		letter := string(r)
+		discovered := state.Discovery.Almost[letter]
+
+		if wordCount[r] <= discovered {
+			continue
+		}
+
+		state.Discovery.Almost[letter] = discovered + 1
+		if state.Keyboard[letter] != localUtils.GameTypeCorrect {
+			state.Keyboard[letter] = localUtils.GameTypeAlmost
+		}
+
+		return fmt.Sprintf(
+			"Revealed letter **%s**",
+			strings.ToUpper(letter),
+		), true
+	}
+
+	return "", false
+}
+
+func applyHintTier3(
+	state *localUtils.GameMeta,
+	nonCorrect int,
+) (string, error) {
+	if nonCorrect < 2 {
+		return "", ErrHintUnavailable
+	}
+
+	for i, ws := range state.Word {
+		if ws.Type != localUtils.GameTypeCorrect {
 			letter := ws.Letter
 			state.Word[i].Type = localUtils.GameTypeCorrect
 			state.Keyboard[letter] = localUtils.GameTypeCorrect
 			state.Discovery.Correct[letter]++
-			description = fmt.Sprintf(
+
+			return fmt.Sprintf(
 				"Solved position **%d** with **%s**",
 				i+1, strings.ToUpper(letter),
-			)
-
-			hintDone = true
-
-			break
+			), nil
 		}
 	}
 
-	// Tier 2: reveal a letter occurrence not yet found (supports duplicate letters).
-	if !hintDone {
-		seen := map[rune]bool{}
-		for _, r := range wordRunes {
-			if seen[r] {
-				continue
-			}
+	return "", nil
+}
 
-			seen[r] = true
-
-			letter := string(r)
-
-			discovered := state.Discovery.Almost[letter]
-			if wordCount[r] <= discovered {
-				continue
-			}
-
-			newAlmost := discovered + 1
-
-			state.Discovery.Almost[letter] = newAlmost
-			if state.Keyboard[letter] != localUtils.GameTypeCorrect {
-				state.Keyboard[letter] = localUtils.GameTypeAlmost
-			}
-
-			description = fmt.Sprintf(
-				"Revealed letter **%s**",
-				strings.ToUpper(letter),
-			)
-			hintDone = true
-
-			break
-		}
-	}
-
-	// Tier 3: all letters discovered — solve the first unsolved position.
-	if !hintDone {
-		if nonCorrect < 2 {
-			return nil, nil, "", ErrHintUnavailable
-		}
-
-		for i, ws := range state.Word {
-			if ws.Type != localUtils.GameTypeCorrect {
-				letter := ws.Letter
-				state.Word[i].Type = localUtils.GameTypeCorrect
-				state.Keyboard[letter] = localUtils.GameTypeCorrect
-				state.Discovery.Correct[letter]++
-
-				description = fmt.Sprintf(
-					"Solved position **%d** with **%s**",
-					i+1, strings.ToUpper(letter),
-				)
-
-				break
-			}
-		}
-	}
-
-	// Build synthetic guess row: CORRECT positions first
+func buildHintRow(
+	meta localUtils.GuessMetaSlice,
+	state *localUtils.GameMeta,
+	wordRunes []rune,
+) {
 	for i, ws := range state.Word {
 		if ws.Type == localUtils.GameTypeCorrect {
 			meta[i] = localUtils.GuessMeta{
@@ -1184,7 +1349,6 @@ func (s *GameService) computeHint(
 		}
 	}
 
-	// Collect ALMOST letters with multiplicity, deduped by unique letter.
 	var almostLetters []string
 
 	seenLetters := map[string]bool{}
@@ -1211,7 +1375,6 @@ func (s *GameService) computeHint(
 		}
 	}
 
-	// Fill remaining positions with ALMOST letters (must be wrong-spot) or blank
 	for i := range meta {
 		if meta[i].Type == localUtils.GameTypeCorrect {
 			continue
@@ -1242,8 +1405,6 @@ func (s *GameService) computeHint(
 			}
 		}
 	}
-
-	return meta, state, description, nil
 }
 
 func (s *GameService) CountByGuildIDs(

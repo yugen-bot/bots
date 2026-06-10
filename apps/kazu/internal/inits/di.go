@@ -35,71 +35,30 @@ func InitDI() (container di.Container, err error) {
 
 	utils.Logger.Info("Building DI")
 
-	diBuilder.Add(&di.Def{
+	registerCoreDefs(diBuilder)
+	sharedInits.InitSharedDi(diBuilder)
+	registerServiceDefs(diBuilder)
+
+	container, err = diBuilder.Build()
+	if err != nil {
+		utils.Logger.Fatalw("failed to build DI container", "error", err)
+	}
+
+	return
+}
+
+func registerCoreDefs(b *di.EnhancedBuilder) {
+	b.Add(&di.Def{
 		Name: static.DiAppName,
 		Build: func(ctn di.Container) (any, error) {
 			return "Kazu", nil
 		},
 	})
 
-	sharedInits.InitSharedDi(diBuilder)
-
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiBot,
 		Build: func(ctn di.Container) (any, error) {
-			cfg := ctn.Get(static.DiConfig).(*config.Config)
-			gatewayOpts := []gateway.ConfigOpt{
-				gateway.WithIntents(
-					gateway.IntentGuilds,
-					gateway.IntentGuildMessages,
-					gateway.IntentMessageContent,
-					gateway.IntentGuildExpressions,
-					gateway.IntentGuildMessageReactions,
-				),
-				gateway.WithPresenceOpts(
-					gateway.WithPlayingActivity("Kazu 🧮"),
-				),
-			}
-
-			var discordOpt bot.ConfigOpt
-			if cfg.Shard {
-				discordOpt = bot.WithShardManagerConfigOpts(
-					sharding.WithGatewayConfigOpts(gatewayOpts...),
-				)
-			} else {
-				discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
-			}
-
-			return disgoplus.New(
-				cfg.DiscordToken,
-				cfg.Shard,
-				discordOpt,
-				bot.WithCacheConfigOpts(
-					cache.WithCaches(
-						static.DefaultCacheFlags|cache.FlagMessages,
-					),
-					cache.WithMessageCachePolicy(
-						func(msg discord.Message) bool {
-							if msg.Author.Bot {
-								return false
-							}
-
-							if msg.Content == "" {
-								return false
-							}
-
-							if msg.GuildID == nil {
-								return false
-							}
-
-							return utils.ActiveGames.IsActiveChannel(
-								msg.ChannelID,
-							)
-						},
-					),
-				),
-				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
-			)
+			return buildBot(ctn)
 		},
 		Close: func(obj any) error {
 			b := obj.(*disgoplus.Bot)
@@ -111,7 +70,7 @@ func InitDI() (container di.Container, err error) {
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiEmbedColor,
 		Build: func(ctn di.Container) (any, error) {
 			// #5d7fed
@@ -119,7 +78,7 @@ func InitDI() (container di.Container, err error) {
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiHelpText,
 		Build: func(ctn di.Container) (any, error) {
 			return fmt.Sprintf(
@@ -129,7 +88,7 @@ func InitDI() (container di.Container, err error) {
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiTutorialText,
 		Build: func(ctn di.Container) (any, error) {
 			return `**How to Play:**
@@ -155,15 +114,15 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiDatabase,
 		Build: func(ctn di.Container) (any, error) {
-			cfg, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
-			if err != nil {
-				return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
+			pgCfg, parseErr := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
+			if parseErr != nil {
+				return nil, fmt.Errorf("parse DATABASE_URL: %w", parseErr)
 			}
 
-			db := stdlib.OpenDB(*cfg)
+			db := stdlib.OpenDB(*pgCfg)
 			drv := entsql.OpenDB(dialect.Postgres, db)
 
 			return ent.NewClient(ent.Driver(drv)), nil
@@ -173,53 +132,107 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 			return obj.(*ent.Client).Close()
 		},
 	})
+}
 
-	diBuilder.Add(&di.Def{
+func registerServiceDefs(b *di.EnhancedBuilder) {
+	b.Add(&di.Def{
 		Name: static.DiSettings,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateSettingsService(&ctn), nil
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: localStatic.DiSaves,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateSavesService(&ctn), nil
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: localStatic.DiPoints,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreatePointsService(&ctn), nil
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: localStatic.DiGame,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateGameService(&ctn), nil
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiVoteReward,
 		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteRewardFunc(&ctn), nil
 		},
 	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiVoteHandler,
 		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteHandler(&ctn), nil
 		},
 	})
+}
 
-	container, err = diBuilder.Build()
-	if err != nil {
-		utils.Logger.Fatalw("failed to build DI container", "error", err)
+func buildBot(ctn di.Container) (*disgoplus.Bot, error) {
+	cfg := ctn.Get(static.DiConfig).(*config.Config)
+	gatewayOpts := []gateway.ConfigOpt{
+		gateway.WithIntents(
+			gateway.IntentGuilds,
+			gateway.IntentGuildMessages,
+			gateway.IntentMessageContent,
+			gateway.IntentGuildExpressions,
+			gateway.IntentGuildMessageReactions,
+		),
+		gateway.WithPresenceOpts(
+			gateway.WithPlayingActivity("Kazu 🧮"),
+		),
 	}
 
-	return
+	var discordOpt bot.ConfigOpt
+	if cfg.Shard {
+		discordOpt = bot.WithShardManagerConfigOpts(
+			sharding.WithGatewayConfigOpts(gatewayOpts...),
+		)
+	} else {
+		discordOpt = bot.WithGatewayConfigOpts(gatewayOpts...)
+	}
+
+	b, err := disgoplus.New(
+		cfg.DiscordToken,
+		cfg.Shard,
+		discordOpt,
+		bot.WithCacheConfigOpts(
+			cache.WithCaches(
+				static.DefaultCacheFlags|cache.FlagMessages,
+			),
+			cache.WithMessageCachePolicy(messageCachePolicy),
+		),
+		bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("build bot: %w", err)
+	}
+
+	return b, nil
+}
+
+func messageCachePolicy(msg discord.Message) bool {
+	if msg.Author.Bot {
+		return false
+	}
+
+	if msg.Content == "" {
+		return false
+	}
+
+	if msg.GuildID == nil {
+		return false
+	}
+
+	return utils.ActiveGames.IsActiveChannel(msg.ChannelID)
 }

@@ -49,7 +49,7 @@ func CreateVoteHandler(
 				"userID", userID,
 			)
 
-			return err
+			return fmt.Errorf("vote handler: add save to player: %w", err)
 		}
 
 		userSnowflake, err := snowflake.Parse(userID)
@@ -62,7 +62,7 @@ func CreateVoteHandler(
 			return fmt.Errorf("vote handler: create dm channel: %w", err)
 		}
 
-		_, err = bot.Client().Rest.CreateMessage(
+		if _, err = bot.Client().Rest.CreateMessage(
 			dmChannel.ID(),
 			discord.MessageCreate{
 				Content: fmt.Sprintf(
@@ -72,9 +72,11 @@ func CreateVoteHandler(
 					strconv.FormatFloat(maxSaves, 'f', -1, 64),
 				),
 			},
-		)
+		); err != nil {
+			return fmt.Errorf("vote handler: create message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 }
 

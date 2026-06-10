@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"sync/atomic"
 
 	"github.com/disgoorg/disgo/discord"
@@ -115,7 +116,11 @@ func SyncCommands(
 
 	Logger.Infof("Syncing %d commands", len(cmds))
 
-	return handler.SyncCommands(bot.Client(), cmds, guildIDs)
+	if err := handler.SyncCommands(bot.Client(), cmds, guildIDs); err != nil {
+		return fmt.Errorf("sync commands: %w", err)
+	}
+
+	return nil
 }
 
 func commandsModuleName(cmds []discord.ApplicationCommandCreate) string {

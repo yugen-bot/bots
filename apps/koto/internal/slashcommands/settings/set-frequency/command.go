@@ -16,10 +16,10 @@ func (m *SetFrequencyModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("set frequency: defer: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 	minutes := data.Int("minutes")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
@@ -27,17 +27,20 @@ func (m *SetFrequencyModule) set(
 		return localUtils.ReplyNoSettings(e, true)
 	}
 
-	if _, err := m.settings.Update(
+	if _, updateErr := m.settings.Update(
 		context.Background(),
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetFrequency(minutes) },
-	); err != nil {
+	); updateErr != nil {
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("set frequency: send followup: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
@@ -47,6 +50,9 @@ func (m *SetFrequencyModule) set(
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("set frequency: send followup: %w", err)
+	}
 
-	return err
+	return nil
 }

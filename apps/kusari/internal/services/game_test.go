@@ -8,6 +8,8 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 )
 
+const testWordApple = "apple"
+
 // newKusariMsg builds a minimal discord.Message for testing ParseWord
 // without requiring any DI or network access.
 func newKusariMsg(content string, isBot bool) discord.Message {
@@ -42,7 +44,7 @@ func TestFirstLetterRegex(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
 			// Only test the first character as the service does: string(word[0])
-			first := string(tc.input)
+			first := tc.input
 
 			got := firstLetterRegex.MatchString(first)
 			if got != tc.want {
@@ -105,7 +107,7 @@ func TestParseWord(t *testing.T) {
 	}{
 		{
 			name:     "bot author is rejected",
-			content:  "apple",
+			content:  testWordApple,
 			isBot:    true,
 			wantWord: "",
 			wantErr:  ErrAuthorIsBot,
@@ -114,7 +116,7 @@ func TestParseWord(t *testing.T) {
 			name:     "valid single word is returned lowercased",
 			content:  "Apple",
 			isBot:    false,
-			wantWord: "apple",
+			wantWord: testWordApple,
 			wantErr:  nil,
 		},
 		{
@@ -133,21 +135,21 @@ func TestParseWord(t *testing.T) {
 		},
 		{
 			name:     "word starting with exclamation is stripped",
-			content:  "!apple",
+			content:  "!" + testWordApple,
 			isBot:    false,
-			wantWord: "apple",
+			wantWord: testWordApple,
 			wantErr:  nil,
 		},
 		{
 			name:     "word starting with digit is rejected (first letter regex)",
-			content:  "1apple",
+			content:  "1" + testWordApple,
 			isBot:    false,
 			wantWord: "",
 			wantErr:  nil,
 		},
 		{
 			name:     "word ending with digit is rejected (last letter regex)",
-			content:  "apple1",
+			content:  testWordApple + "1",
 			isBot:    false,
 			wantWord: "",
 			wantErr:  nil,

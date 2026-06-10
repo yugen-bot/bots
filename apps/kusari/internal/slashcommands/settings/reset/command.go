@@ -16,22 +16,28 @@ func (m *ResetModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("reset: defer create message: %w", err)
 	}
 
 	setting := data.String("setting")
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"reset: create follow up message: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	var (
@@ -49,12 +55,18 @@ func (m *ResetModule) set(
 	}
 
 	if apply == nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"reset: create follow up message: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	_, err = m.settings.Update(
@@ -63,12 +75,18 @@ func (m *ResetModule) set(
 		apply,
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"reset: create follow up message: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	choiceIdx := slices.IndexFunc(
@@ -87,6 +105,9 @@ func (m *ResetModule) set(
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("reset: create follow up message: %w", err)
+	}
 
-	return err
+	return nil
 }

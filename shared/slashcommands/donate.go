@@ -48,11 +48,15 @@ Thanks for playing!`,
 		)).
 		WithEmbedFooter(footer)
 
-	return e.CreateMessage(
+	if err := e.CreateMessage(
 		discord.NewMessageCreate().
 			AddEmbeds(embed).
 			AddActionRow(static.ButtonKofi),
-	)
+	); err != nil {
+		return fmt.Errorf("create message: %w", err)
+	}
+
+	return nil
 }
 
 func (m *DonateModule) Commands() []discord.ApplicationCommandCreate {

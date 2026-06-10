@@ -17,6 +17,7 @@ func SendWelcomeMessage(client *bot.Client, guildID string) {
 			guildID,
 			err,
 		)
+
 		return
 	}
 
@@ -29,6 +30,7 @@ func SendWelcomeMessage(client *bot.Client, guildID string) {
 				guildID,
 				err,
 			)
+
 			return
 		}
 		// GetGuild REST returns a partial Guild without channels; skip welcome in this case.

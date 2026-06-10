@@ -2,6 +2,7 @@ package startafterfirstguess
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
@@ -15,10 +16,10 @@ func (m *StartAfterFirstGuessModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("start after first guess: defer: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 	enabled := data.Bool("value")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
@@ -26,30 +27,36 @@ func (m *StartAfterFirstGuessModule) set(
 		return localUtils.ReplyNoSettings(e, true)
 	}
 
-	if _, err := m.settings.Update(
+	if _, updateErr := m.settings.Update(
 		context.Background(),
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetStartAfterFirstGuess(enabled) },
-	); err != nil {
+	); updateErr != nil {
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("start after first guess: send followup: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
+	var msg string
 	if enabled {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "The game timer will now start after the first guess!",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		msg = "The game timer will now start after the first guess!"
 	} else {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "The game timer will now start when the game is created.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		msg = "The game timer will now start when the game is created."
 	}
 
-	return err
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: msg,
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("start after first guess: send followup: %w", err)
+	}
+
+	return nil
 }

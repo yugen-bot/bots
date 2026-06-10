@@ -45,12 +45,12 @@ func CreateVoteHandler(
 
 		userSnowflake, parseErr := snowflake.Parse(userID)
 		if parseErr != nil {
-			return parseErr
+			return fmt.Errorf("vote: parse user ID: %w", parseErr)
 		}
 
 		dmChannel, chanErr := client.Rest.CreateDMChannel(userSnowflake)
 		if chanErr != nil {
-			return chanErr
+			return fmt.Errorf("vote: create DM channel: %w", chanErr)
 		}
 
 		msg := fmt.Sprintf(
@@ -66,12 +66,14 @@ func CreateVoteHandler(
 			)
 		}
 
-		_, err = client.Rest.CreateMessage(
+		if _, err = client.Rest.CreateMessage(
 			dmChannel.ID(),
 			discord.MessageCreate{Content: msg},
-		)
+		); err != nil {
+			return fmt.Errorf("vote: send DM: %w", err)
+		}
 
-		return err
+		return nil
 	}
 }
 

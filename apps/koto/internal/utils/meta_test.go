@@ -54,7 +54,7 @@ func TestParseGameMeta_Empty(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if meta.Keyboard != nil && len(meta.Keyboard) != 0 {
+	if len(meta.Keyboard) != 0 {
 		t.Errorf("expected empty keyboard, got %v", meta.Keyboard)
 	}
 }

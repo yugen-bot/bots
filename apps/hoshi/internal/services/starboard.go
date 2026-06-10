@@ -39,6 +39,174 @@ func CreateStarboardService(container *di.Container) *StarboardService {
 	}
 }
 
+// resolveSourceChannelID returns the parent channel ID when reacting inside
+// a thread, otherwise returns the original channelID.
+func (s *StarboardService) resolveSourceChannelID(
+	chID snowflake.ID,
+	channelID string,
+) string {
+	ch, chErr := s.client.Rest.GetChannel(chID)
+	if chErr != nil || ch == nil {
+		return channelID
+	}
+
+	if ch.Type() != discord.ChannelTypeGuildPublicThread &&
+		ch.Type() != discord.ChannelTypeGuildPrivateThread {
+		return channelID
+	}
+
+	thread, ok := ch.(interface{ ParentID() *snowflake.ID })
+	if !ok {
+		return channelID
+	}
+
+	pid := thread.ParentID()
+	if pid == nil {
+		return channelID
+	}
+
+	return pid.String()
+}
+
+// countEligibleReactions counts non-bot reactions, optionally excluding the
+// message author.
+func countEligibleReactions(
+	users []discord.User,
+	authorID snowflake.ID,
+	allowSelf bool,
+) int {
+	count := 0
+
+	for _, u := range users {
+		if u.Bot {
+			continue
+		}
+
+		if !allowSelf && u.ID == authorID {
+			continue
+		}
+
+		count++
+	}
+
+	return count
+}
+
+// validateReactionEligibility checks whether this reaction event should trigger
+// a starboard update. Returns false (and logs/returns early) when it should not.
+func (s *StarboardService) validateReactionEligibility(
+	ctx context.Context,
+	channelID, messageID, guildID string,
+	ignoredIDs []string,
+	sourceChannelID string,
+) bool {
+	if slices.Contains(ignoredIDs, sourceChannelID) {
+		return false
+	}
+
+	isTarget, err := s.getLogByMessageID(ctx, messageID)
+	if err != nil && !ent.IsNotFound(err) {
+		utils.Logger.Errorw(
+			"starboard: check reaction: get log by message id failed",
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
+		)
+
+		return false
+	}
+
+	return isTarget == nil
+}
+
+func (s *StarboardService) processStarboard(
+	ctx context.Context,
+	channelID, messageID, guildID, emojiID, emojiName string,
+	chID, msgID snowflake.ID,
+	treshold int,
+	allowSelf bool,
+	targetChannelID string,
+) {
+	emojiAPIName := emojiName
+	if emojiID != "" {
+		emojiAPIName = fmt.Sprintf("%s:%s", emojiName, emojiID)
+	}
+
+	users, err := s.client.Rest.GetReactions(
+		chID, msgID, emojiAPIName,
+		discord.MessageReactionTypeNormal, 0, 100,
+	)
+	if err != nil {
+		utils.Logger.Errorw(
+			"starboard: check reaction: get message reactions failed",
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
+		)
+
+		return
+	}
+
+	msg, err := s.client.Rest.GetMessage(chID, msgID)
+	if err != nil || msg == nil {
+		utils.Logger.Errorw(
+			"starboard: check reaction: get channel message failed",
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
+		)
+
+		return
+	}
+
+	count := countEligibleReactions(users, msg.Author.ID, allowSelf)
+
+	log, err := s.getLogByOriginalID(ctx, messageID)
+	if err != nil && !ent.IsNotFound(err) {
+		utils.Logger.Errorw(
+			"starboard: check reaction: get log by original id failed",
+			"error", err,
+			"guildID", guildID,
+			"channelID", channelID,
+			"messageID", messageID,
+		)
+
+		return
+	}
+
+	if count == 0 && log != nil {
+		s.deleteStarboard(ctx, log)
+		return
+	}
+
+	if count < treshold {
+		return
+	}
+
+	if msg.GuildID == nil {
+		gid, _ := snowflake.Parse(guildID)
+		msg.GuildID = &gid
+	}
+
+	embeds := s.createEmbeds(msg)
+	if len(embeds) == 0 {
+		return
+	}
+
+	if log != nil {
+		s.updateStarboard(count, embeds, msg, guildID, emojiName, emojiID, log)
+		return
+	}
+
+	s.createStarboard(
+		ctx, count, embeds, channelID, messageID, msg,
+		guildID, targetChannelID, emojiName, emojiID,
+	)
+}
+
 func (s *StarboardService) CheckReaction(
 	ctx context.Context,
 	channelID, messageID, guildID, emojiID, emojiName string,
@@ -48,10 +216,8 @@ func (s *StarboardService) CheckReaction(
 		if !ent.IsNotFound(err) {
 			utils.Logger.Errorw(
 				"starboard: check reaction: get settings failed",
-				"error",
-				err,
-				"guildID",
-				guildID,
+				"error", err,
+				"guildID", guildID,
 			)
 		}
 
@@ -59,47 +225,18 @@ func (s *StarboardService) CheckReaction(
 	}
 
 	chID, _ := snowflake.Parse(channelID)
+	sourceChannelID := s.resolveSourceChannelID(chID, channelID)
 
-	// Resolve parent channel when reacting inside a thread.
-	sourceChannelID := channelID
-
-	ch, chErr := s.client.Rest.GetChannel(chID)
-	if chErr == nil && ch != nil &&
-		(ch.Type() == discord.ChannelTypeGuildPublicThread ||
-			ch.Type() == discord.ChannelTypeGuildPrivateThread) {
-		if thread, ok := ch.(interface{ ParentID() *snowflake.ID }); ok {
-			if pid := thread.ParentID(); pid != nil {
-				sourceChannelID = pid.String()
-			}
-		}
-	}
-
-	if slices.Contains([]string(sett.IgnoredChannelIds), sourceChannelID) {
+	if !s.validateReactionEligibility(
+		ctx,
+		channelID, messageID, guildID,
+		sett.IgnoredChannelIds,
+		sourceChannelID,
+	) {
 		return
 	}
 
 	msgID, _ := snowflake.Parse(messageID)
-
-	isTarget, err := s.getLogByMessageID(ctx, messageID)
-	if err != nil && !ent.IsNotFound(err) {
-		utils.Logger.Errorw(
-			"starboard: check reaction: get log by message id failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"channelID",
-			channelID,
-			"messageID",
-			messageID,
-		)
-
-		return
-	}
-
-	if isTarget != nil {
-		return
-	}
 
 	reactionEmoji := emojiID
 	if reactionEmoji == "" {
@@ -127,112 +264,13 @@ func (s *StarboardService) CheckReaction(
 		}
 	}
 
-	emojiAPIName := emojiName
-	if emojiID != "" {
-		emojiAPIName = fmt.Sprintf("%s:%s", emojiName, emojiID)
-	}
-
-	users, err := s.client.Rest.GetReactions(
-		chID,
-		msgID,
-		emojiAPIName,
-		discord.MessageReactionTypeNormal,
-		0,
-		100,
-	)
-	if err != nil {
-		utils.Logger.Errorw(
-			"starboard: check reaction: get message reactions failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"channelID",
-			channelID,
-			"messageID",
-			messageID,
-		)
-
-		return
-	}
-
-	msg, err := s.client.Rest.GetMessage(chID, msgID)
-	if err != nil || msg == nil {
-		utils.Logger.Errorw(
-			"starboard: check reaction: get channel message failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"channelID",
-			channelID,
-			"messageID",
-			messageID,
-		)
-
-		return
-	}
-
-	allowSelf := sett.Self
-
-	count := 0
-
-	for _, u := range users {
-		if u.Bot {
-			continue
-		}
-
-		if !allowSelf && u.ID == msg.Author.ID {
-			continue
-		}
-
-		count++
-	}
-
-	log, err := s.getLogByOriginalID(ctx, messageID)
-	if err != nil && !ent.IsNotFound(err) {
-		utils.Logger.Errorw(
-			"starboard: check reaction: get log by original id failed",
-			"error",
-			err,
-			"guildID",
-			guildID,
-			"channelID",
-			channelID,
-			"messageID",
-			messageID,
-		)
-
-		return
-	}
-
-	if count == 0 && log != nil {
-		s.deleteStarboard(ctx, log)
-		return
-	}
-
-	if count < sett.Treshold {
-		return
-	}
-
-	if msg.GuildID == nil {
-		gid, _ := snowflake.Parse(guildID)
-		msg.GuildID = &gid
-	}
-
-	embeds := s.createEmbeds(msg, guildID)
-	if len(embeds) == 0 {
-		return
-	}
-
-	if log != nil {
-		s.updateStarboard(count, embeds, msg, guildID, emojiName, emojiID, log)
-		return
-	}
-
-	s.createStarboard(
-		ctx, count, embeds, channelID, messageID, msg,
-		guildID, cfg.TargetChannelID, emojiName, emojiID,
+	s.processStarboard(
+		ctx,
+		channelID, messageID, guildID, emojiID, emojiName,
+		chID, msgID,
+		sett.Treshold,
+		sett.Self,
+		cfg.TargetChannelID,
 	)
 }
 
@@ -362,7 +400,6 @@ func (s *StarboardService) RemoveStarboardByID(
 
 func (s *StarboardService) createEmbeds(
 	msg *discord.Message,
-	guildID string,
 ) []discord.Embed {
 	if len(msg.Content) == 0 && len(msg.Attachments) == 0 {
 		return nil
@@ -448,6 +485,33 @@ func emojiAPIFormat(emojiName, emojiID string) string {
 	return emojiName
 }
 
+func (s *StarboardService) notifyStarboardError(
+	sourceChID, origMsgID snowflake.ID,
+	targetChannelID, errType string,
+) {
+	originalMessage, fetchErr := s.client.Rest.GetMessage(sourceChID, origMsgID)
+	if fetchErr != nil || originalMessage == nil {
+		return
+	}
+
+	message := "The starboard channel does not seem to exist: <#%s>.\nPlease inform a moderator of this server."
+	if errType == "forbidden_channel" {
+		message = "Hoshi does not have permissions to access the starboard channel: <#%s>.\nPlease inform a moderator of this server."
+	}
+
+	_, _ = s.client.Rest.CreateMessage(
+		sourceChID,
+		discord.MessageCreate{
+			Content: fmt.Sprintf(message, targetChannelID),
+			MessageReference: &discord.MessageReference{
+				MessageID: &originalMessage.ID,
+				ChannelID: &originalMessage.ChannelID,
+				GuildID:   originalMessage.GuildID,
+			},
+		},
+	)
+}
+
 func (s *StarboardService) createStarboard(
 	ctx context.Context,
 	count int,
@@ -487,29 +551,11 @@ func (s *StarboardService) createStarboard(
 		}
 
 		if errType != "" {
-			originalMessage, fetchErr := s.client.Rest.GetMessage(
+			s.notifyStarboardError(
 				sourceChID,
 				origMsgID,
-			)
-			if fetchErr != nil || originalMessage == nil {
-				return
-			}
-
-			message := "The starboard channel does not seem to exist: <#%s>.\nPlease inform a moderator of this server."
-			if errType == "forbidden_channel" {
-				message = "Hoshi does not have permissions to access the starboard channel: <#%s>.\nPlease inform a moderator of this server."
-			}
-
-			_, _ = s.client.Rest.CreateMessage(
-				sourceChID,
-				discord.MessageCreate{
-					Content: fmt.Sprintf(message, targetChannelID),
-					MessageReference: &discord.MessageReference{
-						MessageID: &originalMessage.ID,
-						ChannelID: &originalMessage.ChannelID,
-						GuildID:   originalMessage.GuildID,
-					},
-				},
+				targetChannelID,
+				errType,
 			)
 		}
 
@@ -614,11 +660,11 @@ func (s *StarboardService) deleteStarboard(
 		return
 	}
 
-	if err := s.client.Rest.DeleteMessage(chID, msgID); err != nil {
+	if delErr := s.client.Rest.DeleteMessage(chID, msgID); delErr != nil {
 		utils.Logger.Errorw(
 			"starboard: delete starboard: delete message failed",
 			"error",
-			err,
+			delErr,
 			"guildID",
 			log.GuildID,
 			"channelID",

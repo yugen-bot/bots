@@ -27,11 +27,11 @@ func (m *ListModule) list(
 	}
 
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 
 	items, total, err := m.starboard.GetStarboards(
 		context.Background(),
@@ -44,10 +44,10 @@ func (m *ListModule) list(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("get starboards: %w", err)
 	}
 
 	if total == 0 {
@@ -55,8 +55,11 @@ func (m *ListModule) list(
 			Content: "No starboards have been configured yet.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if ferr != nil {
+			return fmt.Errorf("follow-up message: %w", ferr)
+		}
 
-		return ferr
+		return nil
 	}
 
 	if len(items) == 0 {
@@ -64,8 +67,11 @@ func (m *ListModule) list(
 			Content: fmt.Sprintf("No starboards found for page %d", page),
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if ferr != nil {
+			return fmt.Errorf("follow-up message: %w", ferr)
+		}
 
-		return ferr
+		return nil
 	}
 
 	embed, components := buildListContent(bot, items, total, page, guildID)
@@ -75,8 +81,11 @@ func (m *ListModule) list(
 		Components: components,
 		Flags:      discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (m *ListModule) listPage(
@@ -95,7 +104,7 @@ func (m *ListModule) listPage(
 	}
 
 	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 
 	items, total, err := m.starboard.GetStarboards(
 		context.Background(),
@@ -107,11 +116,15 @@ func (m *ListModule) listPage(
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if updateErr := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
 			Components: &emptyComponents,
-		})
+		}); updateErr != nil {
+			return fmt.Errorf("update message: %w", updateErr)
+		}
+
+		return nil
 	}
 
 	if total == 0 {
@@ -119,11 +132,15 @@ func (m *ListModule) listPage(
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if updateErr := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
 			Components: &emptyComponents,
-		})
+		}); updateErr != nil {
+			return fmt.Errorf("update message: %w", updateErr)
+		}
+
+		return nil
 	}
 
 	if len(items) == 0 {
@@ -131,21 +148,29 @@ func (m *ListModule) listPage(
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if updateErr := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
 			Components: &emptyComponents,
-		})
+		}); updateErr != nil {
+			return fmt.Errorf("update message: %w", updateErr)
+		}
+
+		return nil
 	}
 
 	embed, components := buildListContent(bot, items, total, page, guildID)
 
 	embeds := []discord.Embed{embed}
 
-	return e.UpdateMessage(discord.MessageUpdate{
+	if err := e.UpdateMessage(discord.MessageUpdate{
 		Embeds:     &embeds,
 		Components: &components,
-	})
+	}); err != nil {
+		return fmt.Errorf("update message: %w", err)
+	}
+
+	return nil
 }
 
 func buildListContent(

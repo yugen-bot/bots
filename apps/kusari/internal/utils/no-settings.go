@@ -13,13 +13,12 @@ import (
 	shared "jurien.dev/yugen/shared/utils"
 )
 
-const NoSettingsDescription = `Someone with ` + "`Manage Server`" + ` permissions must do the following:
-
-- Create a new channel where Kusari will be played
-- Use the ` + "`/settings channel`" + ` command to configure the channel
-- Start the first game using ` + "`/game start`" + `!
-
-That's it! Have fun playing!`
+const NoSettingsDescription = "Someone with `Manage Server` permissions" +
+	" must do the following:\n\n" +
+	"- Create a new channel where Kusari will be played\n" +
+	"- Use the `/settings channel` command to configure the channel\n" +
+	"- Start the first game using `/game start`!\n\n" +
+	"That's it! Have fun playing!"
 
 func NoSettingsReply(
 	e *handler.CommandEvent,
@@ -56,6 +55,12 @@ func NoSettingsReply(
 		Embeds: []discord.Embed{embed},
 		Flags:  flags,
 	})
+	if err != nil {
+		return fmt.Errorf(
+			"no settings reply: create follow up message: %w",
+			err,
+		)
+	}
 
-	return err
+	return nil
 }

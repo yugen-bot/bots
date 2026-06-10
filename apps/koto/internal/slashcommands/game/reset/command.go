@@ -2,6 +2,7 @@ package reset
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
@@ -15,10 +16,10 @@ func (m *ResetModule) reset(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("game reset: defer: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 
 	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || guildSettings == nil {
@@ -32,6 +33,7 @@ func (m *ResetModule) reset(
 	started, err := m.game.Start(context.Background(), guildID, true, true, "")
 	if err != nil {
 		utils.Logger.Warnw("game: start: start failed: %w", err)
+
 		return localUtils.HandleChannelInaccessible(
 			e,
 			*guildSettings.ChannelID,
@@ -40,18 +42,24 @@ func (m *ResetModule) reset(
 	}
 
 	if !started {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Failed to reset the game.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("game reset: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Game has been reset and a new one started!",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("game reset: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

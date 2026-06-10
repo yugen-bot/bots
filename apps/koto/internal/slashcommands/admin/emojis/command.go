@@ -16,7 +16,7 @@ func (m *EmojisModule) emojis(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("emojis: defer: %w", err)
 	}
 
 	colors := []string{"GREEN", "YELLOW", "GRAY", "WHITE"}
@@ -45,14 +45,17 @@ func (m *EmojisModule) emojis(
 		e.Client().Rest.CreateMessage(
 			channelSnowflake,
 			discord.MessageCreate{Content: sb.String()},
-		) //nolint:errcheck
+		)
 		sb.Reset()
 	}
 
-	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "There you go!",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("emojis: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

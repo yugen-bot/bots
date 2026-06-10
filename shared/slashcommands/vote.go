@@ -26,7 +26,7 @@ func (m *VoteModule) run(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(false); err != nil {
-		return err
+		return fmt.Errorf("defer create message: %w", err)
 	}
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
@@ -89,9 +89,11 @@ Please use any of the links below to vote for %s!%s`,
 		msg = msg.AddActionRow(buttons...)
 	}
 
-	_, err := e.CreateFollowupMessage(msg)
+	if _, err := e.CreateFollowupMessage(msg); err != nil {
+		return fmt.Errorf("create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (m *VoteModule) Commands() []discord.ApplicationCommandCreate {

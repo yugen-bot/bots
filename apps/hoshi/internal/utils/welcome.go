@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 
@@ -52,7 +54,9 @@ func SendWelcomeMessage(
 			"error",
 			err,
 		)
+
+		return fmt.Errorf("welcome: send message: %w", err)
 	}
 
-	return err
+	return nil
 }

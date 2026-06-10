@@ -28,14 +28,26 @@ func HandleChannelInaccessible(
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf(
+				"handle channel inaccessible: send followup: %w",
+				sendErr,
+			)
+		}
 
-		return sendErr
+		return nil
 	}
 
 	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Something went wrong, try again later.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf(
+			"handle channel inaccessible: send followup: %w",
+			sendErr,
+		)
+	}
 
-	return sendErr
+	return nil
 }

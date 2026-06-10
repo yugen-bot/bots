@@ -28,13 +28,20 @@ func (m *ResetLeaderboardModule) request(
 		utils.Logger.Errorw(
 			"reset-leaderboard: get guild failed",
 			"error", err,
-			"guildID", (*e.GuildID()).String(),
+			"guildID", e.GuildID().String(),
 		)
 
-		return e.CreateMessage(discord.MessageCreate{
+		if createErr := e.CreateMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); createErr != nil {
+			return fmt.Errorf(
+				"reset-leaderboard: create message: %w",
+				createErr,
+			)
+		}
+
+		return nil
 	}
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
@@ -57,7 +64,7 @@ func (m *ResetLeaderboardModule) request(
 		)).
 		WithEmbedFooter(footer)
 
-	return e.CreateMessage(discord.MessageCreate{
+	if err = e.CreateMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Components: []discord.LayoutComponent{
 			discord.NewActionRow(
@@ -72,7 +79,11 @@ func (m *ResetLeaderboardModule) request(
 			),
 		},
 		Flags: discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("reset-leaderboard: create message: %w", err)
+	}
+
+	return nil
 }
 
 func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
@@ -92,38 +103,61 @@ func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
 		empty := []discord.LayoutComponent{}
 		emptyEmbeds := []discord.Embed{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if err := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &contentText,
 			Components: &empty,
 			Embeds:     &emptyEmbeds,
-		})
+		}); err != nil {
+			return fmt.Errorf("reset-leaderboard: update message: %w", err)
+		}
+
+		return nil
 	}
 
 	contentText := "The leaderboard points have been reset"
 	if userID != "none" {
-		contentText = fmt.Sprintf(
-			"%s for <@%s>",
-			contentText,
-			userID,
-		)
-		go m.points.ResetLeaderboardByGuildIDAndUserID( //nolint:errcheck
-			context.Background(),
-			(*e.GuildID()).String(),
-			userID,
-		)
+		go func() {
+			contentText = fmt.Sprintf(
+				"%s for <@%s>",
+				contentText,
+				userID,
+			)
+
+			if resetErr := m.points.ResetLeaderboardByGuildIDAndUserID(
+				context.Background(),
+				e.GuildID().String(),
+				userID,
+			); resetErr != nil {
+				utils.Logger.Errorw(
+					"reset leaderboard: reset by guild and user failed",
+					"error", resetErr,
+				)
+			}
+		}()
 	} else {
-		go m.points.ResetLeaderboardByGuildID( //nolint:errcheck
-			context.Background(),
-			(*e.GuildID()).String(),
-		)
+		go func() {
+			if resetErr := m.points.ResetLeaderboardByGuildID(
+				context.Background(),
+				e.GuildID().String(),
+			); resetErr != nil {
+				utils.Logger.Errorw(
+					"reset leaderboard: reset by guild and user failed",
+					"error", resetErr,
+				)
+			}
+		}()
 	}
 
 	empty := []discord.LayoutComponent{}
 	emptyEmbeds := []discord.Embed{}
 
-	return e.UpdateMessage(discord.MessageUpdate{
+	if err := e.UpdateMessage(discord.MessageUpdate{
 		Content:    &contentText,
 		Components: &empty,
 		Embeds:     &emptyEmbeds,
-	})
+	}); err != nil {
+		return fmt.Errorf("reset-leaderboard: update message: %w", err)
+	}
+
+	return nil
 }

@@ -16,22 +16,24 @@ func (m *ResetModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("reset: defer create message: %w", err)
 	}
 
 	setting := data.String("setting")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("reset: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
 	var (
@@ -58,26 +60,29 @@ func (m *ResetModule) set(
 	}
 
 	if apply == nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("reset: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = m.settings.Update(
+	if _, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
 		apply,
-	)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	); err != nil {
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("reset: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
 	choiceIdx := slices.IndexFunc(
@@ -86,14 +91,16 @@ func (m *ResetModule) set(
 	)
 	name := choices[choiceIdx].Name
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"%s has been reset to it's default value of `%s`",
 			name,
 			value,
 		),
 		Flags: discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("reset: create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }

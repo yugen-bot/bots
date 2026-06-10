@@ -125,6 +125,18 @@ linters:
       - text: "error returned from external package is unwrapped: sig: func.*BodyParser"
         linters:
           - wrapcheck
+      # wrapcheck: internal yugen shared packages are in the same project
+      - text: "error returned from external package is unwrapped: sig: func jurien\\.dev/yugen/"
+        linters:
+          - wrapcheck
+      # wrapcheck: interface method errors from shared interfaces (RoutableModule etc.)
+      - text: "error returned from interface method should be wrapped: sig: func.*SyncCommands"
+        linters:
+          - wrapcheck
+      # errcheck: admin prune notification channel writes are fire-and-forget
+      - text: "Error return value of `(\\.CreateMessage|.*\\.Rest\\.CreateMessage)` is not checked"
+        linters:
+          - errcheck
       # gosec G101: env var name constants (e.g. EnvTopGGToken = "TOP_GG_TOKEN") are not credentials
       - text: "G101"
         path: "shared/static/env\\.go"

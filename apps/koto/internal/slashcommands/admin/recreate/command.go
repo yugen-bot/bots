@@ -13,10 +13,10 @@ func (m *RecreateModule) recreate(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("recreate: defer: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 	if v, ok := data.OptString("guild"); ok && v != "" {
 		guildID = v
 	}
@@ -25,35 +25,44 @@ func (m *RecreateModule) recreate(
 	if v, ok := data.OptString("word"); ok {
 		word = v
 		if word != "" && !m.words.Exists(word) {
-			_, err := e.CreateFollowupMessage(discord.MessageCreate{
+			_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 				Content: fmt.Sprintf(
 					"Word **`%s`** is not available in the database.",
 					word,
 				),
 				Flags: discord.MessageFlagEphemeral,
 			})
+			if sendErr != nil {
+				return fmt.Errorf("recreate: send followup: %w", sendErr)
+			}
 
-			return err
+			return nil
 		}
 	}
 
 	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || settings == nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Could not find settings for the specified guild.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("recreate: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	if settings.ChannelID == nil || *settings.ChannelID == "" {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Guild has no channel configured.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("recreate: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	started, err := m.game.Start(
@@ -64,28 +73,34 @@ func (m *RecreateModule) recreate(
 		word,
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("recreate: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
+	var content string
 	if started {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: fmt.Sprintf(
-				"A game has been recreated in <#%s>.",
-				*settings.ChannelID,
-			),
-			Flags: discord.MessageFlagEphemeral,
-		})
+		content = fmt.Sprintf(
+			"A game has been recreated in <#%s>.",
+			*settings.ChannelID,
+		)
 	} else {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Failed to recreate the game.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		content = "Failed to recreate the game."
 	}
 
-	return err
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
+		Content: content,
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	if sendErr != nil {
+		return fmt.Errorf("recreate: send followup: %w", sendErr)
+	}
+
+	return nil
 }

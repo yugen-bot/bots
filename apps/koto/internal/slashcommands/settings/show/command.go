@@ -8,6 +8,7 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 
+	"jurien.dev/yugen/koto/internal/ent"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/config"
@@ -17,83 +18,84 @@ import (
 
 func boolPtr(b bool) *bool { return &b }
 
-func (m *ShowModule) show(
-	_ discord.SlashCommandInteractionData,
-	e *handler.CommandEvent,
-) error {
-	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+type settingsTexts struct {
+	channelID    string
+	pingRole     string
+	pingType     string
+	members      string
+	cooldown     string
+	backToBack   string
+	informCooldn string
+	autoStart    string
+	startAfter   string
+}
+
+func buildSettingsTexts(s *ent.Settings) settingsTexts {
+	t := settingsTexts{
+		channelID:    "-",
+		pingRole:     "-",
+		pingType:     "Every change",
+		members:      "Can't start games",
+		informCooldn: "No",
+		autoStart:    "No",
+		startAfter:   "No",
 	}
 
-	s, err := m.settings.GetByGuildID(
-		context.Background(),
-		(*e.GuildID()).String(),
-	)
-	if err != nil || s == nil {
-		return localUtils.ReplyNoSettings(e, true)
-	}
-
-	channelIDText := "-"
 	if s.ChannelID != nil && *s.ChannelID != "" {
-		channelIDText = fmt.Sprintf("<#%s>", *s.ChannelID)
+		t.channelID = fmt.Sprintf("<#%s>", *s.ChannelID)
 	}
 
-	pingRoleText := "-"
 	if s.PingRoleID != nil && *s.PingRoleID != "" {
-		pingRoleText = fmt.Sprintf("<@&%s>", *s.PingRoleID)
+		t.pingRole = fmt.Sprintf("<@&%s>", *s.PingRoleID)
 	}
 
-	pingTypeText := "Every change"
 	if s.PingOnlyNew {
-		pingTypeText = "New games only"
+		t.pingType = "New games only"
 	}
 
-	membersText := "Can't start games"
 	if s.MembersCanStart {
-		membersText = "Allowed to start games"
+		t.members = "Allowed to start games"
 	}
 
-	cooldownText := fmt.Sprintf("%d seconds", s.Cooldown)
+	t.cooldown = fmt.Sprintf("%d seconds", s.Cooldown)
 	if s.Cooldown == 1 {
-		cooldownText = "1 second"
+		t.cooldown = "1 second"
 	}
 
 	if s.Cooldown == 0 {
-		cooldownText = "None"
+		t.cooldown = "None"
 	}
 
-	backToBackText := "Disabled"
+	t.backToBack = "Disabled"
 	if s.EnableBackToBackCooldown {
-		backToBackText = fmt.Sprintf(
+		t.backToBack = fmt.Sprintf(
 			"%d second%s",
 			s.BackToBackCooldown,
 			localUtils.PluralS(s.BackToBackCooldown),
 		)
 	}
 
-	informCooldownText := "No"
 	if s.InformCooldownAfterGuess {
-		informCooldownText = "Yes"
+		t.informCooldn = "Yes"
 	}
 
-	autoStartText := "No"
 	if s.AutoStart {
-		autoStartText = "Yes"
+		t.autoStart = "Yes"
 	}
 
-	startAfterFirstText := "No"
 	if s.StartAfterFirstGuess {
-		startAfterFirstText = "Yes"
+		t.startAfter = "Yes"
 	}
 
-	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiBot).(*disgoplus.Bot),
-		&utils.CreateEmbedFooterParams{IsVote: false},
-		cfg.OwnerID,
-	)
+	return t
+}
 
-	embed := discord.NewEmbed().
+func buildSettingsEmbed(
+	s *ent.Settings,
+	t settingsTexts,
+	footer *discord.EmbedFooter,
+) discord.Embed {
+	return discord.NewEmbed().
 		WithColor(localStatic.EmbedColor).
 		WithTitle("Koto settings").
 		WithDescription("These are the settings currently configured for Koto").
@@ -101,42 +103,42 @@ func (m *ShowModule) show(
 		WithFields(
 			discord.EmbedField{
 				Name:   "Channel",
-				Value:  channelIDText,
+				Value:  t.channelID,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
 				Name:   "Members privilege",
-				Value:  membersText,
+				Value:  t.members,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
 				Name:   "Ping role",
-				Value:  pingRoleText,
+				Value:  t.pingRole,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
 				Name:   "Ping type",
-				Value:  pingTypeText,
+				Value:  t.pingType,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
 				Name:   "Auto start",
-				Value:  autoStartText,
+				Value:  t.autoStart,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
 				Name:   "Answer cooldown",
-				Value:  cooldownText,
+				Value:  t.cooldown,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
 				Name:   "Back-to-back cooldown",
-				Value:  backToBackText,
+				Value:  t.backToBack,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
 				Name:   "Inform cooldown",
-				Value:  informCooldownText,
+				Value:  t.informCooldn,
 				Inline: boolPtr(true),
 			},
 			discord.EmbedField{
@@ -151,16 +153,51 @@ func (m *ShowModule) show(
 			},
 			discord.EmbedField{
 				Name:   "Start after first guess",
-				Value:  startAfterFirstText,
+				Value:  t.startAfter,
 				Inline: boolPtr(true),
 			},
-			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "\u200b",
+				Value:  "\u200b",
+				Inline: boolPtr(true),
+			},
 		)
+}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+func (m *ShowModule) show(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return fmt.Errorf("settings show: defer: %w", err)
+	}
+
+	s, err := m.settings.GetByGuildID(
+		context.Background(),
+		e.GuildID().String(),
+	)
+	if err != nil || s == nil {
+		return localUtils.ReplyNoSettings(e, true)
+	}
+
+	texts := buildSettingsTexts(s)
+
+	cfg := m.container.Get(static.DiConfig).(*config.Config)
+	footer := utils.CreateEmbedFooter(
+		m.container.Get(static.DiBot).(*disgoplus.Bot),
+		&utils.CreateEmbedFooterParams{IsVote: false},
+		cfg.OwnerID,
+	)
+
+	embed := buildSettingsEmbed(s, texts, footer)
+
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("settings show: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

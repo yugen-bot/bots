@@ -37,17 +37,17 @@ func (m *GameModule) startGame(
 	recreate bool,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("game: defer create message: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
 		guildID,
 	)
 	if err != nil {
-		return nil
+		return fmt.Errorf("game: get settings: %w", err)
 	}
 
 	if settings.ChannelID == nil {
@@ -70,12 +70,18 @@ func (m *GameModule) startGame(
 		recreate,
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf(
+				"game: start failed and follow up failed: %w",
+				followupErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	respond := "A game has been started"
@@ -86,7 +92,7 @@ func (m *GameModule) startGame(
 	if channelID != e.Channel().ID().String() {
 		respond = fmt.Sprintf("%s in the <#%s> channel.", respond, channelID)
 	} else {
-		respond = respond + "."
+		respond += "."
 	}
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
@@ -101,9 +107,11 @@ func (m *GameModule) startGame(
 			"guildID",
 			guildID,
 		)
+
+		return fmt.Errorf("game: create follow up message: %w", err)
 	}
 
-	return err
+	return nil
 }
 
 func (m *GameModule) start(
@@ -140,9 +148,10 @@ func (m *GameModule) Commands() []discord.ApplicationCommandCreate {
 					Options:     options,
 				},
 				discord.ApplicationCommandOptionSubCommand{
-					Name:        "reset",
-					Description: "Reset the current game and any points earned.",
-					Options:     options,
+					Name: "reset",
+					Description: "Reset the current game and" +
+						" any points earned.",
+					Options: options,
 				},
 			},
 		},

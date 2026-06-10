@@ -11,66 +11,24 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
 
+	"jurien.dev/yugen/koto/internal/ent"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	"jurien.dev/yugen/shared/config"
 	sharedStatic "jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
-func (m *ServerModule) server(
-	_ discord.SlashCommandInteractionData,
-	e *handler.CommandEvent,
-) error {
-	if err := e.DeferCreateMessage(true); err != nil {
-		return err
-	}
-
-	guildID := (*e.GuildID()).String()
-	bg := context.Background()
-
-	settings, err := m.settingsSvc.GetByGuildID(bg, guildID)
-	if err != nil || settings == nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Sorry, couldn't retrieve the server information.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
-
-		return err
-	}
-
-	guildSnowflake, err := snowflake.Parse(guildID)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Sorry, couldn't retrieve the server information.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
-
-		return err
-	}
-
-	guild, err := m.bot.Client().Rest.GetGuild(guildSnowflake, false)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Sorry, couldn't retrieve the server information.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
-
-		return err
-	}
+func (m *ServerModule) buildGameLines(
+	bg context.Context,
+	guildID string,
+	settings *ent.Settings,
+) []string {
+	var gameLines []string
 
 	currentGame, _ := m.gameSvc.GetCurrentGame(bg, guildID)
 	lastSolved, _ := m.gameSvc.GetLastSolvedGame(bg, guildID)
 
-	var gameLines []string
-
-	if currentGame != nil {
-		if settings.ChannelID != nil && *settings.ChannelID != "" {
-			gameLines = append(
-				gameLines,
-				fmt.Sprintf("Ongoing game: **at <#%s>**", *settings.ChannelID),
-			)
-		}
-	} else {
+	if currentGame == nil {
 		nextStart, _ := m.gameSvc.GetNextGameStart(bg, guildID, settings)
 		if nextStart == nil || !nextStart.After(time.Now()) {
 			gameLines = append(gameLines, "Next game: **starting soon**")
@@ -80,6 +38,11 @@ func (m *ServerModule) server(
 				fmt.Sprintf("Next game: <t:%d:R>", nextStart.Unix()),
 			)
 		}
+	} else if settings.ChannelID != nil && *settings.ChannelID != "" {
+		gameLines = append(
+			gameLines,
+			fmt.Sprintf("Ongoing game: **at <#%s>**", *settings.ChannelID),
+		)
 	}
 
 	if lastSolved != nil {
@@ -93,6 +56,49 @@ func (m *ServerModule) server(
 			)
 		}
 	}
+
+	return gameLines
+}
+
+func sendServerError(e *handler.CommandEvent) error {
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
+		Content: "Sorry, couldn't retrieve the server information.",
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	if sendErr != nil {
+		return fmt.Errorf("server: send followup: %w", sendErr)
+	}
+
+	return nil
+}
+
+func (m *ServerModule) server(
+	_ discord.SlashCommandInteractionData,
+	e *handler.CommandEvent,
+) error {
+	if err := e.DeferCreateMessage(true); err != nil {
+		return fmt.Errorf("server: defer: %w", err)
+	}
+
+	guildID := e.GuildID().String()
+	bg := context.Background()
+
+	settings, err := m.settingsSvc.GetByGuildID(bg, guildID)
+	if err != nil || settings == nil {
+		return sendServerError(e)
+	}
+
+	guildSnowflake, err := snowflake.Parse(guildID)
+	if err != nil {
+		return sendServerError(e)
+	}
+
+	guild, err := m.bot.Client().Rest.GetGuild(guildSnowflake, false)
+	if err != nil {
+		return sendServerError(e)
+	}
+
+	gameLines := m.buildGameLines(bg, guildID, settings)
 
 	hintLines := fmt.Sprintf(
 		"Guild hints: **%s/%s**\nHints used: **%s**",
@@ -123,10 +129,13 @@ func (m *ServerModule) server(
 		embed = embed.WithThumbnail(*iconURL)
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("server: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

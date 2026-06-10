@@ -28,27 +28,50 @@ type wordfinderResponse struct {
 	} `json:"data"`
 }
 
-func main() {
-	outputPath := flag.String(
-		"output",
-		"internal/assets/words.json",
-		"Output path for words.json",
+func fetchPage(client *http.Client, offset int) (*wordfinderResponse, error) {
+	url := fmt.Sprintf("%s&offset=%d", baseURL, offset)
+
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		"GET",
+		url,
+		nil,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
 
-	flag.Parse()
+	req.Header.Set("Accept", "application/json")
 
-	godotenv.Load() //nolint:errcheck
-	utils.CreateLogger("koto-scrape")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("do request: %w", err)
+	}
 
-	defer utils.Logger.Sync()
+	defer resp.Body.Close()
 
-	utils.Logger.Info("Starting word scrape...")
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
+
+	var result wordfinderResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func scrapeAllWords(client *http.Client) []string {
 	var allWords []string
 
 	offset := 0
 	retries := 0
-	client := &http.Client{Timeout: 30 * time.Second}
 
 	for {
 		if offset > 0 {
@@ -57,21 +80,7 @@ func main() {
 
 		utils.Logger.Infof("Scraping from offset %d...", offset)
 
-		url := fmt.Sprintf("%s&offset=%d", baseURL, offset)
-
-		req, err := http.NewRequestWithContext(
-			context.Background(),
-			"GET",
-			url,
-			nil,
-		)
-		if err != nil {
-			utils.Logger.Fatalf("create request: %v", err)
-		}
-
-		req.Header.Set("Accept", "application/json")
-
-		resp, err := client.Do(req)
+		result, err := fetchPage(client, offset)
 		if err != nil {
 			retries++
 			if retries >= 5 {
@@ -83,42 +92,11 @@ func main() {
 			continue
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-
-			retries++
-			utils.Logger.Warnf(
-				"non-200 status %d (retry %d)",
-				resp.StatusCode,
-				retries,
-			)
-
-			if retries >= 5 {
-				utils.Logger.Fatalf(
-					"max retries exceeded on status %d",
-					resp.StatusCode,
-				)
-			}
-
-			continue
-		}
-
 		retries = 0
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-
-		if err != nil {
-			utils.Logger.Fatalf("read body: %v", err)
-		}
-
-		var result wordfinderResponse
-		if err := json.Unmarshal(body, &result); err != nil {
-			utils.Logger.Fatalf("unmarshal response: %v", err)
-		}
 
 		if len(result.Data.Groups) == 0 {
 			utils.Logger.Warn("no groups in response, stopping")
+
 			break
 		}
 
@@ -138,20 +116,44 @@ func main() {
 		}
 	}
 
-	utils.Logger.Infof("Scrape complete: %d words total", len(allWords))
+	return allWords
+}
 
+func writeWords(outputPath string, allWords []string) {
 	data, err := json.MarshalIndent(allWords, "", "  ")
 	if err != nil {
 		utils.Logger.Fatalf("marshal words: %v", err)
 	}
 
-	if err := os.WriteFile(
-		*outputPath,
-		data,
-		0o600,
-	); err != nil {
+	if err := os.WriteFile(outputPath, data, 0o600); err != nil {
 		utils.Logger.Fatalf("write output: %v", err)
 	}
 
-	utils.Logger.Infof("Words written to %s", *outputPath)
+	utils.Logger.Infof("Words written to %s", outputPath)
+}
+
+func main() {
+	outputPath := flag.String(
+		"output",
+		"internal/assets/words.json",
+		"Output path for words.json",
+	)
+
+	flag.Parse()
+
+	_ = godotenv.Load() // .env is optional in production environments
+
+	utils.CreateLogger("koto-scrape")
+
+	defer utils.Logger.Sync()
+
+	utils.Logger.Info("Starting word scrape...")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	allWords := scrapeAllWords(client)
+
+	utils.Logger.Infof("Scrape complete: %d words total", len(allWords))
+
+	writeWords(*outputPath, allWords)
 }

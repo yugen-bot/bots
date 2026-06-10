@@ -52,10 +52,12 @@ func NoSettingsReply(
 		flags = discord.MessageFlagEphemeral
 	}
 
-	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  flags,
-	})
+	}); err != nil {
+		return fmt.Errorf("no-settings-reply: create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }

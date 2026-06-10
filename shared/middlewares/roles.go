@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/disgoorg/disgo/discord"
@@ -66,10 +67,14 @@ func checkResponse(
 	if err != nil {
 		utils.Logger.Error(err)
 
-		return e.CreateMessage(discord.MessageCreate{
+		if cerr := e.CreateMessage(discord.MessageCreate{
 			Content: "Something went wrong.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); cerr != nil {
+			return fmt.Errorf("create message: %w", cerr)
+		}
+
+		return nil
 	}
 
 	if !pass {
@@ -85,10 +90,14 @@ func checkResponse(
 			}(),
 		)
 
-		return e.CreateMessage(discord.MessageCreate{
+		if cerr := e.CreateMessage(discord.MessageCreate{
 			Content: "You don't have permission to use this command.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); cerr != nil {
+			return fmt.Errorf("create message: %w", cerr)
+		}
+
+		return nil
 	}
 
 	return next(e)

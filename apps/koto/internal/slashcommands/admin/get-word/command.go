@@ -13,40 +13,49 @@ func (m *GetWordModule) getWord(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("get word: defer: %w", err)
 	}
 
 	guildID := data.String("guild")
 
 	game, err := m.game.GetCurrentGame(context.Background(), guildID)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Failed to fetch game for guild `%s`.",
 				guildID,
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("get word: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	if game == nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Guild currently has no game running.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("get word: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"The answer for the current game is: **%s**",
 			game.Word,
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("get word: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

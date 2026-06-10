@@ -3,6 +3,7 @@ package hint
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
@@ -12,6 +13,45 @@ import (
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	"jurien.dev/yugen/shared/utils"
 )
+
+func createHintMessage(e *handler.ComponentEvent, content string) error {
+	if createErr := e.CreateMessage(discord.MessageCreate{
+		Content: content,
+		Flags:   discord.MessageFlagEphemeral,
+	}); createErr != nil {
+		return fmt.Errorf("hint: create message: %w", createErr)
+	}
+
+	return nil
+}
+
+func (m *HintModule) handleHintError(
+	e *handler.ComponentEvent,
+	err error,
+	guildID string,
+	gameID int,
+	userID string,
+) error {
+	if errors.Is(err, services.ErrNoHints) {
+		return createHintMessage(
+			e,
+			"You don't have any hints available. Vote for Koto to earn hints!",
+		)
+	}
+
+	if errors.Is(err, services.ErrHintUnavailable) {
+		return createHintMessage(e, "No hint available right now.")
+	}
+
+	utils.Logger.Warnw("hint: use hint failed",
+		"error", err,
+		"guildID", guildID,
+		"gameID", gameID,
+		"userID", userID,
+	)
+
+	return createHintMessage(e, "Something went wrong, try again later.")
+}
 
 func (m *HintModule) hint(e *handler.ComponentEvent) error {
 	rawID := e.Vars["gameId"]
@@ -23,21 +63,15 @@ func (m *HintModule) hint(e *handler.ComponentEvent) error {
 			"error", err,
 		)
 
-		return e.CreateMessage(discord.MessageCreate{
-			Content: "Invalid game ID.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		return createHintMessage(e, "Invalid game ID.")
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 	userID := e.Member().User.ID.String()
 
 	guildSettings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil || guildSettings == nil {
-		return e.CreateMessage(discord.MessageCreate{
-			Content: localUtils.NoSettingsDescription,
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		return createHintMessage(e, localUtils.NoSettingsDescription)
 	}
 
 	description, err := m.game.UseHint(
@@ -47,34 +81,14 @@ func (m *HintModule) hint(e *handler.ComponentEvent) error {
 		guildSettings,
 	)
 	if err != nil {
-		if errors.Is(err, services.ErrNoHints) {
-			return e.CreateMessage(discord.MessageCreate{
-				Content: "You don't have any hints available. Vote for Koto to earn hints!",
-				Flags:   discord.MessageFlagEphemeral,
-			})
-		}
-
-		if errors.Is(err, services.ErrHintUnavailable) {
-			return e.CreateMessage(discord.MessageCreate{
-				Content: "No hint available right now.",
-				Flags:   discord.MessageFlagEphemeral,
-			})
-		}
-
-		utils.Logger.Warnw("hint: use hint failed",
-			"error", err,
-			"guildID", guildID,
-			"gameID", gameID,
-			"userID", userID,
-		)
-
-		return e.CreateMessage(discord.MessageCreate{
-			Content: "Something went wrong, try again later.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		return m.handleHintError(e, err, guildID, gameID, userID)
 	}
 
-	return e.CreateMessage(discord.MessageCreate{
+	if createErr := e.CreateMessage(discord.MessageCreate{
 		Content: description,
-	})
+	}); createErr != nil {
+		return fmt.Errorf("hint: create message: %w", createErr)
+	}
+
+	return nil
 }

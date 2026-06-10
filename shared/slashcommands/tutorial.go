@@ -43,7 +43,13 @@ func (m *TutorialModule) tutorial(
 		WithDescription(tutorialText).
 		WithEmbedFooter(footer)
 
-	return e.CreateMessage(discord.NewMessageCreate().AddEmbeds(embed))
+	if err := e.CreateMessage(
+		discord.NewMessageCreate().AddEmbeds(embed),
+	); err != nil {
+		return fmt.Errorf("create message: %w", err)
+	}
+
+	return nil
 }
 
 func (m *TutorialModule) Commands() []discord.ApplicationCommandCreate {

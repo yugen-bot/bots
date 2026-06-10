@@ -15,57 +15,64 @@ func (m *ShameModule) setRole(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("shame: defer create message: %w", err)
 	}
 
 	role, ok := data.OptRole("role")
 	if !ok {
-		_, err := e.CreateFollowupMessage(discord.MessageCreate{
+		if _, err := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); err != nil {
+			return fmt.Errorf("shame: create followup message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("shame: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
 	roleIDStr := role.ID.String()
 
-	_, err = m.settings.Update(
+	if _, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetShameRoleID(roleIDStr) },
-	)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	); err != nil {
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("shame: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"I will apply <@&%s> to the person that breaks the count chain.",
 			role.ID.String(),
 		),
 		Flags: discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("shame: create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (m *ShameModule) setRemoveShameRole(
@@ -73,36 +80,39 @@ func (m *ShameModule) setRemoveShameRole(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("shame: defer create message: %w", err)
 	}
 
 	remove := data.Bool("remove")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("shame: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = m.settings.Update(
+	if _, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetRemoveShameRoleAfterHighscore(remove) },
-	)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	); err != nil {
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf("shame: create followup message: %w", followUpErr)
+		}
 
-		return err
+		return nil
 	}
 
 	valueText := "remove"
@@ -110,13 +120,15 @@ func (m *ShameModule) setRemoveShameRole(
 		valueText = "not " + valueText
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"I will **%s** the shame role  after a highscore is reached.",
 			valueText,
 		),
 		Flags: discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("shame: create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }

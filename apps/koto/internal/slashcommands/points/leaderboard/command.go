@@ -11,6 +11,7 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 
+	"jurien.dev/yugen/koto/internal/ent"
 	localStatic "jurien.dev/yugen/koto/internal/static"
 	localUtils "jurien.dev/yugen/koto/internal/utils"
 	sharedStatic "jurien.dev/yugen/shared/static"
@@ -37,7 +38,7 @@ func (m *LeaderboardModule) leaderboard(
 	}
 
 	if err := e.DeferCreateMessage(ephemeral); err != nil {
-		return err
+		return fmt.Errorf("leaderboard: defer: %w", err)
 	}
 
 	return m.showLeaderboardCommand(e, leaderboardType, page, ephemeral)
@@ -57,39 +58,12 @@ func (m *LeaderboardModule) leaderboardPage(e *handler.ComponentEvent) error {
 	return m.showLeaderboardComponent(e, leaderboardType, page)
 }
 
-func (m *LeaderboardModule) showLeaderboardCommand(
-	e *handler.CommandEvent,
+func (m *LeaderboardModule) buildLeaderboardContent(
+	players []*ent.PlayerStats,
 	leaderboardType string,
 	page int,
-	ephemeral bool,
-) error {
-	settings, err := m.settings.GetByGuildID(
-		context.Background(),
-		(*e.GuildID()).String(),
-	)
-	if err != nil || settings == nil {
-		return localUtils.ReplyNoSettings(e, true)
-	}
-
-	if settings.ChannelID == nil || *settings.ChannelID == "" {
-		return localUtils.ReplyNoSettings(e, true)
-	}
-
-	players, total, err := m.points.GetLeaderboard(
-		context.Background(),
-		(*e.GuildID()).String(),
-		leaderboardType,
-		page,
-	)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Something went wrong, try again later.",
-			Flags:   discord.MessageFlagEphemeral,
-		})
-
-		return err
-	}
-
+	total int,
+) (discord.Embed, []discord.LayoutComponent) {
 	maxPage := int(math.Ceil(float64(total) / 10))
 	if maxPage == 0 {
 		maxPage = 1
@@ -137,12 +111,6 @@ func (m *LeaderboardModule) showLeaderboardCommand(
 		WithDescription(sb.String()).
 		WithEmbedFooter(footer)
 
-	if guild, ok := e.Client().Caches.Guild(*e.GuildID()); ok {
-		if iconURL := guild.IconURL(); iconURL != nil {
-			embed = embed.WithThumbnail(*iconURL)
-		}
-	}
-
 	var buttons []discord.InteractiveComponent
 	if page > 1 {
 		buttons = append(
@@ -169,18 +137,70 @@ func (m *LeaderboardModule) showLeaderboardCommand(
 		components = append(components, discord.NewActionRow(buttons...))
 	}
 
+	return embed, components
+}
+
+func (m *LeaderboardModule) showLeaderboardCommand(
+	e *handler.CommandEvent,
+	leaderboardType string,
+	page int,
+	ephemeral bool,
+) error {
+	settings, err := m.settings.GetByGuildID(
+		context.Background(),
+		e.GuildID().String(),
+	)
+	if err != nil || settings == nil {
+		return localUtils.ReplyNoSettings(e, true)
+	}
+
+	if settings.ChannelID == nil || *settings.ChannelID == "" {
+		return localUtils.ReplyNoSettings(e, true)
+	}
+
+	players, total, err := m.points.GetLeaderboard(
+		context.Background(),
+		e.GuildID().String(),
+		leaderboardType,
+		page,
+	)
+	if err != nil {
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong, try again later.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if sendErr != nil {
+			return fmt.Errorf("leaderboard: send followup: %w", sendErr)
+		}
+
+		return nil
+	}
+
+	embed, components := m.buildLeaderboardContent(
+		players, leaderboardType, page, total,
+	)
+
+	if guild, ok := e.Client().Caches.Guild(*e.GuildID()); ok {
+		if iconURL := guild.IconURL(); iconURL != nil {
+			embed = embed.WithThumbnail(*iconURL)
+		}
+	}
+
 	flags := discord.MessageFlags(0)
 	if ephemeral {
 		flags = discord.MessageFlagEphemeral
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds:     []discord.Embed{embed},
 		Components: components,
 		Flags:      flags,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("leaderboard: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }
 
 func (m *LeaderboardModule) showLeaderboardComponent(
@@ -190,81 +210,59 @@ func (m *LeaderboardModule) showLeaderboardComponent(
 ) error {
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil || settings == nil {
-		return e.CreateMessage(discord.MessageCreate{
+		if createErr := e.CreateMessage(discord.MessageCreate{
 			Content: localUtils.NoSettingsDescription,
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); createErr != nil {
+			return fmt.Errorf(
+				"leaderboard component: create message: %w",
+				createErr,
+			)
+		}
+
+		return nil
 	}
 
 	if settings.ChannelID == nil || *settings.ChannelID == "" {
-		return e.CreateMessage(discord.MessageCreate{
+		if createErr := e.CreateMessage(discord.MessageCreate{
 			Content: localUtils.NoSettingsDescription,
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); createErr != nil {
+			return fmt.Errorf(
+				"leaderboard component: create message: %w",
+				createErr,
+			)
+		}
+
+		return nil
 	}
 
 	players, total, err := m.points.GetLeaderboard(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		leaderboardType,
 		page,
 	)
 	if err != nil {
-		return e.CreateMessage(discord.MessageCreate{
+		if createErr := e.CreateMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
-	}
-
-	maxPage := int(math.Ceil(float64(total) / 10))
-	if maxPage == 0 {
-		maxPage = 1
-	}
-
-	typeLabel := strings.ToUpper(leaderboardType[:1]) + leaderboardType[1:]
-
-	var sb strings.Builder
-
-	for i, p := range players {
-		rank := (page-1)*10 + i + 1
-
-		var value int
-
-		switch leaderboardType {
-		case "wins":
-			value = p.Wins
-		case "participated":
-			value = p.Participated
-		default:
-			value = p.Points
+		}); createErr != nil {
+			return fmt.Errorf(
+				"leaderboard component: create message: %w",
+				createErr,
+			)
 		}
 
-		fmt.Fprintf(&sb, "%d. <@%s>: **%d**\n", rank, p.UserID, value)
+		return nil
 	}
 
-	if sb.Len() == 0 {
-		sb.WriteString("No players found.")
-	}
-
-	bot := m.container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
-
-	footer := utils.CreateEmbedFooter(
-		bot,
-		&utils.CreateEmbedFooterParams{IsVote: false},
-		"",
+	embed, components := m.buildLeaderboardContent(
+		players, leaderboardType, page, total,
 	)
-	if footer != nil && maxPage > 1 {
-		footer.Text = fmt.Sprintf("Page %d/%d | %s", page, maxPage, footer.Text)
-	}
-
-	embed := discord.NewEmbed().
-		WithTitle(fmt.Sprintf("Koto Leaderboard — %s", typeLabel)).
-		WithColor(localStatic.EmbedColor).
-		WithDescription(sb.String()).
-		WithEmbedFooter(footer)
 
 	if guild, ok := e.Client().Caches.Guild(*e.GuildID()); ok {
 		if iconURL := guild.IconURL(); iconURL != nil {
@@ -272,36 +270,17 @@ func (m *LeaderboardModule) showLeaderboardComponent(
 		}
 	}
 
-	var buttons []discord.InteractiveComponent
-	if page > 1 {
-		buttons = append(
-			buttons,
-			discord.NewPrimaryButton(
-				"◀️",
-				fmt.Sprintf(customIDLeaderboardPage, leaderboardType, page-1),
-			),
-		)
-	}
-
-	if page < maxPage {
-		buttons = append(
-			buttons,
-			discord.NewPrimaryButton(
-				"▶️",
-				fmt.Sprintf(customIDLeaderboardPage, leaderboardType, page+1),
-			),
-		)
-	}
-
-	components := []discord.LayoutComponent{}
-	if len(buttons) > 0 {
-		components = append(components, discord.NewActionRow(buttons...))
-	}
-
 	embeds := []discord.Embed{embed}
 
-	return e.UpdateMessage(discord.MessageUpdate{
+	if updateErr := e.UpdateMessage(discord.MessageUpdate{
 		Embeds:     &embeds,
 		Components: &components,
-	})
+	}); updateErr != nil {
+		return fmt.Errorf(
+			"leaderboard component: update message: %w",
+			updateErr,
+		)
+	}
+
+	return nil
 }

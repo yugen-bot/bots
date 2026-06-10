@@ -22,12 +22,12 @@ func (m *StatsModule) points(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("stats: defer: %w", err)
 	}
 
 	settings, err := m.settingsSvc.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil || settings == nil {
 		return localUtils.ReplyNoSettings(e, true)
@@ -39,17 +39,20 @@ func (m *StatsModule) points(
 
 	player, err := m.pointsSvc.GetPlayer(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		e.Member().User.ID.String(),
 		false,
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("stats: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	playerHints, _ := m.hintsSvc.GetPlayerHintsByUserID(
@@ -100,10 +103,13 @@ func (m *StatsModule) points(
 		).
 		WithEmbedFooter(footer)
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("stats: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

@@ -9,18 +9,21 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/zekroTJA/shinpuru/pkg/hammertime"
 
+	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
 
 func (m *ServerModule) errFollowup(e *handler.CommandEvent) error {
-	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: "Sorry couldn't retrieve the server information...",
 		Flags:   discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("server: create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (m *ServerModule) server(
@@ -28,15 +31,37 @@ func (m *ServerModule) server(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("server: defer create message: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 
-	settings, err := m.settings.GetByGuildID(
-		context.Background(),
-		guildID,
-	)
+	embed, buildErr := m.buildServerEmbed(e, guildID)
+	if buildErr != nil {
+		return buildErr
+	}
+
+	if _, err := e.CreateFollowupMessage(discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	}); err != nil {
+		utils.Logger.Errorw(
+			"server: follow up failed",
+			"error", err,
+			"guildID", guildID,
+		)
+
+		return fmt.Errorf("server: create followup message: %w", err)
+	}
+
+	return nil
+}
+
+func (m *ServerModule) buildServerEmbed(
+	e *handler.CommandEvent,
+	guildID string,
+) (discord.Embed, error) {
+	settings, err := m.settings.GetByGuildID(context.Background(), guildID)
 	if err != nil {
 		utils.Logger.Errorw(
 			"server: get settings failed",
@@ -44,7 +69,7 @@ func (m *ServerModule) server(
 			"guildID", guildID,
 		)
 
-		return m.errFollowup(e)
+		return discord.Embed{}, m.errFollowup(e)
 	}
 
 	game, gameExists, err := m.game.GetCurrentGame(
@@ -58,7 +83,7 @@ func (m *ServerModule) server(
 			"guildID", guildID,
 		)
 
-		return m.errFollowup(e)
+		return discord.Embed{}, m.errFollowup(e)
 	}
 
 	history, historyExists, err := m.game.GetLastHistory(
@@ -72,7 +97,7 @@ func (m *ServerModule) server(
 			"guildID", guildID,
 		)
 
-		return m.errFollowup(e)
+		return discord.Embed{}, m.errFollowup(e)
 	}
 
 	guild, err := e.Client().Rest.GetGuild(*e.GuildID(), false)
@@ -83,7 +108,7 @@ func (m *ServerModule) server(
 			"guildID", guildID,
 		)
 
-		return m.errFollowup(e)
+		return discord.Embed{}, m.errFollowup(e)
 	}
 
 	self, _ := e.Client().Caches.SelfUser()
@@ -97,6 +122,34 @@ func (m *ServerModule) server(
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 
+	desc := m.buildServerDescription(
+		settings,
+		history,
+		gameExists,
+		historyExists,
+		self.ID.String(),
+	)
+
+	iconURL := ""
+	if url := guild.IconURL(); url != nil {
+		iconURL = *url
+	}
+
+	return discord.NewEmbed().
+		WithColor(embedColor).
+		WithTitle(guild.Name).
+		WithThumbnail(iconURL).
+		WithDescription(desc).
+		WithEmbedFooter(footer), nil
+}
+
+func (m *ServerModule) buildServerDescription(
+	settings *ent.Settings,
+	history *ent.History,
+	gameExists bool,
+	historyExists bool,
+	selfID string,
+) string {
 	onGoingGameText := "None"
 
 	channelID := settings.ChannelID
@@ -105,9 +158,7 @@ func (m *ServerModule) server(
 	}
 
 	highscoreDateText := ""
-
-	highscoreDate := settings.HighscoreDate
-	if highscoreDate != nil {
+	if highscoreDate := settings.HighscoreDate; highscoreDate != nil {
 		highscoreDateText = " - " + hammertime.Format(
 			*highscoreDate,
 			hammertime.Span,
@@ -119,15 +170,14 @@ func (m *ServerModule) server(
 
 	if historyExists && history != nil {
 		lastNumber = history.Number
-		if history.UserID != self.ID.String() {
+		if history.UserID != selfID {
 			lastCountedText = fmt.Sprintf("<@%s>", history.UserID)
 		}
 	}
 
 	lastShamedText := "\n"
 
-	shameRoleID := settings.ShameRoleID
-	if shameRoleID != nil {
+	if shameRoleID := settings.ShameRoleID; shameRoleID != nil {
 		lastShameUserID := settings.LastShameUserID
 
 		userText := "-"
@@ -138,17 +188,8 @@ func (m *ServerModule) server(
 		lastShamedText = fmt.Sprintf("Last shamed user: **%s**\n", userText)
 	}
 
-	iconURL := ""
-	if url := guild.IconURL(); url != nil {
-		iconURL = *url
-	}
-
-	embed := discord.NewEmbed().
-		WithColor(embedColor).
-		WithTitle(guild.Name).
-		WithThumbnail(iconURL).
-		WithDescription(fmt.Sprintf(
-			`Ongoing game: **%s**
+	return fmt.Sprintf(
+		`Ongoing game: **%s**
 High score: **%d%s**
 Last number: **%d**
 Last count by: **%s**
@@ -156,29 +197,14 @@ Last count by: **%s**
 Guild saves: **%s/%s**
 Saves used: **%s**
 			`,
-			onGoingGameText,
-			settings.Highscore,
-			highscoreDateText,
-			lastNumber,
-			lastCountedText,
-			lastShamedText,
-			strconv.FormatFloat(settings.Saves, 'f', -1, 64),
-			strconv.FormatFloat(settings.MaxSaves, 'f', -1, 64),
-			strconv.FormatFloat(settings.SavesUsed, 'f', -1, 64),
-		)).
-		WithEmbedFooter(footer)
-
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{embed},
-		Flags:  discord.MessageFlagEphemeral,
-	})
-	if err != nil {
-		utils.Logger.Errorw(
-			"server: follow up failed",
-			"error", err,
-			"guildID", guildID,
-		)
-	}
-
-	return err
+		onGoingGameText,
+		settings.Highscore,
+		highscoreDateText,
+		lastNumber,
+		lastCountedText,
+		lastShamedText,
+		strconv.FormatFloat(settings.Saves, 'f', -1, 64),
+		strconv.FormatFloat(settings.MaxSaves, 'f', -1, 64),
+		strconv.FormatFloat(settings.SavesUsed, 'f', -1, 64),
+	)
 }

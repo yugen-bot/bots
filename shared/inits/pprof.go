@@ -2,8 +2,9 @@ package inits
 
 import (
 	"net/http"
-	_ "net/http/pprof" // registers handlers on http.DefaultServeMux
+	"net/http/pprof"
 	"os"
+	"time"
 
 	"jurien.dev/yugen/shared/utils"
 )
@@ -23,8 +24,22 @@ func InitPprof() {
 
 	utils.Logger.Infof("pprof: listening on %s", addr)
 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
 	go func() {
-		if err := http.ListenAndServe(addr, nil); err != nil {
+		if err := srv.ListenAndServe(); err != nil &&
+			err != http.ErrServerClosed {
 			utils.Logger.Errorf("pprof: %v", err)
 		}
 	}()

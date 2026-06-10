@@ -46,7 +46,7 @@ func (m *GuildsModule) showList(
 	page int,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	guilds, total := m.guilds.GetData(page)
@@ -56,8 +56,11 @@ func (m *GuildsModule) showList(
 			Content: "There is no guild data available.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("follow-up message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
 	if len(guilds) == 0 {
@@ -65,8 +68,11 @@ func (m *GuildsModule) showList(
 			Content: fmt.Sprintf("No guilds found for page %d", page),
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("follow-up message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
 	maxPage := int(math.Ceil(float64(total) / 10))
@@ -122,8 +128,11 @@ func (m *GuildsModule) showList(
 		Components: components,
 		Flags:      discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (m *GuildsModule) showListComponent(
@@ -137,11 +146,15 @@ func (m *GuildsModule) showListComponent(
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if err := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
 			Components: &emptyComponents,
-		})
+		}); err != nil {
+			return fmt.Errorf("update message: %w", err)
+		}
+
+		return nil
 	}
 
 	if len(guilds) == 0 {
@@ -149,11 +162,15 @@ func (m *GuildsModule) showListComponent(
 		empty := []discord.Embed{}
 		emptyComponents := []discord.LayoutComponent{}
 
-		return e.UpdateMessage(discord.MessageUpdate{
+		if err := e.UpdateMessage(discord.MessageUpdate{
 			Content:    &content,
 			Embeds:     &empty,
 			Components: &emptyComponents,
-		})
+		}); err != nil {
+			return fmt.Errorf("update message: %w", err)
+		}
+
+		return nil
 	}
 
 	maxPage := int(math.Ceil(float64(total) / 10))
@@ -206,8 +223,12 @@ func (m *GuildsModule) showListComponent(
 
 	embeds := []discord.Embed{embed}
 
-	return e.UpdateMessage(discord.MessageUpdate{
+	if err := e.UpdateMessage(discord.MessageUpdate{
 		Embeds:     &embeds,
 		Components: &components,
-	})
+	}); err != nil {
+		return fmt.Errorf("update message: %w", err)
+	}
+
+	return nil
 }

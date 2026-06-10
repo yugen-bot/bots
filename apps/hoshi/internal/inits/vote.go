@@ -28,7 +28,7 @@ func CreateVoteHandler(
 
 		dm, err := client.Rest.CreateDMChannel(uID)
 		if err != nil {
-			return err
+			return fmt.Errorf("vote: create dm channel: %w", err)
 		}
 
 		_, err = client.Rest.CreateMessage(dm.ID(), discord.MessageCreate{
@@ -37,8 +37,11 @@ func CreateVoteHandler(
 				source,
 			),
 		})
+		if err != nil {
+			return fmt.Errorf("vote: send dm message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 }
 

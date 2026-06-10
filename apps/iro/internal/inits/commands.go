@@ -1,6 +1,8 @@
 package inits
 
 import (
+	"fmt"
+
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
@@ -32,5 +34,9 @@ func InitCommands(container *di.Container) error {
 		guildID, _ = snowflake.Parse(cfg.DiscordDevelopmentGuild)
 	}
 
-	return disgoplus.SyncCommands(bot, modules, guildID)
+	if err := disgoplus.SyncCommands(bot, modules, guildID); err != nil {
+		return fmt.Errorf("sync commands: %w", err)
+	}
+
+	return nil
 }

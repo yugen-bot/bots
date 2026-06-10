@@ -8,6 +8,7 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/jurienhamaker/disgoplus"
 
+	"jurien.dev/yugen/kazu/internal/ent"
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
@@ -20,58 +21,59 @@ func (m *ShowModule) show(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("show: defer create message: %w", err)
 	}
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf(
+				"show: create followup message: %w",
+				followUpErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
-	channelID := settings.ChannelID
-	channelIDOk := channelID != nil
+	embed := m.buildSettingsEmbed(settings)
 
-	shameRoleID := settings.ShameRoleID
-	shameRoleIDOk := shameRoleID != nil
+	if _, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Embeds: []discord.Embed{embed},
+		Flags:  discord.MessageFlagEphemeral,
+	}); err != nil {
+		return fmt.Errorf("show: create followup message: %w", err)
+	}
 
-	removeShameRoleAfterHighscore := settings.RemoveShameRoleAfterHighscore
-	cooldown := settings.Cooldown
-	math := settings.Math
+	return nil
+}
 
+func (m *ShowModule) buildSettingsEmbed(s *ent.Settings) discord.Embed {
 	channelIDText := "-"
-	if channelIDOk {
-		channelIDText = fmt.Sprintf("<#%s>", *channelID)
+	if s.ChannelID != nil {
+		channelIDText = fmt.Sprintf("<#%s>", *s.ChannelID)
 	}
 
 	shameRoleIDText := "-"
-	if shameRoleIDOk {
-		shameRoleIDText = fmt.Sprintf("<@&%s>", *shameRoleID)
+	if s.ShameRoleID != nil {
+		shameRoleIDText = fmt.Sprintf("<@&%s>", *s.ShameRoleID)
 	}
 
-	removeShameRoleAfterHighscoreText := "No"
-	if removeShameRoleAfterHighscore {
-		removeShameRoleAfterHighscoreText = "Yes"
+	removeShameText := "No"
+	if s.RemoveShameRoleAfterHighscore {
+		removeShameText = "Yes"
 	}
 
-	cooldownText := fmt.Sprintf("%d seconds", cooldown)
-	if cooldown == 1 {
-		cooldownText = fmt.Sprintf("%d second", cooldown)
-	}
-
-	if cooldown == 0 {
-		cooldownText = "None"
-	}
+	cooldownText := buildCooldownText(s.Cooldown)
 
 	mathText := "Disabled"
-	if math {
+	if s.Math {
 		mathText = "Enabled"
 	}
 
@@ -85,10 +87,12 @@ func (m *ShowModule) show(
 
 	embedColor := m.container.Get(static.DiEmbedColor).(int)
 
-	embed := discord.NewEmbed().
+	return discord.NewEmbed().
 		WithColor(embedColor).
 		WithTitle("Kazu settings").
-		WithDescription("These are the settings currently configured for Kazu").
+		WithDescription(
+			"These are the settings currently configured for Kazu",
+		).
 		WithEmbedFooter(footer).
 		WithFields(
 			discord.EmbedField{
@@ -113,16 +117,24 @@ func (m *ShowModule) show(
 			},
 			discord.EmbedField{
 				Name:   "Remove shame role on highscore",
-				Value:  removeShameRoleAfterHighscoreText,
+				Value:  removeShameText,
 				Inline: boolPtr(true),
 			},
-			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "\u200b",
+				Value:  "\u200b",
+				Inline: boolPtr(true),
+			},
 		)
+}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
-		Embeds: []discord.Embed{embed},
-		Flags:  discord.MessageFlagEphemeral,
-	})
-
-	return err
+func buildCooldownText(cooldown int) string {
+	switch cooldown {
+	case 0:
+		return "None"
+	case 1:
+		return fmt.Sprintf("%d second", cooldown)
+	default:
+		return fmt.Sprintf("%d seconds", cooldown)
+	}
 }

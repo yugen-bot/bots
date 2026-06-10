@@ -16,10 +16,10 @@ func (m *SetRoleModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("set role: defer: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 	role := data.Role("role")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
@@ -27,7 +27,7 @@ func (m *SetRoleModule) set(
 		return localUtils.ReplyNoSettings(e, true)
 	}
 
-	if _, err := m.settings.Update(
+	if _, updateErr := m.settings.Update(
 		context.Background(),
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) {
@@ -37,13 +37,16 @@ func (m *SetRoleModule) set(
 				u.SetPingOnlyNew(v)
 			}
 		},
-	); err != nil {
+	); updateErr != nil {
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("set role: send followup: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
@@ -53,6 +56,9 @@ func (m *SetRoleModule) set(
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("set role: send followup: %w", err)
+	}
 
-	return err
+	return nil
 }

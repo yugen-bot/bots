@@ -35,7 +35,11 @@ func (m *ResetLeaderboardModule) resetLeaderboard(
 		discord.NewShortTextInput("confirm").WithRequired(true),
 	)
 
-	return e.Modal(modal)
+	if err := e.Modal(modal); err != nil {
+		return fmt.Errorf("reset leaderboard: show modal: %w", err)
+	}
+
+	return nil
 }
 
 func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
@@ -43,10 +47,17 @@ func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
 
 	confirm := fields["confirm"]
 	if confirm != "CONFIRM" {
-		return e.CreateMessage(discord.MessageCreate{
+		if createErr := e.CreateMessage(discord.MessageCreate{
 			Content: "Reset cancelled — you must type exactly `CONFIRM`.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); createErr != nil {
+			return fmt.Errorf(
+				"reset leaderboard: create message: %w",
+				createErr,
+			)
+		}
+
+		return nil
 	}
 
 	userIDStr := e.Vars["userID"]
@@ -58,24 +69,28 @@ func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
 	}
 
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("reset leaderboard: defer: %w", err)
 	}
 
 	if err := m.points.ResetLeaderboard(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		userID,
 	); err != nil {
 		utils.Logger.Warnw("reset leaderboard failed",
 			"error", err,
-			"guildID", (*e.GuildID()).String(),
+			"guildID", e.GuildID().String(),
 		)
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Failed to reset leaderboard.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("reset leaderboard: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	msg := "Leaderboard has been reset!"
@@ -83,10 +98,13 @@ func (m *ResetLeaderboardModule) handleModal(e *handler.ModalEvent) error {
 		msg = fmt.Sprintf("Leaderboard for <@%s> has been reset!", *userID)
 	}
 
-	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: msg,
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("reset leaderboard: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

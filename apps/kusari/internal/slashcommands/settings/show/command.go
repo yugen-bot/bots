@@ -14,24 +14,27 @@ import (
 )
 
 func (m *ShowModule) show(
-	data discord.SlashCommandInteractionData,
+	_ discord.SlashCommandInteractionData,
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("show: defer create message: %w", err)
 	}
 
 	s, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, followupErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if followupErr != nil {
+			return fmt.Errorf("show: create follow up message: %w", followupErr)
+		}
 
-		return err
+		return nil
 	}
 
 	cooldown := s.Cooldown
@@ -63,7 +66,9 @@ func (m *ShowModule) show(
 	embed := discord.NewEmbed().
 		WithColor(m.container.Get(static.DiEmbedColor).(int)).
 		WithTitle("Kusari settings").
-		WithDescription("These are the settings currently configured for Kusari").
+		WithDescription(
+			"These are the settings currently configured for Kusari",
+		).
 		WithEmbedFooter(footer).
 		WithFields(
 			discord.EmbedField{
@@ -76,15 +81,22 @@ func (m *ShowModule) show(
 				Value:  cooldownText,
 				Inline: boolPtr(true),
 			},
-			discord.EmbedField{Name: "​", Value: "​", Inline: boolPtr(true)},
+			discord.EmbedField{
+				Name:   "\u200b",
+				Value:  "\u200b",
+				Inline: boolPtr(true),
+			},
 		)
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Embeds: []discord.Embed{embed},
 		Flags:  discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("show: create follow up message: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func boolPtr(b bool) *bool { return &b }

@@ -63,94 +63,100 @@ func AddColorListeners(container *di.Container) {
 			cl.process(e.Message, true)
 		}),
 
-		bot.NewListenerFunc(func(e *events.GuildMessageReactionAdd) {
-			self, ok := cl.client.Caches.SelfUser()
-			if !ok || e.UserID == self.ID {
-				return
-			}
-
-			var emojiID string
-			if e.Emoji.ID != nil {
-				emojiID = e.Emoji.ID.String()
-			}
-
-			cacheKey := e.MessageID.String() + emojiID
-			if !cl.emojiCache.Contains(cacheKey) {
-				return
-			}
-
-			clr, ok := cl.emojiCache.GetValue(cacheKey).(*color.RGBA)
-			if !ok {
-				return
-			}
-
-			user, err := cl.client.Rest.GetUser(e.UserID)
-			if err != nil {
-				return
-			}
-
-			hexClr := colors.ToHex(clr)
-			intClr := colors.ToInt(clr)
-			cC, cM, cY, cK := color.RGBToCMYK(clr.R, clr.G, clr.B)
-			yY, yCb, yCr := color.RGBToYCbCr(clr.R, clr.G, clr.B)
-
-			colorNameStr := "*could not be fetched*"
-
-			matches := colorname.FindRGBA(clr)
-			if len(matches) > 0 {
-				precision := (1 - matches[0].AvgDiff/255) * 100
-				colorNameStr = fmt.Sprintf(
-					"**%s** *(%0.1f%%)*",
-					matches[0].Name,
-					precision,
-				)
-			}
-
-			emb := discord.NewEmbed().
-				WithColor(intClr).
-				WithTitle("#"+hexClr).
-				WithDescription(colorNameStr).
-				WithFields(
-					discord.EmbedField{
-						Name:   "Hex",
-						Value:  fmt.Sprintf("`#%s`", hexClr),
-						Inline: boolPtr(true),
-					},
-					discord.EmbedField{
-						Name:   "Int",
-						Value:  fmt.Sprintf("`%d`", intClr),
-						Inline: boolPtr(true),
-					},
-					discord.EmbedField{
-						Name:  "RGBA",
-						Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", clr.R, clr.G, clr.B, clr.A),
-					},
-					discord.EmbedField{
-						Name:  "CMYK",
-						Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", cC, cM, cY, cK),
-					},
-					discord.EmbedField{
-						Name:  "YCbCr",
-						Value: fmt.Sprintf("`%03d, %03d, %03d`", yY, yCb, yCr),
-					},
-				).
-				WithFooterText("Activated by " + user.Username).
-				WithThumbnail(fmt.Sprintf("https://singlecolorimage.com/get/%s/64x64", hexClr))
-
-			msg := discord.NewMessageCreate().
-				AddEmbeds(emb).
-				WithMessageReferenceByID(e.MessageID)
-
-			if _, err := cl.client.Rest.CreateMessage(
-				e.ChannelID,
-				msg,
-			); err != nil {
-				utils.Logger.Info("Could not send embed message", err)
-			}
-
-			cl.emojiCache.Remove(cacheKey)
-		}),
+		bot.NewListenerFunc(cl.handleReactionAdd),
 	)
+}
+
+func (l *ColorListener) handleReactionAdd(e *events.GuildMessageReactionAdd) {
+	self, ok := l.client.Caches.SelfUser()
+	if !ok || e.UserID == self.ID {
+		return
+	}
+
+	var emojiID string
+	if e.Emoji.ID != nil {
+		emojiID = e.Emoji.ID.String()
+	}
+
+	cacheKey := e.MessageID.String() + emojiID
+	if !l.emojiCache.Contains(cacheKey) {
+		return
+	}
+
+	clr, ok := l.emojiCache.GetValue(cacheKey).(*color.RGBA)
+	if !ok {
+		return
+	}
+
+	user, err := l.client.Rest.GetUser(e.UserID)
+	if err != nil {
+		return
+	}
+
+	emb := l.buildColorEmbed(clr, user.Username)
+
+	msg := discord.NewMessageCreate().
+		AddEmbeds(emb).
+		WithMessageReferenceByID(e.MessageID)
+
+	if _, err := l.client.Rest.CreateMessage(e.ChannelID, msg); err != nil {
+		utils.Logger.Info("Could not send embed message", err)
+	}
+
+	l.emojiCache.Remove(cacheKey)
+}
+
+func (l *ColorListener) buildColorEmbed(
+	clr *color.RGBA,
+	activatedBy string,
+) discord.Embed {
+	hexClr := colors.ToHex(clr)
+	intClr := colors.ToInt(clr)
+	cC, cM, cY, cK := color.RGBToCMYK(clr.R, clr.G, clr.B)
+	yY, yCb, yCr := color.RGBToYCbCr(clr.R, clr.G, clr.B)
+
+	colorNameStr := "*could not be fetched*"
+
+	matches := colorname.FindRGBA(clr)
+	if len(matches) > 0 {
+		precision := (1 - matches[0].AvgDiff/255) * 100
+		colorNameStr = fmt.Sprintf(
+			"**%s** *(%0.1f%%)*",
+			matches[0].Name,
+			precision,
+		)
+	}
+
+	return discord.NewEmbed().
+		WithColor(intClr).
+		WithTitle("#"+hexClr).
+		WithDescription(colorNameStr).
+		WithFields(
+			discord.EmbedField{
+				Name:   "Hex",
+				Value:  fmt.Sprintf("`#%s`", hexClr),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:   "Int",
+				Value:  fmt.Sprintf("`%d`", intClr),
+				Inline: boolPtr(true),
+			},
+			discord.EmbedField{
+				Name:  "RGBA",
+				Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", clr.R, clr.G, clr.B, clr.A),
+			},
+			discord.EmbedField{
+				Name:  "CMYK",
+				Value: fmt.Sprintf("`%03d, %03d, %03d, %03d`", cC, cM, cY, cK),
+			},
+			discord.EmbedField{
+				Name:  "YCbCr",
+				Value: fmt.Sprintf("`%03d, %03d, %03d`", yY, yCb, yCr),
+			},
+		).
+		WithFooterText("Activated by " + activatedBy).
+		WithThumbnail(fmt.Sprintf("https://singlecolorimage.com/get/%s/64x64", hexClr))
 }
 
 func (l *ColorListener) process(message discord.Message, removeReactions bool) {

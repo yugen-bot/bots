@@ -1,6 +1,8 @@
 package inits
 
 import (
+	"fmt"
+
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
@@ -47,7 +49,10 @@ func InitCommands(container *di.Container) error {
 	if cfg.Env != "production" {
 		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
 		if err != nil {
-			return err
+			return fmt.Errorf(
+				"init commands: parse development guild id: %w",
+				err,
+			)
 		}
 
 		guildID = id

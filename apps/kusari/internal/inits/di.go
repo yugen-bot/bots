@@ -36,16 +36,74 @@ func InitDI() (container di.Container, err error) {
 
 	utils.Logger.Info("Building DI")
 
-	diBuilder.Add(&di.Def{
+	registerCoreDefinitions(diBuilder)
+	sharedInits.InitSharedDi(diBuilder)
+	registerBotDefinition(diBuilder)
+	registerInfraDefinitions(diBuilder)
+	registerServiceDefinitions(diBuilder)
+
+	container, err = diBuilder.Build()
+	if err != nil {
+		utils.Logger.Fatalw("failed to build DI container", "error", err)
+	}
+
+	return
+}
+
+func registerCoreDefinitions(b *di.EnhancedBuilder) {
+	b.Add(&di.Def{
 		Name: static.DiAppName,
 		Build: func(ctn di.Container) (any, error) {
 			return "Kusari", nil
 		},
 	})
 
-	sharedInits.InitSharedDi(diBuilder)
+	b.Add(&di.Def{
+		Name: static.DiEmbedColor,
+		Build: func(ctn di.Container) (any, error) {
+			// #5d7fed
+			return 0x5d7fed, nil
+		},
+	})
 
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
+		Name: static.DiHelpText,
+		Build: func(ctn di.Container) (any, error) {
+			return fmt.Sprintf(
+				"%s\n\nWant to know how to play the game?"+
+					" Use `/tutorial`!",
+				localUtils.NoSettingsDescription,
+			), nil
+		},
+	})
+
+	b.Add(&di.Def{
+		Name: static.DiTutorialText,
+		Build: func(ctn di.Container) (any, error) {
+			return `**How to Play:**
+- The first word has to start with the letter provided
+- Each word afterwards has to start with the last letter of the previous word
+- A single person can not send in a word twice in a row!
+- That's it! Enjoy!
+
+**Saves:**
+You can earn saves by voting for Kusari! Each vote is worth 0.25 save & 0.5 on the weekends!
+A save can also be donated to the server, this will increase the server saves for collaborative save system.
+Donating a save will turn 1 personal save into 0.2 server saves.
+
+**Server Settings:**
+- Channel, specify a dedicated channel
+- Cooldown, specify a cooldown before users can add a word again
+
+**Points:**
+- A point is received for each correct number
+- If the chain is broken, 10% of the chain's number is deducted`, nil
+		},
+	})
+}
+
+func registerBotDefinition(b *di.EnhancedBuilder) {
+	b.Add(&di.Def{
 		Name: static.DiBot,
 		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
@@ -62,22 +120,28 @@ func InitDI() (container di.Container, err error) {
 				),
 			}
 			cacheOpt := bot.WithCacheConfigOpts(
-				cache.WithCaches(static.DefaultCacheFlags|cache.FlagMessages),
-				cache.WithMessageCachePolicy(func(msg discord.Message) bool {
-					if msg.Author.Bot {
-						return false
-					}
+				cache.WithCaches(
+					static.DefaultCacheFlags|cache.FlagMessages,
+				),
+				cache.WithMessageCachePolicy(
+					func(msg discord.Message) bool {
+						if msg.Author.Bot {
+							return false
+						}
 
-					if msg.Content == "" {
-						return false
-					}
+						if msg.Content == "" {
+							return false
+						}
 
-					if msg.GuildID == nil {
-						return false
-					}
+						if msg.GuildID == nil {
+							return false
+						}
 
-					return utils.ActiveGames.IsActiveChannel(msg.ChannelID)
-				}),
+						return utils.ActiveGames.IsActiveChannel(
+							msg.ChannelID,
+						)
+					},
+				),
 			)
 
 			var discordOpt bot.ConfigOpt
@@ -106,59 +170,24 @@ func InitDI() (container di.Container, err error) {
 			return nil
 		},
 	})
+}
 
-	diBuilder.Add(&di.Def{
-		Name: static.DiEmbedColor,
-		Build: func(ctn di.Container) (any, error) {
-			// #5d7fed
-			return 0x5d7fed, nil
-		},
-	})
-
-	diBuilder.Add(&di.Def{
-		Name: static.DiHelpText,
-		Build: func(ctn di.Container) (any, error) {
-			return fmt.Sprintf(
-				"%s\n\nWant to know how to play the game? Use `/tutorial`!",
-				localUtils.NoSettingsDescription,
-			), nil
-		},
-	})
-
-	diBuilder.Add(&di.Def{
-		Name: static.DiTutorialText,
-		Build: func(ctn di.Container) (any, error) {
-			return `**How to Play:**
-- The first word has to start with the letter provided
-- Each word afterwards has to start with the last letter of the previous word
-- A single person can not send in a word twice in a row!
-- That's it! Enjoy!
-
-**Saves:**
-You can earn saves by voting for Kusari! Each vote is worth 0.25 save & 0.5 on the weekends!
-A save can also be donated to the server, this will increase the server saves for collaborative save system.
-Donating a save will turn 1 personal save into 0.2 server saves.
-
-**Server Settings:**
-- Channel, specify a dedicated channel
-- Cooldown, specify a cooldown before users can add a word again
-
-**Points:**
-- A point is received for each correct number
-- If the chain is broken, 10% of the chain's number is deducted`, nil
-		},
-	})
-
+func registerInfraDefinitions(b *di.EnhancedBuilder) {
 	// init database
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiDatabase,
 		Build: func(ctn di.Container) (any, error) {
-			cfg, err := pgx.ParseConfig(os.Getenv("DATABASE_URL"))
-			if err != nil {
-				return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
+			pgxCfg, parseErr := pgx.ParseConfig(
+				os.Getenv("DATABASE_URL"),
+			)
+			if parseErr != nil {
+				return nil, fmt.Errorf(
+					"parse DATABASE_URL: %w",
+					parseErr,
+				)
 			}
 
-			db := stdlib.OpenDB(*cfg)
+			db := stdlib.OpenDB(*pgxCfg)
 			drv := entsql.OpenDB(dialect.Postgres, db)
 
 			return ent.NewClient(ent.Driver(drv)), nil
@@ -170,7 +199,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	// init valkey client (optional — nil when VALKEY_URL is not set)
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiValkey,
 		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
@@ -186,8 +215,10 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 			return nil
 		},
 	})
+}
 
-	diBuilder.Add(&di.Def{
+func registerServiceDefinitions(b *di.EnhancedBuilder) {
+	b.Add(&di.Def{
 		Name: static.DiVoteReward,
 		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteRewardFunc(&ctn), nil
@@ -195,7 +226,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	// init settings service
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiSettings,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateSettingsService(&ctn), nil
@@ -203,7 +234,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	// init saves service
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: localStatic.DiSaves,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateSavesService(&ctn), nil
@@ -211,7 +242,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	// init points service
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: localStatic.DiPoints,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreatePointsService(&ctn), nil
@@ -219,7 +250,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	// init dictionary service
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: localStatic.DiDictionary,
 		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
@@ -230,7 +261,7 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	// init game service
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: localStatic.DiGame,
 		Build: func(ctn di.Container) (any, error) {
 			return services.CreateGameService(&ctn), nil
@@ -238,17 +269,10 @@ Donating a save will turn 1 personal save into 0.2 server saves.
 	})
 
 	// create vote handler
-	diBuilder.Add(&di.Def{
+	b.Add(&di.Def{
 		Name: static.DiVoteHandler,
 		Build: func(ctn di.Container) (any, error) {
 			return CreateVoteHandler(&ctn), nil
 		},
 	})
-
-	container, err = diBuilder.Build()
-	if err != nil {
-		utils.Logger.Fatalw("failed to build DI container", "error", err)
-	}
-
-	return
 }

@@ -4,6 +4,11 @@ import (
 	"testing"
 )
 
+const (
+	testColorAAA = "#AAAAAA"
+	testColorBBB = "#BBBBBB"
+)
+
 // ----------------------------------------------------------------------------
 // rxColorHex regex tests
 // ----------------------------------------------------------------------------
@@ -83,21 +88,21 @@ func TestAppendIfUnique(t *testing.T) {
 		},
 		{
 			name:  "append unique element",
-			slice: []string{"#AAAAAA"},
-			elem:  "#BBBBBB",
-			want:  []string{"#AAAAAA", "#BBBBBB"},
+			slice: []string{testColorAAA},
+			elem:  testColorBBB,
+			want:  []string{testColorAAA, testColorBBB},
 		},
 		{
 			name:  "duplicate is not appended",
-			slice: []string{"#AAAAAA", "#BBBBBB"},
-			elem:  "#AAAAAA",
-			want:  []string{"#AAAAAA", "#BBBBBB"},
+			slice: []string{testColorAAA, testColorBBB},
+			elem:  testColorAAA,
+			want:  []string{testColorAAA, testColorBBB},
 		},
 		{
 			name:  "case-sensitive: different cases are treated as distinct",
 			slice: []string{"#aaaaaa"},
-			elem:  "#AAAAAA",
-			want:  []string{"#aaaaaa", "#AAAAAA"},
+			elem:  testColorAAA,
+			want:  []string{"#aaaaaa", testColorAAA},
 		},
 	}
 

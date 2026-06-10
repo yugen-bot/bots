@@ -105,11 +105,15 @@ func (s *SettingsService) ResetShame(
 		return fmt.Errorf("settings: reset shame: parse role id: %w", err)
 	}
 
-	return s.client.Client().Rest.RemoveMemberRole(
+	if err = s.client.Client().Rest.RemoveMemberRole(
 		guildSnowflake,
 		userSnowflake,
 		roleSnowflake,
-	)
+	); err != nil {
+		return fmt.Errorf("settings: reset shame: remove member role: %w", err)
+	}
+
+	return nil
 }
 
 func (s *SettingsService) FindAll(

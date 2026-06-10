@@ -15,36 +15,45 @@ func (m *CooldownModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("cooldown: defer create message: %w", err)
 	}
 
 	seconds := data.Int("seconds")
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf(
+				"cooldown: create followup message: %w",
+				followUpErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = m.settings.Update(
+	if _, err = m.settings.Update(
 		context.Background(),
 		settings.ID,
 		func(u *ent.SettingsUpdateOne) { u.SetCooldown(seconds) },
-	)
-	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	); err != nil {
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf(
+				"cooldown: create followup message: %w",
+				followUpErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	secondsText := "seconds"
@@ -61,10 +70,12 @@ func (m *CooldownModule) set(
 		content = "Cooldown has been removed!"
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: content,
 		Flags:   discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("cooldown: create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }

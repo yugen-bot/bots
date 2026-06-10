@@ -52,11 +52,15 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 		cfg.InviteLink,
 	)
 
-	return e.CreateMessage(
+	if err := e.CreateMessage(
 		discord.NewMessageCreate().
 			AddEmbeds(embed).
 			AddActionRow(inviteButton),
-	)
+	); err != nil {
+		return fmt.Errorf("create message: %w", err)
+	}
+
+	return nil
 }
 
 func (m *InviteModule) Commands() []discord.ApplicationCommandCreate {

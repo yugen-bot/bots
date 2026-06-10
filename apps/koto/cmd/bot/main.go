@@ -16,7 +16,8 @@ import (
 )
 
 func main() {
-	godotenv.Load() //nolint:errcheck // missing .env is fine in production
+	_ = godotenv.Load() // .env is optional in production environments
+
 	utils.CreateLogger("koto")
 
 	defer utils.Shutdown()

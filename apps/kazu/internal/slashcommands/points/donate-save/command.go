@@ -16,7 +16,7 @@ func (m *DonateSaveModule) donateSave(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("donate-save: defer create message: %w", err)
 	}
 
 	player, err := m.saves.GetPlayerSavesByUserID(
@@ -24,43 +24,53 @@ func (m *DonateSaveModule) donateSave(
 		e.Member().User.ID.String(),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("donate-save: get player saves: %w", err)
 	}
 
 	settings, err := m.settings.GetByGuildID(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("donate-save: get settings: %w", err)
 	}
 
 	if player.Saves < 1 {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"You currently don't have atleast 1 save to donate, you currently have **%d** saves!",
 				int(player.Saves),
 			),
 			Flags: discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf(
+				"donate-save: create followup message: %w",
+				followUpErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
 	if settings.Saves >= settings.MaxSaves {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		if _, followUpErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"The server already has **%s/%s** saves!",
 				strconv.FormatFloat(settings.Saves, 'f', -1, 64),
 				strconv.FormatFloat(settings.MaxSaves, 'f', -1, 64),
 			),
 			Flags: discord.MessageFlagEphemeral,
-		})
+		}); followUpErr != nil {
+			return fmt.Errorf(
+				"donate-save: create followup message: %w",
+				followUpErr,
+			)
+		}
 
-		return err
+		return nil
 	}
 
-	go m.saves.DeductSaveFromPlayer( //nolint:errcheck
+	_, _, _ = m.saves.DeductSaveFromPlayer(
 		context.Background(),
 		e.Member().User.ID.String(),
 		1,
@@ -73,10 +83,10 @@ func (m *DonateSaveModule) donateSave(
 		local.DonationGuildValue,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("donate-save: add save to guild: %w", err)
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	if _, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			`**Save donated!**
 The server now has **%s/%s** saves!`,
@@ -84,7 +94,9 @@ The server now has **%s/%s** saves!`,
 			strconv.FormatFloat(maxSaves, 'f', -1, 64),
 		),
 		Flags: discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("donate-save: create followup message: %w", err)
+	}
 
-	return err
+	return nil
 }

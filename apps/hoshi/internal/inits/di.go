@@ -26,14 +26,7 @@ import (
 	"jurien.dev/yugen/shared/utils"
 )
 
-func InitDI() (container di.Container, err error) {
-	diBuilder, err := di.NewEnhancedBuilder()
-	if err != nil {
-		utils.Logger.Fatalw("failed to create DI builder", "error", err)
-	}
-
-	utils.Logger.Info("Building DI")
-
+func registerCoreDefs(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiAppName,
 		Build: func(ctn di.Container) (any, error) {
@@ -43,6 +36,22 @@ func InitDI() (container di.Container, err error) {
 
 	sharedInits.InitSharedDi(diBuilder)
 
+	diBuilder.Add(&di.Def{
+		Name: static.DiEmbedColor,
+		Build: func(ctn di.Container) (any, error) {
+			return localStatic.EmbedColor, nil
+		},
+	})
+
+	diBuilder.Add(&di.Def{
+		Name: static.DiHelpText,
+		Build: func(ctn di.Container) (any, error) {
+			return localUtils.NoSettingsDescription, nil
+		},
+	})
+}
+
+func registerBotDef(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiBot,
 		Build: func(ctn di.Container) (any, error) {
@@ -89,21 +98,9 @@ func InitDI() (container di.Container, err error) {
 			return nil
 		},
 	})
+}
 
-	diBuilder.Add(&di.Def{
-		Name: static.DiEmbedColor,
-		Build: func(ctn di.Container) (any, error) {
-			return localStatic.EmbedColor, nil
-		},
-	})
-
-	diBuilder.Add(&di.Def{
-		Name: static.DiHelpText,
-		Build: func(ctn di.Container) (any, error) {
-			return localUtils.NoSettingsDescription, nil
-		},
-	})
-
+func registerDatabaseDef(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiDatabase,
 		Build: func(ctn di.Container) (any, error) {
@@ -122,7 +119,9 @@ func InitDI() (container di.Container, err error) {
 			return obj.(*ent.Client).Close()
 		},
 	})
+}
 
+func registerServiceDefs(diBuilder *di.EnhancedBuilder) {
 	diBuilder.Add(&di.Def{
 		Name: static.DiSettings,
 		Build: func(ctn di.Container) (any, error) {
@@ -157,11 +156,27 @@ func InitDI() (container di.Container, err error) {
 			return CreateVoteHandler(&ctn), nil
 		},
 	})
+}
 
-	container, err = diBuilder.Build()
+func InitDI() (di.Container, error) {
+	diBuilder, err := di.NewEnhancedBuilder()
 	if err != nil {
-		utils.Logger.Fatalw("failed to build DI container", "error", err)
+		utils.Logger.Fatalw("failed to create DI builder", "error", err)
 	}
 
-	return
+	utils.Logger.Info("Building DI")
+
+	registerCoreDefs(diBuilder)
+	registerBotDef(diBuilder)
+	registerDatabaseDef(diBuilder)
+	registerServiceDefs(diBuilder)
+
+	container, buildErr := diBuilder.Build()
+	if buildErr != nil {
+		utils.Logger.Fatalw("failed to build DI container", "error", buildErr)
+
+		return container, fmt.Errorf("build DI container: %w", buildErr)
+	}
+
+	return container, nil
 }

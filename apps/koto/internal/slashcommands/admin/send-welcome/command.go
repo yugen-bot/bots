@@ -15,7 +15,7 @@ func (m *SendWelcomeModule) sendWelcome(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("send welcome: defer: %w", err)
 	}
 
 	guildID := data.String("guild")
@@ -23,7 +23,7 @@ func (m *SendWelcomeModule) sendWelcome(
 
 	channelID, err := snowflake.Parse(channelIDStr)
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: fmt.Sprintf(
 				"Could not access channel `%s` in guild `%s`.",
 				channelIDStr,
@@ -31,8 +31,11 @@ func (m *SendWelcomeModule) sendWelcome(
 			),
 			Flags: discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("send welcome: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
 	footer := sharedUtils.CreateEmbedFooter(
@@ -50,15 +53,18 @@ func (m *SendWelcomeModule) sendWelcome(
 		Embeds: []discord.Embed{embed},
 	})
 	if err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Failed to send welcome message.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if sendErr != nil {
+			return fmt.Errorf("send welcome: send followup: %w", sendErr)
+		}
 
-		return err
+		return nil
 	}
 
-	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	_, sendErr := e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf(
 			"Message has been sent: https://discord.com/channels/%s/%s/%s",
 			guildID,
@@ -67,6 +73,9 @@ func (m *SendWelcomeModule) sendWelcome(
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if sendErr != nil {
+		return fmt.Errorf("send welcome: send followup: %w", sendErr)
+	}
 
-	return err
+	return nil
 }

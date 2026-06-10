@@ -15,7 +15,7 @@ func (m *TresholdModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	n := data.Int("treshold")
@@ -24,13 +24,16 @@ func (m *TresholdModule) set(
 			Content: "Treshold must be at least 1.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("follow-up message: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
 	err := m.settings.Set(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		func(u *ent.SettingsUpdateOne) { u.SetTreshold(n) },
 	)
 	if err != nil {
@@ -39,16 +42,19 @@ func (m *TresholdModule) set(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("settings set: %w", err)
 	}
 
 	_, err = e.CreateFollowupMessage(discord.MessageCreate{
 		Content: fmt.Sprintf("Starboard treshold has been set to **%d**.", n),
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }

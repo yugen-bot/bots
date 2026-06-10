@@ -107,7 +107,7 @@ func (s *SettingsService) IgnoreChannel(
 		return err
 	}
 
-	ids := []string(existing.IgnoredChannelIds)
+	ids := existing.IgnoredChannelIds
 	idx := -1
 
 	for i, id := range ids {

@@ -2,6 +2,7 @@ package setbacktobackcooldown
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
@@ -15,10 +16,10 @@ func (m *SetBackToBackCooldownModule) set(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("set back-to-back cooldown: defer: %w", err)
 	}
 
-	guildID := (*e.GuildID()).String()
+	guildID := e.GuildID().String()
 	enable := data.Bool("enabled")
 
 	existing, err := m.settings.GetByGuildID(context.Background(), guildID)
@@ -26,7 +27,7 @@ func (m *SetBackToBackCooldownModule) set(
 		return localUtils.ReplyNoSettings(e, true)
 	}
 
-	if _, err := m.settings.Update(
+	if _, updateErr := m.settings.Update(
 		context.Background(),
 		existing.ID,
 		func(u *ent.SettingsUpdateOne) {
@@ -36,26 +37,35 @@ func (m *SetBackToBackCooldownModule) set(
 				u.SetBackToBackCooldown(v)
 			}
 		},
-	); err != nil {
+	); updateErr != nil {
 		_, err = e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf(
+				"set back-to-back cooldown: send followup: %w",
+				err,
+			)
+		}
 
-		return err
+		return nil
 	}
 
+	var msg string
 	if enable {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Back-to-back cooldown has been **enabled**!",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		msg = "Back-to-back cooldown has been **enabled**!"
 	} else {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: "Back-to-back cooldown has been **disabled**!",
-			Flags:   discord.MessageFlagEphemeral,
-		})
+		msg = "Back-to-back cooldown has been **disabled**!"
 	}
 
-	return err
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: msg,
+		Flags:   discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("set back-to-back cooldown: send followup: %w", err)
+	}
+
+	return nil
 }

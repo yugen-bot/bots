@@ -105,7 +105,7 @@ func (l *GameListener) MessageUpdateHandler(e *events.MessageUpdate) {
 	go func() {
 		l.client.Rest.CreateMessage(
 			e.ChannelID,
-			discord.MessageCreate{ //nolint:errcheck
+			discord.MessageCreate{
 				Content: fmt.Sprintf(
 					`<@%s> just edited their guess 😒
 Last number was **%d**!`,
@@ -148,7 +148,7 @@ func (l *GameListener) MessageDeleteHandler(e *events.MessageDelete) {
 	go func() {
 		l.client.Rest.CreateMessage(
 			e.ChannelID,
-			discord.MessageCreate{ //nolint:errcheck
+			discord.MessageCreate{
 				Content: fmt.Sprintf(
 					`<@%s> just deleted their number 😒
 Last number was **%d**!`,

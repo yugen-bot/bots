@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 )
@@ -14,12 +16,19 @@ func ReplyNoSettings(e *handler.CommandEvent, deferred ...bool) error {
 			Content: NoSettingsDescription,
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("reply no settings: send followup: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
-	return e.CreateMessage(discord.MessageCreate{
+	if err := e.CreateMessage(discord.MessageCreate{
 		Content: NoSettingsDescription,
 		Flags:   discord.MessageFlagEphemeral,
-	})
+	}); err != nil {
+		return fmt.Errorf("reply no settings: send message: %w", err)
+	}
+
+	return nil
 }

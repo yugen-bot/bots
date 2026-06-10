@@ -8,7 +8,9 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/snowflake/v2"
 
+	"jurien.dev/yugen/hoshi/internal/ent"
 	"jurien.dev/yugen/shared/utils"
 )
 
@@ -17,7 +19,7 @@ func (m *PruneSettingsModule) run(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	shouldDelete := false
@@ -32,10 +34,10 @@ func (m *PruneSettingsModule) run(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("find all settings: %w", err)
 	}
 
 	var orphans []string
@@ -52,59 +54,82 @@ func (m *PruneSettingsModule) run(
 
 	channelID := e.Channel().ID()
 
-	if !shouldDelete {
-		if len(orphans) == 0 {
-			m.client.Rest.CreateMessage(
-				channelID,
-				discord.MessageCreate{
-					Content: "**Orphan settings: 0** — nothing to prune.",
-				},
-			)
-			_, err = e.CreateFollowupMessage(
-				discord.MessageCreate{
-					Content: "Done.",
-					Flags:   discord.MessageFlagEphemeral,
-				},
-			)
+	if shouldDelete {
+		return m.executeGuildPrune(e, all, channelID)
+	}
 
-			return err
+	return m.buildPruneSummary(e, orphans, channelID)
+}
+
+func (m *PruneSettingsModule) buildPruneSummary(
+	e *handler.CommandEvent,
+	orphans []string,
+	channelID snowflake.ID,
+) error {
+	if len(orphans) == 0 {
+		m.client.Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{
+				Content: "**Orphan settings: 0** — nothing to prune.",
+			},
+		)
+
+		_, err := e.CreateFollowupMessage(
+			discord.MessageCreate{
+				Content: "Done.",
+				Flags:   discord.MessageFlagEphemeral,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("follow-up message: %w", err)
 		}
 
-		var buf strings.Builder
-		fmt.Fprintf(&buf, "**Orphan settings: %d**\n", len(orphans))
+		return nil
+	}
 
-		for _, line := range orphans {
-			if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
-				m.client.Rest.CreateMessage(
-					channelID,
-					discord.MessageCreate{Content: buf.String()},
-				)
-				buf.Reset()
-			}
+	var buf strings.Builder
+	fmt.Fprintf(&buf, "**Orphan settings: %d**\n", len(orphans))
 
-			buf.WriteString(line)
-			buf.WriteByte('\n')
-		}
-
-		if buf.Len() > 0 {
+	for _, line := range orphans {
+		if buf.Len()+len(line)+1 > pruneSettingsLineLimit {
 			m.client.Rest.CreateMessage(
 				channelID,
 				discord.MessageCreate{Content: buf.String()},
 			)
+			buf.Reset()
 		}
 
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: fmt.Sprintf(
-				"Found %d orphan(s). See <#%s>.",
-				len(orphans),
-				channelID.String(),
-			),
-			Flags: discord.MessageFlagEphemeral,
-		})
-
-		return err
+		buf.WriteString(line)
+		buf.WriteByte('\n')
 	}
 
+	if buf.Len() > 0 {
+		m.client.Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{Content: buf.String()},
+		)
+	}
+
+	_, err := e.CreateFollowupMessage(discord.MessageCreate{
+		Content: fmt.Sprintf(
+			"Found %d orphan(s). See <#%s>.",
+			len(orphans),
+			channelID.String(),
+		),
+		Flags: discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
+
+	return nil
+}
+
+func (m *PruneSettingsModule) executeGuildPrune(
+	e *handler.CommandEvent,
+	all []*ent.Settings,
+	channelID snowflake.ID,
+) error {
 	deleted := 0
 	failed := 0
 
@@ -128,12 +153,15 @@ func (m *PruneSettingsModule) run(
 
 	m.client.Rest.CreateMessage(channelID, discord.MessageCreate{Content: msg})
 
-	_, err = e.CreateFollowupMessage(
+	_, err := e.CreateFollowupMessage(
 		discord.MessageCreate{
 			Content: "Done.",
 			Flags:   discord.MessageFlagEphemeral,
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }

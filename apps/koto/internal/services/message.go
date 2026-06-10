@@ -97,7 +97,7 @@ func (m *MessageService) Create(
 		}
 	}
 
-	meta, _ := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
+	meta, _ := localUtils.ParseGameMeta(currentGame.Meta)
 
 	var components []discord.LayoutComponent
 	if currentGame.Status == entgame.StatusIN_PROGRESS && meta != nil &&
@@ -129,11 +129,13 @@ func (m *MessageService) Create(
 		return fmt.Errorf("message: create: send: %w", err)
 	}
 
-	_, err = m.database.Game.UpdateOneID(currentGame.ID).
+	if _, err = m.database.Game.UpdateOneID(currentGame.ID).
 		SetLastMessageID(sentMsg.ID.String()).
-		Save(ctx)
+		Save(ctx); err != nil {
+		return fmt.Errorf("message: create: update game: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (m *MessageService) buildEmbed(
@@ -141,7 +143,7 @@ func (m *MessageService) buildEmbed(
 	guesses []*ent.Guess,
 	guildSettings *ent.Settings,
 ) (discord.Embed, error) {
-	meta, err := localUtils.ParseGameMeta(json.RawMessage(currentGame.Meta))
+	meta, err := localUtils.ParseGameMeta(currentGame.Meta)
 	if err != nil {
 		return discord.Embed{}, fmt.Errorf(
 			"message: build embed: parse meta: %w",
@@ -189,7 +191,8 @@ func (m *MessageService) buildRows(
 	rows := make([]rowData, 0, len(guesses))
 	for _, g := range guesses {
 		var guessMeta localUtils.GuessMetaSlice
-		json.Unmarshal(g.Meta, &guessMeta) //nolint:errcheck
+
+		_ = json.Unmarshal(g.Meta, &guessMeta)
 		rows = append(rows, rowData{
 			meta:      guessMeta,
 			userID:    g.UserID,

@@ -7,6 +7,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/snowflake/v2"
 
 	"jurien.dev/yugen/shared/utils"
 )
@@ -16,7 +17,7 @@ func (m *PruneStarboardsModule) run(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("defer message: %w", err)
 	}
 
 	utils.Logger.Infow("Starboard pruning started")
@@ -33,10 +34,10 @@ func (m *PruneStarboardsModule) run(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("find all guild ids: %w", err)
 	}
 
 	utils.Logger.Infow("Found guilds", "guilds", len(rows))
@@ -57,77 +58,100 @@ func (m *PruneStarboardsModule) run(
 		m.client.Rest.CreateMessage(channelID, discord.MessageCreate{
 			Content: "**Orphan starboards: 0** — nothing to prune.",
 		})
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+
+		_, zeroErr := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Done.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if zeroErr != nil {
+			return fmt.Errorf("follow-up message: %w", zeroErr)
+		}
 
-		return err
+		return nil
 	}
 
-	if !shouldDelete {
-		all, err := m.starboards.FindByGuildIDs(
-			context.Background(),
-			orphanGuildIDs,
+	if shouldDelete {
+		return m.executeStarboardPrune(e, orphanGuildIDs, channelID)
+	}
+
+	return m.buildStarboardPruneSummary(e, orphanGuildIDs, channelID)
+}
+
+func (m *PruneStarboardsModule) buildStarboardPruneSummary(
+	e *handler.CommandEvent,
+	orphanGuildIDs []string,
+	channelID snowflake.ID,
+) error {
+	all, err := m.starboards.FindByGuildIDs(
+		context.Background(),
+		orphanGuildIDs,
+	)
+	if err != nil {
+		_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
+			Content: "Something went wrong.",
+			Flags:   discord.MessageFlagEphemeral,
+		})
+		if ferr != nil {
+			return fmt.Errorf("follow-up message: %w", ferr)
+		}
+
+		return fmt.Errorf("find by guild ids: %w", err)
+	}
+
+	counts := make(map[string]int, len(orphanGuildIDs))
+	for _, sb := range all {
+		counts[sb.GuildID]++
+	}
+
+	var buf strings.Builder
+	fmt.Fprintf(&buf, "**Orphan starboards: %d** across %d guild(s)\n",
+		len(all),
+		len(orphanGuildIDs))
+
+	for _, guildID := range orphanGuildIDs {
+		line := fmt.Sprintf(
+			"`%s` — %d starboard(s)\n",
+			guildID,
+			counts[guildID],
 		)
-		if err != nil {
-			_, ferr := e.CreateFollowupMessage(discord.MessageCreate{
-				Content: "Something went wrong.",
-				Flags:   discord.MessageFlagEphemeral,
-			})
-			if ferr != nil {
-				return ferr
-			}
-
-			return err
-		}
-
-		counts := make(map[string]int, len(orphanGuildIDs))
-		for _, sb := range all {
-			counts[sb.GuildID]++
-		}
-
-		var buf strings.Builder
-		fmt.Fprintf(&buf, "**Orphan starboards: %d** across %d guild(s)\n",
-			len(all),
-			len(orphanGuildIDs))
-
-		for _, guildID := range orphanGuildIDs {
-			line := fmt.Sprintf(
-				"`%s` — %d starboard(s)\n",
-				guildID,
-				counts[guildID],
-			)
-			if buf.Len()+len(line) > pruneStarboardsLineLimit {
-				m.client.Rest.CreateMessage(
-					channelID,
-					discord.MessageCreate{Content: buf.String()},
-				)
-				buf.Reset()
-			}
-
-			buf.WriteString(line)
-		}
-
-		if buf.Len() > 0 {
+		if buf.Len()+len(line) > pruneStarboardsLineLimit {
 			m.client.Rest.CreateMessage(
 				channelID,
 				discord.MessageCreate{Content: buf.String()},
 			)
+			buf.Reset()
 		}
 
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
-			Content: fmt.Sprintf(
-				"Found %d orphan guild(s). See <#%s>.",
-				len(orphanGuildIDs),
-				channelID.String(),
-			),
-			Flags: discord.MessageFlagEphemeral,
-		})
-
-		return err
+		buf.WriteString(line)
 	}
 
+	if buf.Len() > 0 {
+		m.client.Rest.CreateMessage(
+			channelID,
+			discord.MessageCreate{Content: buf.String()},
+		)
+	}
+
+	_, err = e.CreateFollowupMessage(discord.MessageCreate{
+		Content: fmt.Sprintf(
+			"Found %d orphan guild(s). See <#%s>.",
+			len(orphanGuildIDs),
+			channelID.String(),
+		),
+		Flags: discord.MessageFlagEphemeral,
+	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
+
+	return nil
+}
+
+func (m *PruneStarboardsModule) executeStarboardPrune(
+	e *handler.CommandEvent,
+	orphanGuildIDs []string,
+	channelID snowflake.ID,
+) error {
 	deleted, err := m.starboards.DeleteByGuildIDs(
 		context.Background(),
 		orphanGuildIDs,
@@ -138,10 +162,10 @@ func (m *PruneStarboardsModule) run(
 			Flags:   discord.MessageFlagEphemeral,
 		})
 		if ferr != nil {
-			return ferr
+			return fmt.Errorf("follow-up message: %w", ferr)
 		}
 
-		return err
+		return fmt.Errorf("delete by guild ids: %w", err)
 	}
 
 	utils.Logger.Infof(
@@ -159,6 +183,9 @@ func (m *PruneStarboardsModule) run(
 		Content: "Done.",
 		Flags:   discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("follow-up message: %w", err)
+	}
 
-	return err
+	return nil
 }

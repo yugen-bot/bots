@@ -14,22 +14,25 @@ func (m *ResetModule) reset(
 	e *handler.CommandEvent,
 ) error {
 	if err := e.DeferCreateMessage(true); err != nil {
-		return err
+		return fmt.Errorf("settings reset: defer: %w", err)
 	}
 
 	setting := data.String("setting")
 
-	if _, err := m.settings.Reset(
+	if _, resetErr := m.settings.Reset(
 		context.Background(),
-		(*e.GuildID()).String(),
+		e.GuildID().String(),
 		[]string{setting},
-	); err != nil {
-		_, err = e.CreateFollowupMessage(discord.MessageCreate{
+	); resetErr != nil {
+		_, err := e.CreateFollowupMessage(discord.MessageCreate{
 			Content: "Something went wrong, try again later.",
 			Flags:   discord.MessageFlagEphemeral,
 		})
+		if err != nil {
+			return fmt.Errorf("settings reset: send followup: %w", err)
+		}
 
-		return err
+		return nil
 	}
 
 	idx := slices.IndexFunc(
@@ -51,6 +54,9 @@ func (m *ResetModule) reset(
 		),
 		Flags: discord.MessageFlagEphemeral,
 	})
+	if err != nil {
+		return fmt.Errorf("settings reset: send followup: %w", err)
+	}
 
-	return err
+	return nil
 }
