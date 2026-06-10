@@ -3,7 +3,6 @@ module jurien.dev/yugen/shared
 go 1.26.4
 
 require (
-	github.com/bwmarrin/discordgo v0.29.1-0.20260214123928-f43dd94faaac
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/disgoorg/disgo v0.19.6
 	github.com/disgoorg/snowflake/v2 v2.0.3
@@ -11,7 +10,6 @@ require (
 	github.com/getsentry/sentry-go/zap v0.46.2
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.4
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/jurienhamaker/discordgoplus v1.0.5
 	github.com/jurienhamaker/disgoplus v0.1.0
 	github.com/paul-milne/zap-loki v0.5.0
 	github.com/prometheus/client_golang v1.20.5

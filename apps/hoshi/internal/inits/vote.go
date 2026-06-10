@@ -3,7 +3,9 @@ package inits
 import (
 	"fmt"
 
-	"github.com/jurienhamaker/discordgoplus"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/shared/static"
@@ -13,36 +15,35 @@ import (
 func CreateVoteHandler(
 	container *di.Container,
 ) func(userID string, source string) error {
-	bot := container.Get(static.DiBot).(*discordgoplus.Bot)
-	shard, _ := bot.ShardByShardID(0)
+	client := container.Get(static.DiBot).(*disgoplus.Bot).Client()
 
 	return func(userID string, source string) error {
-		utils.Logger.With(
-			"userID", userID,
-			"source", source,
-		).Infof("Processing vote for %s from %s", userID, source)
+		utils.Logger.With("userID", userID, "source", source).
+			Infof("Processing vote for %s from %s", userID, source)
 
-		userChannel, err := shard.UserChannelCreate(userID)
+		uID, err := snowflake.Parse(userID)
+		if err != nil {
+			return fmt.Errorf("vote: parse user ID: %w", err)
+		}
+
+		dm, err := client.Rest.CreateDMChannel(uID)
 		if err != nil {
 			return err
 		}
 
-		_, err = shard.ChannelMessageSend(
-			userChannel.ID,
-			fmt.Sprintf(
+		_, err = client.Rest.CreateMessage(dm.ID(), discord.MessageCreate{
+			Content: fmt.Sprintf(
 				"Thank you for voting on %s!\nYour vote has been very appreciated and helps Hoshi grow!",
 				source,
 			),
-		)
+		})
 
 		return err
 	}
 }
 
 func CreateVoteRewardFunc(container *di.Container) func(userID string) string {
-	voteReward := func(userID string) string {
+	return func(userID string) string {
 		return ""
 	}
-
-	return voteReward
 }

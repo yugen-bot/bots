@@ -23,14 +23,14 @@ type ReactionListener struct {
 
 func GetReactionListener(container *di.Container) *ReactionListener {
 	return &ReactionListener{
-		client: container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
+		client: container.Get(sharedStatic.DiBot).(*disgoplus.Bot).Client(),
 		svc:    container.Get(localStatic.DiStarboard).(*services.StarboardService),
 	}
 }
 
 func AddReactionListeners(container *di.Container) {
 	l := GetReactionListener(container)
-	disgoBot := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
 	disgoBot.Client().EventManager.AddEventListeners(
 		bot.NewListenerFunc(l.OnMessageReactionAdd),
 		bot.NewListenerFunc(l.OnMessageReactionRemove),

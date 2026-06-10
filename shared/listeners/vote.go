@@ -109,7 +109,7 @@ func postStats(client *bot.Client, cfg *config.Config) {
 }
 
 func AddVoteListeners(container *di.Container) {
-	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(static.DiBot).(*disgoplus.Bot)
 	client := disgoBot.Client()
 	cron := container.Get(static.DiCron).(*cron.Cron)
 	cfg := container.Get(static.DiConfig).(*config.Config)

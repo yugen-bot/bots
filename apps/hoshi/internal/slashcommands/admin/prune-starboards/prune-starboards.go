@@ -23,7 +23,7 @@ func GetPruneStarboardsModule(container *di.Container) *PruneStarboardsModule {
 	return &PruneStarboardsModule{
 		container:  container,
 		starboards: container.Get(localStatic.DiStarboard).(*services.StarboardService),
-		bot:        container.Get(static.DiClient).(*disgoplus.Bot),
+		bot:        container.Get(static.DiBot).(*disgoplus.Bot),
 	}
 }
 

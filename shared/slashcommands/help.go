@@ -22,7 +22,7 @@ func GetHelpModule(container *di.Container) *HelpModule {
 
 func (m *HelpModule) tutorial(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 
 	footer := utils.CreateEmbedFooter(
 		bot,

@@ -24,7 +24,7 @@ func GetServerModule(container *di.Container) *ServerModule {
 		settingsSvc: container.Get(sharedStatic.DiSettings).(*services.SettingsService),
 		hintsSvc:    container.Get(localStatic.DiHints).(*services.HintsService),
 		gameSvc:     container.Get(localStatic.DiGame).(*services.GameService),
-		bot:         container.Get(sharedStatic.DiClient).(*disgoplus.Bot),
+		bot:         container.Get(sharedStatic.DiBot).(*disgoplus.Bot),
 	}
 }
 

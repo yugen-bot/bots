@@ -25,7 +25,7 @@ var knownColors = map[string]localStatic.EmojiColor{
 
 // InitEmojis fetches application emojis from Discord and populates the emoji table.
 func InitEmojis(container *di.Container) error {
-	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(static.DiBot).(*disgoplus.Bot)
 	cfg := container.Get(static.DiConfig).(*config.Config)
 
 	appID, err := snowflake.Parse(cfg.DiscordAppID)

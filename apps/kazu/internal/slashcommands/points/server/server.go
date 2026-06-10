@@ -23,7 +23,7 @@ func GetServerModule(container *di.Container) *ServerModule {
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
 		game:      container.Get(local.DiGame).(*services.GameService),
-		bot:       container.Get(static.DiClient).(*disgoplus.Bot),
+		bot:       container.Get(static.DiBot).(*disgoplus.Bot),
 	}
 }
 

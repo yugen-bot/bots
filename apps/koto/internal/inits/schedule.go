@@ -25,7 +25,7 @@ const scheduleConcurrency = 10
 func InitSchedule(container *di.Container) {
 	c := container.Get(sharedStatic.DiCron).(*cron.Cron)
 	database := container.Get(sharedStatic.DiDatabase).(*ent.Client)
-	client := container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client()
+	client := container.Get(sharedStatic.DiBot).(*disgoplus.Bot).Client()
 	gameSvc := container.Get(localStatic.DiGame).(*services.GameService)
 
 	if _, err := c.AddFunc("* * * * *", func() {

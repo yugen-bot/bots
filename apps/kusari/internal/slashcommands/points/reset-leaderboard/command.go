@@ -22,7 +22,7 @@ func (m *ResetLeaderboardModule) err(ctx *disgoplus.Ctx) {
 
 func (m *ResetLeaderboardModule) request(ctx *disgoplus.Ctx) {
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
 		bot,
 		&utils.CreateEmbedFooterParams{

@@ -117,7 +117,7 @@ func (m *LeaderboardModule) showLeaderboard(
 		sb.WriteString("No players found.")
 	}
 
-	bot := m.container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
 
 	footer := utils.CreateEmbedFooter(
 		bot,

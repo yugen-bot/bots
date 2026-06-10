@@ -27,7 +27,7 @@ func GetGameListener(container *di.Container) *GameListener {
 	utils.Logger.Info("Creating Game Listener")
 
 	return &GameListener{
-		client:   container.Get(static.DiClient).(*disgoplus.Bot).Client(),
+		client:   container.Get(static.DiBot).(*disgoplus.Bot).Client(),
 		settings: container.Get(static.DiSettings).(*services.SettingsService),
 		service:  container.Get(localStatic.DiGame).(*services.GameService),
 	}
@@ -35,7 +35,7 @@ func GetGameListener(container *di.Container) *GameListener {
 
 func AddGameListeners(container *di.Container) {
 	l := GetGameListener(container)
-	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(static.DiBot).(*disgoplus.Bot)
 	disgoBot.Client().EventManager.AddEventListeners(
 		bot.NewListenerFunc(l.MessageCreateHandler),
 		bot.NewListenerFunc(l.MessageUpdateHandler),

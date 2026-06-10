@@ -27,7 +27,7 @@ func (m *VoteModule) Run(ctx *disgoplus.Ctx) {
 	}
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 
 	var botName string
 	if self, ok := bot.Client().Caches.SelfUser(); ok {

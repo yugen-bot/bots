@@ -35,7 +35,7 @@ type MessageService struct {
 func CreateMessageService(container *di.Container) *MessageService {
 	utils.Logger.Info("Creating Message Service")
 
-	b := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	b := container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
 
 	return &MessageService{
 		database: container.Get(sharedStatic.DiDatabase).(*ent.Client),

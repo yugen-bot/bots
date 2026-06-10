@@ -26,7 +26,7 @@ func NoSettingsReply(
 	ephemeral bool,
 ) {
 	cfg := container.Get(static.DiConfig).(*config.Config)
-	bot := container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 	footer := shared.CreateEmbedFooter(
 		bot,
 		&shared.CreateEmbedFooterParams{

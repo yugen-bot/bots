@@ -36,14 +36,14 @@ func GetColorListener(container *di.Container) *ColorListener {
 	utils.Logger.Info("Creating Color Listener")
 
 	return &ColorListener{
-		client:     container.Get(static.DiClient).(*disgoplus.Bot).Client(),
+		client:     container.Get(static.DiBot).(*disgoplus.Bot).Client(),
 		cfg:        container.Get(static.DiConfig).(*config.Config),
 		emojiCache: timedmap.New(1 * time.Minute),
 	}
 }
 
 func AddColorListeners(container *di.Container) {
-	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(static.DiBot).(*disgoplus.Bot)
 	cl := GetColorListener(container)
 
 	disgoBot.Client().EventManager.AddEventListeners(

@@ -67,7 +67,7 @@ func startCPUMetrics(cron *cron.Cron) {
 }
 
 func AddMetricsListeners(container *di.Container) {
-	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(static.DiBot).(*disgoplus.Bot)
 	client := disgoBot.Client()
 	cron := container.Get(static.DiCron).(*cron.Cron)
 

@@ -11,7 +11,7 @@ import (
 )
 
 func InitCommands(container *di.Container) error {
-	bot := container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 
 	modules := []utils.CommandsModule{
 		slashcommands.GetDonateModule(container),

@@ -22,7 +22,7 @@ type ResetLeaderboardModule struct {
 func GetResetLeaderboardModule(container *di.Container) *ResetLeaderboardModule {
 	return &ResetLeaderboardModule{
 		container: container,
-		bot:       container.Get(static.DiClient).(*disgoplus.Bot),
+		bot:       container.Get(static.DiBot).(*disgoplus.Bot),
 		points:    container.Get(local.DiPoints).(*services.PointsService),
 	}
 }

@@ -15,7 +15,7 @@ import (
 func (m *AddModule) add(ctx *disgoplus.Ctx) {
 	disgoplus.Defer(ctx, true)
 
-	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 	destination := ctx.CommandData.Channel("destination")
 
 	emojiInput := "⭐"

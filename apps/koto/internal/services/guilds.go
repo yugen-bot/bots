@@ -21,7 +21,7 @@ func CreateGuildsService(container *di.Container) *GuildsService {
 	utils.Logger.Info("Creating Guilds Service")
 
 	return &GuildsService{
-		client: container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
+		client: container.Get(sharedStatic.DiBot).(*disgoplus.Bot).Client(),
 	}
 }
 

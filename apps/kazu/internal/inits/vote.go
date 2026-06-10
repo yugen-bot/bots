@@ -22,7 +22,7 @@ func CreateVoteHandler(
 	container *di.Container,
 ) func(userID string, source string) error {
 	saves := container.Get(localStatic.DiSaves).(*services.SavesService)
-	bot := container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 
 	return func(userID string, source string) error {
 		utils.Logger.With(

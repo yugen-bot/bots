@@ -54,7 +54,7 @@ var (
 func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 
-	b := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	b := container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
 
 	return &GameService{
 		database: container.Get(sharedStatic.DiDatabase).(*ent.Client),

@@ -49,7 +49,7 @@ func (m *StatsModule) points(ctx *disgoplus.Ctx) {
 		ctx.Member.User.ID.String(),
 	)
 
-	bot := m.container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
 		bot,
 		&utils.CreateEmbedFooterParams{IsVote: false},

@@ -58,7 +58,7 @@ func sendLogMessage(
 }
 
 func AddLogListeners(container *di.Container) {
-	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(static.DiBot).(*disgoplus.Bot)
 	client := disgoBot.Client()
 	cfg := container.Get(static.DiConfig).(*config.Config)
 

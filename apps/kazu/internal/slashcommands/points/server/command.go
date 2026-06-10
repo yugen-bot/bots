@@ -82,7 +82,7 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
 	footer := utils.CreateEmbedFooter(
-		m.container.Get(static.DiClient).(*disgoplus.Bot),
+		m.container.Get(static.DiBot).(*disgoplus.Bot),
 		&utils.CreateEmbedFooterParams{IsVote: false},
 		cfg.OwnerID,
 	)

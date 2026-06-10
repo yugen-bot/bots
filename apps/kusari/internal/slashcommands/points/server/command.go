@@ -101,7 +101,7 @@ func (m *ServerModule) server(ctx *disgoplus.Ctx) {
 	self, _ := ctx.Client.Caches.SelfUser()
 
 	cfg := m.container.Get(static.DiConfig).(*config.Config)
-	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 	footer := utils.CreateEmbedFooter(
 		bot,
 		&utils.CreateEmbedFooterParams{

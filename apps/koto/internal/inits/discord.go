@@ -17,7 +17,7 @@ import (
 )
 
 func InitDiscordBot(ctx context.Context, container *di.Container) error {
-	disgoBot := container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(static.DiBot).(*disgoplus.Bot)
 
 	disgoBot.Client().EventManager.AddEventListeners(
 		bot.NewListenerFunc(func(e *events.Ready) {

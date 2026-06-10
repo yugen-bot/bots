@@ -25,7 +25,7 @@ func CreateSettingsService(container *di.Container) *SettingsService {
 
 	return &SettingsService{
 		database: container.Get(static.DiDatabase).(*ent.Client),
-		client:   container.Get(static.DiClient).(*disgoplus.Bot),
+		client:   container.Get(static.DiBot).(*disgoplus.Bot),
 	}
 }
 

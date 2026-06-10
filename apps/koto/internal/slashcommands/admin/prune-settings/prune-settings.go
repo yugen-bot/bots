@@ -22,7 +22,7 @@ func GetPruneSettingsModule(container *di.Container) *PruneSettingsModule {
 	return &PruneSettingsModule{
 		container: container,
 		settings:  container.Get(static.DiSettings).(*services.SettingsService),
-		bot:       container.Get(static.DiClient).(*disgoplus.Bot),
+		bot:       container.Get(static.DiBot).(*disgoplus.Bot),
 	}
 }
 

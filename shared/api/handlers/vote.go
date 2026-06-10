@@ -70,7 +70,7 @@ func (handler *VoteHandler) handleTopGG(c *fiber.Ctx) error {
 		return c.Status(400).SendString("Missing user ID in body")
 	}
 
-	disgoBot := handler.container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := handler.container.Get(static.DiBot).(*disgoplus.Bot)
 
 	self, ok := disgoBot.Client().Caches.SelfUser()
 	if !ok {
@@ -130,7 +130,7 @@ func (handler *VoteHandler) handleVote(userID string, source string) {
 }
 
 func (handler *VoteHandler) sendLogMessage(userID string, source string) {
-	disgoBot := handler.container.Get(static.DiClient).(*disgoplus.Bot)
+	disgoBot := handler.container.Get(static.DiBot).(*disgoplus.Bot)
 	cfg := handler.container.Get(static.DiConfig).(*config.Config)
 
 	content := fmt.Sprintf("<@%s> has voted on **%s**!", userID, source)

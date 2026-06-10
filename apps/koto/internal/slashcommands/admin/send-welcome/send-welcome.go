@@ -17,7 +17,7 @@ type SendWelcomeModule struct {
 func GetSendWelcomeModule(container *di.Container) *SendWelcomeModule {
 	return &SendWelcomeModule{
 		container: container,
-		bot:       container.Get(sharedStatic.DiClient).(*disgoplus.Bot),
+		bot:       container.Get(sharedStatic.DiBot).(*disgoplus.Bot),
 	}
 }
 

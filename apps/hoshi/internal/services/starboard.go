@@ -34,7 +34,7 @@ func CreateStarboardService(container *di.Container) *StarboardService {
 	return &StarboardService{
 		database: container.Get(sharedStatic.DiDatabase).(*ent.Client),
 		settings: container.Get(sharedStatic.DiSettings).(*SettingsService),
-		client:   container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
+		client:   container.Get(sharedStatic.DiBot).(*disgoplus.Bot).Client(),
 		cfg:      container.Get(sharedStatic.DiConfig).(*config.Config),
 	}
 }

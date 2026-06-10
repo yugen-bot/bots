@@ -49,7 +49,7 @@ func CreateGameService(container *di.Container) *GameService {
 	utils.Logger.Info("Creating Game Service")
 
 	return &GameService{
-		client:     container.Get(static.DiClient).(*disgoplus.Bot),
+		client:     container.Get(static.DiBot).(*disgoplus.Bot),
 		cfg:        container.Get(static.DiConfig).(*config.Config),
 		database:   container.Get(static.DiDatabase).(*ent.Client),
 		settings:   container.Get(static.DiSettings).(*SettingsService),

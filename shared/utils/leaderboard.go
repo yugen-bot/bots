@@ -126,7 +126,7 @@ func doLeaderboardResponse(
 ) {
 	embedColor := container.Get(static.DiEmbedColor).(int)
 	cfg := container.Get(static.DiConfig).(*config.Config)
-	bot := container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 
 	maxPage := int(math.Ceil(float64(total) / 10))
 

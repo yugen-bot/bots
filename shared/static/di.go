@@ -3,8 +3,7 @@ package static
 const (
 	DiConfig = "config"
 
-	DiBot            = "discordbot"
-	DiClient         = "disgo_bot" // *disgoplus.Bot — used by migrated apps; DiBot is removed in Phase 5
+	DiBot = "discordbot" // *disgoplus.Bot
 	DiCron           = "cron"
 	DiCacheLifetimes = "cacheliftimes"
 	DiDatabase       = "database"

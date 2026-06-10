@@ -24,7 +24,7 @@ type GuildListener struct {
 
 func GetGuildListener(container *di.Container) *GuildListener {
 	return &GuildListener{
-		client:      container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
+		client:      container.Get(sharedStatic.DiBot).(*disgoplus.Bot).Client(),
 		settingsSvc: container.Get(sharedStatic.DiSettings).(*services.SettingsService),
 		cfg:         container.Get(sharedStatic.DiConfig).(*config.Config),
 	}
@@ -32,7 +32,7 @@ func GetGuildListener(container *di.Container) *GuildListener {
 
 func AddGuildListeners(container *di.Container) {
 	l := GetGuildListener(container)
-	disgoBot := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
 	disgoBot.Client().EventManager.AddEventListeners(
 		bot.NewListenerFunc(l.OnGuildJoin),
 		bot.NewListenerFunc(l.OnGuildLeave),

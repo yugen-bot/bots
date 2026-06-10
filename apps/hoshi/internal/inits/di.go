@@ -44,7 +44,7 @@ func InitDI() (container di.Container, err error) {
 	sharedInits.InitSharedDi(diBuilder)
 
 	diBuilder.Add(&di.Def{
-		Name: static.DiClient,
+		Name: static.DiBot,
 		Build: func(ctn di.Container) (any, error) {
 			cfg := ctn.Get(static.DiConfig).(*config.Config)
 			gatewayOpts := []gateway.ConfigOpt{

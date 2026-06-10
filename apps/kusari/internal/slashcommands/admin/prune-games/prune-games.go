@@ -21,7 +21,7 @@ func GetPruneGamesModule(container *di.Container) *PruneGamesModule {
 	return &PruneGamesModule{
 		container: container,
 		games:     container.Get(localStatic.DiGame).(*services.GameService),
-		bot:       container.Get(static.DiClient).(*disgoplus.Bot),
+		bot:       container.Get(static.DiBot).(*disgoplus.Bot),
 	}
 }
 

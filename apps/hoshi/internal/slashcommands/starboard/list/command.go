@@ -48,7 +48,7 @@ func (m *ListModule) showList(
 		disgoplus.Defer(ctx, true)
 	}
 
-	bot := m.container.Get(static.DiClient).(*disgoplus.Bot)
+	bot := m.container.Get(static.DiBot).(*disgoplus.Bot)
 
 	items, total, err := m.starboard.GetStarboards(
 		context.Background(),

@@ -26,7 +26,7 @@ type MessageListener struct {
 
 func GetMessageListener(container *di.Container) *MessageListener {
 	return &MessageListener{
-		client:      container.Get(sharedStatic.DiClient).(*disgoplus.Bot).Client(),
+		client:      container.Get(sharedStatic.DiBot).(*disgoplus.Bot).Client(),
 		settingsSvc: container.Get(sharedStatic.DiSettings).(*services.SettingsService),
 		wordsSvc:    container.Get(localStatic.DiWords).(*services.WordsService),
 		gameSvc:     container.Get(localStatic.DiGame).(*services.GameService),
@@ -35,7 +35,7 @@ func GetMessageListener(container *di.Container) *MessageListener {
 
 func AddMessageListeners(container *di.Container) {
 	l := GetMessageListener(container)
-	disgoBot := container.Get(sharedStatic.DiClient).(*disgoplus.Bot)
+	disgoBot := container.Get(sharedStatic.DiBot).(*disgoplus.Bot)
 	disgoBot.Client().EventManager.AddEventListeners(
 		bot.NewListenerFunc(l.OnMessageCreate),
 	)

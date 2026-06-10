@@ -1,7 +1,6 @@
 package inits
 
 import (
-	"github.com/jurienhamaker/discordgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
 
@@ -19,23 +18,7 @@ func InitSharedDi(diBuilder *di.EnhancedBuilder) {
 		},
 	})
 
-	diBuilder.Add(&di.Def{
-		Name: static.DiBot,
-		Build: func(ctn di.Container) (any, error) {
-			cfg := ctn.Get(static.DiConfig).(*config.Config)
-			return discordgoplus.New(cfg.DiscordToken, cfg.Shard)
-		},
-		Close: func(obj any) error {
-			bot := obj.(*discordgoplus.Bot)
-
-			utils.Logger.Info("Shutting down bot...")
-			bot.Close()
-
-			return nil
-		},
-	})
-
-	// DiClient (*disgoplus.Bot) is NOT registered here — each app registers it in
+	// DiBot (*disgoplus.Bot) is NOT registered here — each app registers it in
 	// its own di.go with the correct intents for that bot.
 
 	diBuilder.Add(&di.Def{
