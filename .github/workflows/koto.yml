@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: jurienhamaker/koto
+  IMAGE_NAME: yugen-bot/koto
 
 jobs:
   docker:

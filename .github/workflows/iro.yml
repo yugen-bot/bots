@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: jurienhamaker/iro
+  IMAGE_NAME: yugen-bot/iro
 
 jobs:
   docker:

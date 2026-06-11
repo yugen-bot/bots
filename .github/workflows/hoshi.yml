@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: jurienhamaker/hoshi
+  IMAGE_NAME: yugen-bot/hoshi
 
 jobs:
   docker:
