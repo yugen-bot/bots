@@ -25,4 +25,7 @@ func AddSharedRoutes(
 	// Custom shared handlers
 	vote := handlers.GetVoteHandler(container)
 	vote.AddRoutes(app, router)
+
+	user := handlers.GetUserHandler(container)
+	user.AddRoutes(app, router)
 }
