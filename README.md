@@ -14,9 +14,9 @@
 - [Kusari](https://github.com/jurienhamaker/yugen/tree/main/apps/kusari) - A collaborative word chain bot
 - [Kazu](https://github.com/jurienhamaker/yugen/tree/main/apps/kazu) - A collaborative counting bot
 - [Hoshi](https://github.com/jurienhamaker/yugen/tree/main/apps/hoshi) - A starboard bot with ability for multiple starboards
-- [Iro](https://github.com/jurienhamaker/yugen/tree/main/apps/iro) - A bot that repliees with colors on recognized color codes
+- [Iro](https://github.com/jurienhamaker/yugen/tree/main/apps/iro) - A bot that replies with colors on recognized color codes
 
----
+**Built with [disgo](https://github.com/disgoorg/disgo)**
 
 ## Stay in touch
 
