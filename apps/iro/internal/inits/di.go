@@ -42,11 +42,11 @@ func InitDI() (container di.Container, err error) {
 					gateway.IntentGuilds,
 					gateway.IntentGuildMessageReactions,
 					gateway.IntentGuildMessages,
+					gateway.IntentMessageContent,
 				),
 				gateway.WithPresenceOpts(
 					gateway.WithWatchingActivity(
 						"colors 🎨",
-						gateway.WithActivityState("lol"),
 					),
 				),
 			}
@@ -65,7 +65,9 @@ func InitDI() (container di.Container, err error) {
 				cfg.Shard,
 				discordOpt,
 				bot.WithCacheConfigOpts(
-					cache.WithCaches(static.DefaultCacheFlags),
+					cache.WithCaches(
+						static.DefaultCacheFlags,
+					),
 				),
 				bot.WithLogger(utils.NewSlogFromZap(utils.Logger)),
 			)
