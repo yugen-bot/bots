@@ -33,8 +33,8 @@ func RunHTTP(ctx context.Context, container *di.Container) error {
 	}))
 
 	router := app.Group("/api")
-	api.AddSharedRoutes(app, router, container)
 	api.AddSharedMiddleware(app)
+	api.AddSharedRoutes(app, router, container)
 
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	addr := fmt.Sprintf("%s:%s", cfg.APIHost, cfg.APIPort)
