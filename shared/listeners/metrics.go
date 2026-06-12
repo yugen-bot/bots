@@ -3,12 +3,12 @@ package listeners
 import (
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/gateway"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/robfig/cron/v3"
 	"github.com/sarulabs/di/v2"
@@ -18,10 +18,6 @@ import (
 	"jurien.dev/yugen/shared/static"
 	"jurien.dev/yugen/shared/utils"
 )
-
-// lastHeartbeatTime stores the last heartbeat ACK timestamp per shard for
-// approximate reconnect-duration logging (no explicit disconnect event in disgo).
-var lastHeartbeatTime sync.Map // shardID (int) → time.Time
 
 func reloadGauges(client *bot.Client) {
 	time.Sleep(time.Second)
@@ -58,27 +54,31 @@ func AddMetricsListeners(container *di.Container) {
 	cron := container.Get(static.DiCron).(*cron.Cron)
 
 	startCPUMetrics(cron)
-	startLatencyCron(cron)
+	startLatencyCron(cron, client)
 	registerMetricEventListeners(client)
 }
 
-func startLatencyCron(cron *cron.Cron) {
+func startLatencyCron(cron *cron.Cron, client *bot.Client) {
+	writeLatency := func(g gateway.Gateway) {
+		shardID := g.ShardID()
+		shard := strconv.Itoa(shardID)
+		if shardID < 0 {
+			shard = "0"
+		}
+		metrics.DiscordLatency.WithLabelValues(shard).
+			Set(float64(g.Latency().Milliseconds()))
+	}
+
 	if _, err := cron.AddFunc("@every 1m", func() {
-		lastHeartbeatTime.Range(func(k, v any) bool {
-			shardID := k.(int)
-			t := v.(time.Time)
-
-			shard := strconv.Itoa(shardID)
-			if shardID < 0 {
-				shard = "0"
+		if client.HasShardManager() {
+			for g := range client.ShardManager.Shards() {
+				writeLatency(g)
 			}
-
-			elapsed := time.Since(t)
-			metrics.DiscordLatency.WithLabelValues(shard).
-				Set(float64(elapsed.Milliseconds()))
-
-			return true
-		})
+			return
+		}
+		if client.HasGateway() {
+			writeLatency(client.Gateway)
+		}
 	}); err != nil {
 		panic(err)
 	}
@@ -86,7 +86,6 @@ func startLatencyCron(cron *cron.Cron) {
 
 func registerMetricEventListeners(client *bot.Client) {
 	client.EventManager.AddEventListeners(
-		bot.NewListenerFunc(onHeartbeatAck),
 		bot.NewListenerFunc(func(e *events.Ready) {
 			onReady(e, client)
 		}),
@@ -116,39 +115,9 @@ func registerMetricEventListeners(client *bot.Client) {
 	)
 }
 
-func onHeartbeatAck(e *events.HeartbeatAck) {
-	lastHeartbeatTime.Store(e.ShardID(), time.Now())
-	latency := e.NewHeartbeat.Sub(e.LastHeartbeat)
-
-	shard := strconv.Itoa(e.ShardID())
-	if e.ShardID() < 0 {
-		shard = "0"
-	}
-
-	metrics.DiscordLatency.WithLabelValues(shard).
-		Set(float64(latency.Milliseconds()))
-}
-
 func onReady(e *events.Ready, client *bot.Client) {
-	shardID := e.ShardID()
-
 	metrics.DiscordConnected.Set(1)
-
-	if lh, ok := lastHeartbeatTime.Load(shardID); ok {
-		gap := time.Since(lh.(time.Time))
-		if gap > 10*time.Second {
-			utils.Logger.Infof(
-				"Reconnected to Discord (shard %d) after ~%s",
-				shardID,
-				gap.Round(time.Second),
-			)
-		} else {
-			utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
-		}
-	} else {
-		utils.Logger.Infof("Connected to Discord (shard %d)", shardID)
-	}
-
+	utils.Logger.Infof("Connected to Discord (shard %d)", e.ShardID())
 	metrics.DiscordShards.Inc()
 
 	go reloadGauges(client)
@@ -157,20 +126,8 @@ func onReady(e *events.Ready, client *bot.Client) {
 }
 
 func onResumed(e *events.Resumed) {
-	shardID := e.ShardID()
-
 	metrics.DiscordConnected.Set(1)
-
-	if lh, ok := lastHeartbeatTime.Load(shardID); ok {
-		gap := time.Since(lh.(time.Time))
-		utils.Logger.Infof(
-			"Reconnected to Discord (shard %d) after ~%s",
-			shardID,
-			gap.Round(time.Second),
-		)
-	} else {
-		utils.Logger.Infof("Resumed connection to Discord (shard %d)", shardID)
-	}
+	utils.Logger.Infof("Resumed connection to Discord (shard %d)", e.ShardID())
 }
 
 func onSlashCommandInteraction(e *events.ApplicationCommandInteractionCreate) {
