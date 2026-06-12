@@ -96,12 +96,12 @@ Please use any of the links below to vote for %s!%s`,
 	return nil
 }
 
-func (m *VoteModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *VoteModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "vote",
 			Description: "Vote for the bot!",
-		},
+		}),
 	}
 }
 

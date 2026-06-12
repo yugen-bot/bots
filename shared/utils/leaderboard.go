@@ -22,9 +22,9 @@ type (
 	LeaderboardFormatFunc func(item any) string
 )
 
-func GetLeaderboardCommands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func GetLeaderboardCommands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "leaderboard",
 			Description: "Get the current servers leaderboard!",
 			Options: []discord.ApplicationCommandOption{
@@ -34,7 +34,7 @@ func GetLeaderboardCommands() []discord.ApplicationCommandCreate {
 					Required:    false,
 				},
 			},
-		},
+		}),
 	}
 }
 

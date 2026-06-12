@@ -1,32 +1,35 @@
 package utils
 
 import (
-	"fmt"
 	"sync/atomic"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 )
 
 var totalRegisteredCommands atomic.Int64
 
-// TotalRegisteredCommands returns the number of leaf slash commands registered
-// by the most recent RegisterCommandModules call.
+// TotalRegisteredCommands returns the number of leaf slash commands recorded
+// by the most recent SetTotalRegisteredCommands call.
 func TotalRegisteredCommands() int {
 	return int(totalRegisteredCommands.Load())
+}
+
+// SetTotalRegisteredCommands stores the leaf-count gauge consumed by the
+// discord_stat_total_interactions metric.
+func SetTotalRegisteredCommands(n int) {
+	totalRegisteredCommands.Store(int64(n))
 }
 
 // CountLeafCommands counts the leaf-level commands across all modules —
 // subcommands (and subcommands within groups) are each counted as 1;
 // top-level commands with no sub-commands are counted as 1.
-func CountLeafCommands(modules []RoutableModule) int {
+func CountLeafCommands(modules []disgoplus.RoutableModule) int {
 	n := 0
 
 	for _, m := range modules {
-		for _, cmd := range m.Commands() {
-			n += countLeafCreate(cmd)
+		for _, reg := range m.Commands() {
+			n += countLeafCreate(reg.Create)
 		}
 	}
 
@@ -63,80 +66,4 @@ func countLeafOptions(opts []discord.ApplicationCommandOption) int {
 	}
 
 	return leaves
-}
-
-// RoutableModule is implemented by every top-level slash-command module.
-// Commands returns the ApplicationCommandCreate descriptors to register/sync,
-// and Register wires all handlers (slash commands, components, modals) onto r.
-type RoutableModule interface {
-	Commands() []discord.ApplicationCommandCreate
-	Register(r handler.Router)
-}
-
-// RegisterCommandModules builds a single handler.Mux from all modules and
-// registers it as an event listener on the bot's client.
-func RegisterCommandModules(bot *disgoplus.Bot, modules []RoutableModule) {
-	mux := handler.New()
-
-	for _, m := range modules {
-		cmds := m.Commands()
-		cmdCount := len(cmds)
-
-		cmdStr := "commands"
-		if cmdCount == 1 {
-			cmdStr = "command"
-		}
-
-		m.Register(mux)
-
-		name := commandsModuleName(cmds)
-		Logger.Infof("Registered %q module with %d %s", name, cmdCount, cmdStr)
-	}
-
-	totalRegisteredCommands.Store(int64(CountLeafCommands(modules)))
-	bot.Client().AddEventListeners(mux)
-}
-
-// SyncCommands collects all ApplicationCommandCreate definitions and syncs
-// them to the given guild (or globally if guildID is zero).
-func SyncCommands(
-	bot *disgoplus.Bot,
-	modules []RoutableModule,
-	guildID snowflake.ID,
-) error {
-	var cmds []discord.ApplicationCommandCreate
-	for _, m := range modules {
-		cmds = append(cmds, m.Commands()...)
-	}
-
-	var guildIDs []snowflake.ID
-	if guildID != 0 {
-		guildIDs = []snowflake.ID{guildID}
-	}
-
-	Logger.Infof("Syncing %d commands", len(cmds))
-
-	if err := handler.SyncCommands(bot.Client(), cmds, guildIDs); err != nil {
-		return fmt.Errorf("sync commands: %w", err)
-	}
-
-	return nil
-}
-
-func commandsModuleName(cmds []discord.ApplicationCommandCreate) string {
-	if len(cmds) == 0 {
-		return "unknown"
-	}
-
-	switch c := cmds[0].(type) {
-	case discord.SlashCommandCreate:
-		return c.Name
-	case discord.UserCommandCreate:
-		return c.Name
-	case discord.MessageCommandCreate:
-		return c.Name
-	default:
-		_ = c
-		return "unknown"
-	}
 }

@@ -6,7 +6,7 @@ require (
 	github.com/disgoorg/disgo v0.19.6
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/joho/godotenv v1.5.1
-	github.com/jurienhamaker/disgoplus v0.1.0
+	github.com/jurienhamaker/disgoplus v0.3.0
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/zekroTJA/colorname v1.0.0
 	github.com/zekroTJA/shinpuru v0.0.0-20240828005211-d93172643d5f

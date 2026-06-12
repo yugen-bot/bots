@@ -4,6 +4,7 @@ package resetleaderboard
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kusari/internal/services"
@@ -31,9 +32,9 @@ func GetResetLeaderboardModule(
 	}
 }
 
-func (m *ResetLeaderboardModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *ResetLeaderboardModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "reset-leaderboard",
 			Description: "Reset all player points & completely reset the leaderboard.",
 			Options: []discord.ApplicationCommandOption{
@@ -43,7 +44,7 @@ func (m *ResetLeaderboardModule) Commands() []discord.ApplicationCommandCreate {
 					Required:    false,
 				},
 			},
-		},
+		}),
 	}
 }
 

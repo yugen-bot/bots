@@ -2,8 +2,8 @@
 package points
 
 import (
-	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	donatesave "jurien.dev/yugen/kazu/internal/slashcommands/points/donate-save"
@@ -15,7 +15,7 @@ import (
 
 // pointsSubModule is implemented by all points-related leaf modules.
 type pointsSubModule interface {
-	Commands() []discord.ApplicationCommandCreate
+	Commands() []disgoplus.CommandRegistration
 	Register(r handler.Router)
 }
 
@@ -40,8 +40,8 @@ func GetPointsModule(container *di.Container) *PointsModule {
 }
 
 // Commands aggregates command definitions from all sub-modules.
-func (m *PointsModule) Commands() []discord.ApplicationCommandCreate {
-	var all []discord.ApplicationCommandCreate
+func (m *PointsModule) Commands() []disgoplus.CommandRegistration {
+	var all []disgoplus.CommandRegistration
 	for _, sm := range m.subModules {
 		all = append(all, sm.Commands()...)
 	}

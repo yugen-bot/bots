@@ -4,13 +4,18 @@ package admin
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	cleardictionary "jurien.dev/yugen/kusari/internal/slashcommands/admin/clear-dictionary"
 	prunegames "jurien.dev/yugen/kusari/internal/slashcommands/admin/prune-games"
 	prunesettings "jurien.dev/yugen/kusari/internal/slashcommands/admin/prune-settings"
 	resetemptygames "jurien.dev/yugen/kusari/internal/slashcommands/admin/reset-empty-games"
+	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/middlewares"
+	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
 )
 
 type adminSubModule interface {
@@ -21,13 +26,17 @@ type adminSubModule interface {
 // AdminModule is the group root for /admin.
 type AdminModule struct {
 	container  *di.Container
+	devGuildID snowflake.ID
 	subModules []adminSubModule
 }
 
 // GetAdminModule constructs an AdminModule from the DI container.
 func GetAdminModule(container *di.Container) *AdminModule {
+	cfg := container.Get(static.DiConfig).(*config.Config)
+
 	return &AdminModule{
-		container: container,
+		container:  container,
+		devGuildID: parseDevGuildID(cfg.DiscordDevelopmentGuild),
 		subModules: []adminSubModule{
 			cleardictionary.GetClearDictionaryModule(container),
 			prunegames.GetPruneGamesModule(container),
@@ -37,19 +46,46 @@ func GetAdminModule(container *di.Container) *AdminModule {
 	}
 }
 
-// Commands returns the /admin command with all sub-commands wired in.
-func (m *AdminModule) Commands() []discord.ApplicationCommandCreate {
+func parseDevGuildID(raw string) snowflake.ID {
+	if raw == "" {
+		utils.Logger.Warnw(
+			"admin module: development guild id is not set; /admin will be unavailable",
+		)
+
+		return 0
+	}
+
+	id, err := snowflake.Parse(raw)
+	if err != nil {
+		utils.Logger.Warnw(
+			"admin module: parse development guild id failed; /admin will be unavailable",
+			"error",
+			err,
+		)
+
+		return 0
+	}
+
+	return id
+}
+
+// Commands returns the /admin command scoped to the development guild.
+func (m *AdminModule) Commands() []disgoplus.CommandRegistration {
+	if m.devGuildID == 0 {
+		return nil
+	}
+
 	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
 	for _, sub := range m.subModules {
 		opts = append(opts, sub.SubCommandOption())
 	}
 
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+	return []disgoplus.CommandRegistration{
+		disgoplus.InGuild(m.devGuildID, discord.SlashCommandCreate{
 			Name:        "admin",
 			Description: "Admin commands",
 			Options:     opts,
-		},
+		}),
 	}
 }
 

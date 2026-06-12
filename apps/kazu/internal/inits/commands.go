@@ -21,7 +21,7 @@ import (
 func InitCommands(container *di.Container) error {
 	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 
-	modules := []utils.RoutableModule{
+	modules := []disgoplus.RoutableModule{
 		// shared
 		sharedSlashcommands.GetDonateModule(container),
 		sharedSlashcommands.GetInviteModule(container),
@@ -37,14 +37,15 @@ func InitCommands(container *di.Container) error {
 		points.GetPointsModule(container),
 	}
 
-	utils.RegisterCommandModules(bot, modules)
+	disgoplus.RegisterCommandModules(bot, modules)
+	utils.SetTotalRegisteredCommands(utils.CountLeafCommands(modules))
 
 	cfg := container.Get(static.DiConfig).(*config.Config)
 	if !cfg.SyncCommands {
 		return nil
 	}
 
-	var guildID snowflake.ID
+	var devOverride snowflake.ID
 
 	if cfg.Env != "production" {
 		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
@@ -55,8 +56,14 @@ func InitCommands(container *di.Container) error {
 			)
 		}
 
-		guildID = id
+		devOverride = id
 	}
 
-	return utils.SyncCommands(bot, modules, guildID)
+	utils.Logger.Info("Syncing commands...")
+
+	if err := disgoplus.SyncCommands(bot, modules, devOverride); err != nil {
+		return fmt.Errorf("sync commands: %w", err)
+	}
+
+	return nil
 }

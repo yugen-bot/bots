@@ -4,6 +4,7 @@ package leaderboard
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -32,9 +33,9 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 	}
 }
 
-func (m *LeaderboardModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *LeaderboardModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "leaderboard",
 			Description: "View the Koto leaderboard",
 			Options: []discord.ApplicationCommandOption{
@@ -63,7 +64,7 @@ func (m *LeaderboardModule) Commands() []discord.ApplicationCommandCreate {
 					Required:    false,
 				},
 			},
-		},
+		}),
 	}
 }
 

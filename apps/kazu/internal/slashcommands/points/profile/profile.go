@@ -4,6 +4,7 @@ package profile
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/services"
@@ -27,7 +28,7 @@ func GetProfileModule(container *di.Container) *ProfileModule {
 }
 
 // Commands returns the profile and points command definitions.
-func (m *ProfileModule) Commands() []discord.ApplicationCommandCreate {
+func (m *ProfileModule) Commands() []disgoplus.CommandRegistration {
 	options := []discord.ApplicationCommandOption{
 		discord.ApplicationCommandOptionUser{
 			Name:        "player",
@@ -36,17 +37,17 @@ func (m *ProfileModule) Commands() []discord.ApplicationCommandCreate {
 		},
 	}
 
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "profile",
 			Description: "Get your kazu profile!",
 			Options:     options,
-		},
-		discord.SlashCommandCreate{
+		}),
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "points",
 			Description: "[Deprecated] Get your current points!",
 			Options:     options,
-		},
+		}),
 	}
 }
 

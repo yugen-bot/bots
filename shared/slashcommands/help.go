@@ -52,12 +52,12 @@ func (m *HelpModule) tutorial(
 	return nil
 }
 
-func (m *HelpModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *HelpModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "help",
 			Description: "How to setup the bot!",
-		},
+		}),
 	}
 }
 

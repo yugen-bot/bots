@@ -63,12 +63,12 @@ Don't hesitate now and **invite %s** wherever you want using the button bellow!`
 	return nil
 }
 
-func (m *InviteModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *InviteModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "invite",
 			Description: "Get a bot invite to add it to your server!",
-		},
+		}),
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"jurien.dev/yugen/shared/config"
 	"jurien.dev/yugen/shared/slashcommands"
 	"jurien.dev/yugen/shared/static"
+	"jurien.dev/yugen/shared/utils"
 )
 
 func InitCommands(container *di.Container) error {
@@ -24,17 +25,29 @@ func InitCommands(container *di.Container) error {
 	}
 
 	disgoplus.RegisterCommandModules(bot, modules)
+	utils.SetTotalRegisteredCommands(utils.CountLeafCommands(modules))
 
 	if !cfg.SyncCommands {
 		return nil
 	}
 
-	var guildID snowflake.ID
+	var devOverride snowflake.ID
+
 	if cfg.Env != "production" {
-		guildID, _ = snowflake.Parse(cfg.DiscordDevelopmentGuild)
+		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
+		if err != nil {
+			return fmt.Errorf(
+				"init commands: parse development guild id: %w",
+				err,
+			)
+		}
+
+		devOverride = id
 	}
 
-	if err := disgoplus.SyncCommands(bot, modules, guildID); err != nil {
+	utils.Logger.Info("Syncing commands...")
+
+	if err := disgoplus.SyncCommands(bot, modules, devOverride); err != nil {
 		return fmt.Errorf("sync commands: %w", err)
 	}
 

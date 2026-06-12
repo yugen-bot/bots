@@ -6,6 +6,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/ent/game"
@@ -126,9 +127,9 @@ func (m *GameModule) reset(
 }
 
 // Commands returns the /game command group definition.
-func (m *GameModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *GameModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "game",
 			Description: "Game command group",
 			Options: []discord.ApplicationCommandOption{
@@ -155,7 +156,7 @@ func (m *GameModule) Commands() []discord.ApplicationCommandCreate {
 					},
 				},
 			},
-		},
+		}),
 	}
 }
 

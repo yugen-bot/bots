@@ -52,12 +52,12 @@ func (m *TutorialModule) tutorial(
 	return nil
 }
 
-func (m *TutorialModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *TutorialModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "tutorial",
 			Description: "The rules of the game!",
-		},
+		}),
 	}
 }
 

@@ -4,6 +4,7 @@ package settings
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/slashcommands/settings/reset"
@@ -51,18 +52,18 @@ func GetSettingsModule(container *di.Container) *SettingsModule {
 	}
 }
 
-func (m *SettingsModule) Commands() []discord.ApplicationCommandCreate {
+func (m *SettingsModule) Commands() []disgoplus.CommandRegistration {
 	opts := make([]discord.ApplicationCommandOption, 0, len(m.subModules))
 	for _, sub := range m.subModules {
 		opts = append(opts, sub.SubCommandOption())
 	}
 
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "settings",
 			Description: "Koto settings",
 			Options:     opts,
-		},
+		}),
 	}
 }
 

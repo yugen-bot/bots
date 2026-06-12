@@ -1,6 +1,8 @@
 package inits
 
 import (
+	"fmt"
+
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
@@ -19,7 +21,7 @@ func InitCommands(container *di.Container) error {
 	bot := container.Get(static.DiBot).(*disgoplus.Bot)
 	cfg := container.Get(static.DiConfig).(*config.Config)
 
-	modules := []utils.RoutableModule{
+	modules := []disgoplus.RoutableModule{
 		sharedSlashcommands.GetDonateModule(container),
 		sharedSlashcommands.GetInviteModule(container),
 		sharedSlashcommands.GetSupportModule(container),
@@ -31,16 +33,32 @@ func InitCommands(container *di.Container) error {
 		starboard.GetStarboardModule(container),
 	}
 
-	utils.RegisterCommandModules(bot, modules)
+	disgoplus.RegisterCommandModules(bot, modules)
+	utils.SetTotalRegisteredCommands(utils.CountLeafCommands(modules))
 
 	if !cfg.SyncCommands {
 		return nil
 	}
 
-	var guildID snowflake.ID
+	var devOverride snowflake.ID
+
 	if cfg.Env != "production" {
-		guildID, _ = snowflake.Parse(cfg.DiscordDevelopmentGuild)
+		id, err := snowflake.Parse(cfg.DiscordDevelopmentGuild)
+		if err != nil {
+			return fmt.Errorf(
+				"init commands: parse development guild id: %w",
+				err,
+			)
+		}
+
+		devOverride = id
 	}
 
-	return utils.SyncCommands(bot, modules, guildID)
+	utils.Logger.Info("Syncing commands...")
+
+	if err := disgoplus.SyncCommands(bot, modules, devOverride); err != nil {
+		return fmt.Errorf("sync commands: %w", err)
+	}
+
+	return nil
 }

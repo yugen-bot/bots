@@ -8,7 +8,7 @@ require (
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
-	github.com/jurienhamaker/disgoplus v0.1.0
+	github.com/jurienhamaker/disgoplus v0.3.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sarulabs/di/v2 v2.5.1
 	github.com/zekroTJA/shinpuru v0.0.0-20260318014313-ed714cf1553c

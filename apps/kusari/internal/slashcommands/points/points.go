@@ -2,8 +2,8 @@
 package points
 
 import (
-	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	donatesave "jurien.dev/yugen/kusari/internal/slashcommands/points/donate-save"
@@ -11,11 +11,10 @@ import (
 	"jurien.dev/yugen/kusari/internal/slashcommands/points/profile"
 	resetleaderboard "jurien.dev/yugen/kusari/internal/slashcommands/points/reset-leaderboard"
 	"jurien.dev/yugen/kusari/internal/slashcommands/points/server"
-	"jurien.dev/yugen/shared/utils"
 )
 
 type pointsSubModule interface {
-	utils.RoutableModule
+	disgoplus.RoutableModule
 }
 
 // PointsModule aggregates all points-related slash commands.
@@ -37,8 +36,8 @@ func GetPointsModule(container *di.Container) *PointsModule {
 	}
 }
 
-func (m *PointsModule) Commands() []discord.ApplicationCommandCreate {
-	var all []discord.ApplicationCommandCreate
+func (m *PointsModule) Commands() []disgoplus.CommandRegistration {
+	var all []disgoplus.CommandRegistration
 	for _, sm := range m.subModules {
 		all = append(all, sm.Commands()...)
 	}

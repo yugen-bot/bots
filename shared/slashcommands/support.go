@@ -57,12 +57,12 @@ Join our support server with the button below, we'll try to help you out the bes
 	return nil
 }
 
-func (m *SupportModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *SupportModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "support",
 			Description: "Get a support discord invite to join the support server!",
-		},
+		}),
 	}
 }
 

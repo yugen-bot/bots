@@ -8,7 +8,7 @@ require (
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
-	github.com/jurienhamaker/disgoplus v0.1.0
+	github.com/jurienhamaker/disgoplus v0.3.0
 	github.com/lib/pq v1.10.9
 	github.com/sarulabs/di/v2 v2.5.1
 	golang.org/x/sync v0.20.0

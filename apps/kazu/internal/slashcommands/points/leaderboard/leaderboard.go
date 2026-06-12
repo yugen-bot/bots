@@ -8,6 +8,7 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/kazu/internal/ent"
@@ -31,7 +32,7 @@ func GetLeaderboardModule(container *di.Container) *LeaderboardModule {
 }
 
 // Commands returns the leaderboard command definition.
-func (m *LeaderboardModule) Commands() []discord.ApplicationCommandCreate {
+func (m *LeaderboardModule) Commands() []disgoplus.CommandRegistration {
 	return utils.GetLeaderboardCommands()
 }
 

@@ -2,8 +2,8 @@
 package points
 
 import (
-	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	donatehint "jurien.dev/yugen/koto/internal/slashcommands/points/donate-hint"
@@ -14,7 +14,7 @@ import (
 )
 
 type pointsSubModule interface {
-	Commands() []discord.ApplicationCommandCreate
+	Commands() []disgoplus.CommandRegistration
 	Register(r handler.Router)
 }
 
@@ -37,8 +37,8 @@ func GetPointsModule(container *di.Container) *PointsModule {
 	}
 }
 
-func (m *PointsModule) Commands() []discord.ApplicationCommandCreate {
-	var all []discord.ApplicationCommandCreate
+func (m *PointsModule) Commands() []disgoplus.CommandRegistration {
+	var all []disgoplus.CommandRegistration
 	for _, sm := range m.subModules {
 		all = append(all, sm.Commands()...)
 	}

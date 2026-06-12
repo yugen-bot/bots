@@ -4,6 +4,7 @@ package donatehint
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
 
 	"jurien.dev/yugen/koto/internal/services"
@@ -25,12 +26,12 @@ func GetDonateHintModule(container *di.Container) *DonateHintModule {
 	}
 }
 
-func (m *DonateHintModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *DonateHintModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "donate-hint",
 			Description: "Donate a personal hint to the server.",
-		},
+		}),
 	}
 }
 

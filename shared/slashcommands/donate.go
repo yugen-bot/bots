@@ -59,12 +59,12 @@ Thanks for playing!`,
 	return nil
 }
 
-func (m *DonateModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *DonateModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "donate",
 			Description: "Get information about donating to the bot!",
-		},
+		}),
 	}
 }
 

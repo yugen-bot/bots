@@ -30,12 +30,12 @@ func GetServerModule(container *di.Container) *ServerModule {
 	}
 }
 
-func (m *ServerModule) Commands() []discord.ApplicationCommandCreate {
-	return []discord.ApplicationCommandCreate{
-		discord.SlashCommandCreate{
+func (m *ServerModule) Commands() []disgoplus.CommandRegistration {
+	return []disgoplus.CommandRegistration{
+		disgoplus.Global(discord.SlashCommandCreate{
 			Name:        "server",
 			Description: "View server hint stats.",
-		},
+		}),
 	}
 }
 

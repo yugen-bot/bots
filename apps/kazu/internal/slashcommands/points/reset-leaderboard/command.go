@@ -115,6 +115,7 @@ func (m *ResetLeaderboardModule) reset(e *handler.ComponentEvent) error {
 	}
 
 	contentText := "The leaderboard points have been reset"
+
 	if userID != "none" {
 		go func() {
 			contentText = fmt.Sprintf(
