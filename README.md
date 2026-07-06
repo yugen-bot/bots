@@ -12,6 +12,7 @@
   <a href="https://discord.com/oauth2/authorize?client_id=1186650405703262208&scope=bot&permissions=511040" target="_blank"><img src="https://img.shields.io/badge/Invite-Kusari-%2381BA6C?style=flat&logo=discord" alt="Invite Kusari" /></a>
   <a href="https://discord.com/oauth2/authorize?client_id=1260679337594589356&scope=bot&permissions=275146853440" target="_blank"><img src="https://img.shields.io/badge/Invite-Kazu-%235C80ED?style=flat&logo=discord" alt="Invite Kazu" /></a>
   <a href="https://discord.com/oauth2/authorize?client_id=1208707348659445800&scope=bot&permissions=511040" target="_blank"><img src="https://img.shields.io/badge/Invite-Hoshi-%23ECE15C?style=flat&logo=discord" alt="Invite Hoshi" /></a>
+  <a href="https://discord.com/oauth2/authorize?client_id=1523707144644464831&permissions=274878295110&scope=bot+applications.commands" target="_blank"><img src="https://img.shields.io/badge/Invite-Hachimitsu-%23F5A623?style=flat&logo=discord" alt="Invite Hachimitsu" /></a>
   <a href="https://discord.com/oauth2/authorize?client_id=1305247349702135908&scope=bot&permissions=412317174848" target="_blank"><img src="https://img.shields.io/badge/Invite-Iro-%23DC3563?style=flat&logo=discord" alt="Invite Iro" /></a>
  </p>
 
