@@ -4,7 +4,7 @@
 
   <p align="center">A automatic banning honeypot bot for <a href="http://discord.com" target="_blank">Discord</a>.</p>
     <p align="center">
-      <img src="https://img.shields.io/github/license/jurrienhamaker/yugen" alt="Package License" />
+      <img src="https://img.shields.io/github/license/yugen-bot/bots" alt="Package License" />
       <img src="https://img.shields.io/github/actions/workflow/status/jurienhamaker/yugen/hachimitsu.yml" alt="CircleCI" />
       <a href="https://discord.gg/UttZbEd9zn" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
     </p>
