@@ -1,0 +1,100 @@
+<p align="center">
+  <a href="https://discord.gg/UttZbEd9zn" target="blank"><img src="https://raw.githubusercontent.com/jurienhamaker/Yugen/main/assets/hachimitsu%20sticker.png" width="200" alt="Hachimitsu logo" /></a>
+</p>
+
+  <p align="center">A automatic banning honeypot bot for <a href="http://discord.com" target="_blank">Discord</a>.</p>
+    <p align="center">
+      <img src="https://img.shields.io/github/license/jurrienhamaker/yugen" alt="Package License" />
+      <img src="https://img.shields.io/github/actions/workflow/status/jurienhamaker/yugen/hachimitsu.yml" alt="CircleCI" />
+      <a href="https://discord.gg/UttZbEd9zn" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+    </p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Running Hachimitsu
+
+### Getting started
+
+```bash
+git clone git@github.com:jurienhamaker/yugen.git
+```
+
+**Copy the `.env.example` to `.env` and change the values in the `.env` file**
+**Copy the `apps/hachimitsu/.env.example` to `apps/hachimitsu/.env` and change the values in the `.env` file**
+
+---
+
+### Docker (Recommended)
+
+#### Prerequisite
+
+- [Docker](https://www.docker.com/)
+
+### Running the app
+
+Migrations will automatically run when the bot starts.
+
+```bash
+docker-compose up -d db
+docker-compose up hachimitsu
+```
+
+### Running migrations separately
+
+```bash
+docker-compose exec -it hachimitsu make hachimitsu-migrate
+```
+
+---
+
+### Go
+
+#### Prerequisite
+
+- [go 1.25](https://go.dev/doc/install)
+- [PostgresDB](https://www.postgresql.org/)
+- [Atlas CLI](https://atlasgo.io/docs#installation)
+
+### Building the bot & running the bot
+
+```bash
+# watch mode (recommended)
+$ make hachimitsu
+
+# production mode
+$ make hachimitsu-build
+$ ./dist/hachimitsu
+```
+
+### Running migrations
+
+Migrations use [Ent](https://entgo.io/) for the ORM and [Atlas](https://atlasgo.io/) for schema migrations.
+
+```bash
+# Apply pending migrations
+$ make hachimitsu-migrate
+
+# Move to hachimitsu directory
+$ cd apps/hachimitsu
+
+# Generate a new migration after schema changes
+$ make migrate-diff name=<migration_name>
+
+# Validate migration checksums
+$ make migrate-validate
+
+# Regenerate Ent code after schema changes
+$ make ent-generate
+```
+
+---
+
+## Stay in touch
+
+- Author - [Jurien Hamaker](https://jurien.dev)
+- Website - [jurien.dev](https://jurien.dev/)
+- Ko-Fi - [ko-fi.com/jurienhamaker](https://ko-fi.com/jurienhamaker)
+
+## License
+
+Hachimitsu is [GPL licensed](../../LICENSE).
