@@ -9,6 +9,7 @@ import (
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/jurienhamaker/disgoplus"
 	"github.com/sarulabs/di/v2"
@@ -108,10 +109,12 @@ func (l *MessageListener) OnMessageCreate(e *events.MessageCreate) {
 	// Ban the user and purge their recent messages in one API call.
 	// int64 arithmetic avoids Duration×Duration (durationcheck).
 	durationNs := int64(hp.DeleteMessageDays) * 24 * int64(time.Hour)
+	banReason := fmt.Sprintf("Auto-banned by Hachimitsu - Honeypot %s", channelID)
 	if banErr := l.client.Rest.AddBan(
 		*e.GuildID,
 		msg.Author.ID,
 		time.Duration(durationNs),
+		rest.WithReason(banReason),
 	); banErr != nil {
 		utils.Logger.Warnf(
 			"honeypot: ban %s in guild %s: %v",
