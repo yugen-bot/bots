@@ -1,6 +1,7 @@
 go 1.26.4
 
 use (
+	./apps/hachimitsu
 	./apps/hoshi
 	./apps/iro
 	./apps/kazu

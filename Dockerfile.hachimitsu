@@ -1,0 +1,28 @@
+FROM golang:1.26 AS build
+
+WORKDIR /opt/app
+
+COPY apps/hachimitsu/go.mod apps/hachimitsu/go.sum ./apps/hachimitsu/
+COPY shared/go.mod shared/go.sum ./shared/
+
+RUN cd apps/hachimitsu && \
+	go mod download && \
+	cd ../../shared && \
+	go mod download
+
+COPY ./ ./
+
+RUN make build-hachimitsu
+
+
+# Production
+FROM arigaio/atlas:latest-alpine
+
+WORKDIR /opt/app
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /opt/app/apps/hachimitsu/dist/hachimitsu /opt/app/hachimitsu
+COPY --from=build /opt/app/apps/hachimitsu/atlas.hcl /opt/app/atlas.hcl
+COPY --from=build /opt/app/apps/hachimitsu/migrations /opt/app/migrations
+
+ENTRYPOINT ["/bin/sh", "-c", "atlas migrate apply --env production && exec /opt/app/hachimitsu"]

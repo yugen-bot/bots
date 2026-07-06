@@ -60,8 +60,20 @@ build-koto:
 	cd apps/koto && make build-prod
 
 
+hachimitsu:
+	@echo "Starting Hachimitsu..."
+	cd apps/hachimitsu && make watch
+
+hachimitsu-migrate:
+	@echo "Running Hachimitsu migrations..."
+	cd apps/hachimitsu && make migrate
+
+build-hachimitsu:
+	@echo "Building Hachimitsu..."
+	cd apps/hachimitsu && make build-prod
+
 lint:
 	@echo "Running linter..."
 	golangci-lint run
 
-.PHONY: iro kazu kusari hoshi koto lint
+.PHONY: iro kazu kusari hoshi koto hachimitsu lint

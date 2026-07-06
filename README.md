@@ -21,6 +21,7 @@
 - [Kusari](https://github.com/yugen-bot/yugen/tree/main/apps/kusari) - A collaborative word chain bot
 - [Kazu](https://github.com/yugen-bot/yugen/tree/main/apps/kazu) - A collaborative counting bot
 - [Hoshi](https://github.com/yugen-bot/yugen/tree/main/apps/hoshi) - A starboard bot with ability for multiple starboards
+- [Hachimitsu](https://github.com/yugen-bot/yugen/tree/main/apps/hachimitsu) - A honeypot bot that will automatically ban users that send messages in a honeypot channel
 - [Iro](https://github.com/yugen-bot/yugen/tree/main/apps/iro) - A bot that replies with colors on recognized color codes
 
 **Built with [disgo](https://github.com/disgoorg/disgo)**

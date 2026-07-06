@@ -68,6 +68,20 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  hachimitsu:
+    build: .
+    user: "1000:1000"
+    command: "hachimitsu"
+    env_file:
+      - .env
+      - ./apps/hachimitsu/.env
+    volumes:
+      - .:/opt/app
+    ports:
+      - "$HACHIMITSU_API_LISTEN_PORT:$API_LISTEN_PORT"
+    depends_on:
+      db:
+        condition: service_healthy
 
   valkey:
     image: valkey/valkey:alpine
