@@ -25,14 +25,14 @@ func CreateGuildsService(container *di.Container) *GuildsService {
 	}
 }
 
-func (s *GuildsService) GetData(page int) ([]discord.Guild, int) {
-	var guilds []discord.Guild
+func (s *GuildsService) GetData(page int) ([]discord.CacheGuild, int) {
+	var guilds []discord.CacheGuild
 
 	for g := range s.client.Caches.Guilds() {
 		guilds = append(guilds, g)
 	}
 
-	slices.SortFunc(guilds, func(a, b discord.Guild) int {
+	slices.SortFunc(guilds, func(a, b discord.CacheGuild) int {
 		return cmp.Compare(b.MemberCount, a.MemberCount)
 	})
 

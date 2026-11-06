@@ -53,7 +53,7 @@ func (l *GuildListener) OnGuildJoin(e *events.GuildJoin) {
 
 	utils.Logger.Infof("Joined guild: %s", e.Guild.Name)
 
-	for _, ch := range e.Guild.Channels {
+	for ch := range l.client.Caches.ChannelsForGuild(e.GuildID) {
 		if ch.Type() != discord.ChannelTypeGuildText {
 			continue
 		}
